@@ -108,7 +108,19 @@ export default function PortalHome() {
   };
 
   // 服务分类
-  const serviceCategories = [
+  type ServiceItem = {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    url: string;
+    desc: string;
+    badge?: string;
+    external?: boolean;
+    type?: string;
+    soon?: boolean;
+  };
+  const serviceCategories: { id: string; name: string; icon: string; color: string; services: ServiceItem[] }[] = [
     {
       id: 'core',
       name: '核心入口',
