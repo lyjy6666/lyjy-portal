@@ -14,7 +14,7 @@ interface GuestbookEntry {
   timestamp: number;
 }
 
-const API_URL = '/.netlify/functions/guestbook';
+const API_URL = '/api/guestbook';
 
 const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
