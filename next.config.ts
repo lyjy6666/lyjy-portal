@@ -2,12 +2,9 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // 构建时跳过 TypeScript 和 ESLint 检查（本地开发仍会提示）
+  // 构建时跳过 TypeScript 检查（本地开发仍会提示）
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   // 允许外部图片域名（用于名言背景等）
   images: {
