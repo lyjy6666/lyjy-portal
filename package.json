@@ -49,7 +49,6 @@
     "coze-coding-dev-sdk": "^0.7.21",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
-    "edge-tts": "^1.0.1",
     "framer-motion": "^11.18.2",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.0.0",
