@@ -35,6 +35,7 @@ const searchEngines: Record<string, {
     icon: string;
     tag: string;
     featured?: boolean;
+    aiSearch?: boolean;
 }> = {
     bing: {
         name: "必应",
