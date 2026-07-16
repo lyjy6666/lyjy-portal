@@ -17,6 +17,23 @@ export default function PortalHome() {
   const [statsData, setStatsData] = useState<WebsiteStats[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dynamicNumber, setDynamicNumber] = useState(0);
+  // 装饰栏随机数据：仅在客户端生成，避免 hydration 文本不匹配（React #418）
+  const [decorationChars, setDecorationChars] = useState<string[]>([]);
+  const [decorationStyles, setDecorationStyles] = useState<{ delay: string; duration: string; transform: string }[]>([]);
+
+  useEffect(() => {
+    // 生成左侧装饰栏的随机数据（仅在客户端执行，避免 hydration 不匹配）
+    const chars = Array.from({ length: 20 }, () =>
+      Math.random().toString(36).substring(2, 10)
+    );
+    const styles = Array.from({ length: 20 }, (_, i) => ({
+      delay: `${i * 0.1}s`,
+      duration: `${5 + Math.random() * 3}s`,
+      transform: `translateY(${Math.random() * 500}px)`,
+    }));
+    setDecorationChars(chars);
+    setDecorationStyles(styles);
+  }, []);
 
   useEffect(() => {
     // 生成统计数据并持久化
@@ -287,17 +304,17 @@ export default function PortalHome() {
           variants={decorationVariant}
         >
           <div className="w-32 h-64 bg-gradient-to-b from-blue-500/10 to-transparent overflow-hidden">
-            {Array.from({ length: 20 }).map((_, i) => (
+            {decorationChars.map((char, i) => (
               <div
                 key={i}
                 className="text-xs text-blue-400/30 font-mono"
                 style={{
-                  animationDelay: `${i * 0.1}s`,
-                  animationDuration: `${5 + Math.random() * 3}s`,
-                  transform: `translateY(${Math.random() * 500}px)`,
+                  animationDelay: decorationStyles[i]?.delay,
+                  animationDuration: decorationStyles[i]?.duration,
+                  transform: decorationStyles[i]?.transform,
                 }}
               >
-                {Math.random().toString(36).substring(2, 10)}
+                {char}
               </div>
             ))}
           </div>
