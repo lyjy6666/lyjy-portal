@@ -166,8 +166,9 @@ export default function PortalHome() {
       icon: 'fa-play',
       color: 'red',
       services: [
-        { id: 'video', name: '视频', icon: 'fa-video', color: 'red', url: '/video', desc: '视频播放与浏览' },
+        { id: 'movie', name: '影视资源', icon: 'fa-film', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放' },
         { id: 'radio', name: '城市深夜电台 · 声音星系', icon: 'fa-satellite-dish', color: 'indigo', url: '#', desc: '大项目，正在筹备中，敬请期待', badge: '施工中', soon: true },
+        { id: 'video', name: '视频播放器', icon: 'fa-video', color: 'orange', url: '/video', desc: '视频播放与浏览' },
       ],
     },
     {

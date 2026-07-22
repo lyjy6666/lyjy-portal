@@ -17,6 +17,7 @@ export interface WebsiteStats {
   pomodoro: number;
   tts: number;
   video: number;
+  movie: number;
 }
 
 /**
@@ -36,7 +37,8 @@ export function generateRandomStatsData(): WebsiteStats[] {
     fruitGame: { min: 0, max: 300 },
     pomodoro: { min: 100, max: 350 },
     tts: { min: 80, max: 300 },
-    video: { min: 50, max: 250 }
+    video: { min: 50, max: 250 },
+    movie: { min: 100, max: 400 }
   };
 
   let lastHomepage = 500 + Math.floor(Math.random() * 301);
@@ -49,6 +51,7 @@ export function generateRandomStatsData(): WebsiteStats[] {
   let lastPomodoro = 100 + Math.floor(Math.random() * 251);
   let lastTts = 80 + Math.floor(Math.random() * 221);
   let lastVideo = 50 + Math.floor(Math.random() * 201);
+  let lastMovie = 100 + Math.floor(Math.random() * 301);
 
   for (let i = 29; i >= 0; i--) {
     const date = new Date();
@@ -67,7 +70,8 @@ export function generateRandomStatsData(): WebsiteStats[] {
       fruitGame: [0.8, 0.9, 1.0, 1.1, 1.15, 1.3, 1.25],
       pomodoro: [1.1, 1.15, 1.2, 1.1, 1.05, 0.8, 0.75],
       tts: [0.9, 1.0, 1.1, 1.05, 1.0, 1.15, 1.1],
-      video: [0.85, 0.95, 1.05, 1.0, 1.1, 1.25, 1.2]
+      video: [0.85, 0.95, 1.05, 1.0, 1.1, 1.25, 1.2],
+      movie: [0.9, 1.0, 1.05, 1.1, 1.15, 1.3, 1.25]
     };
 
     const applyFluctuation = (
@@ -112,7 +116,8 @@ export function generateRandomStatsData(): WebsiteStats[] {
       fruitGame: (Math.random() - 0.5) * 0.17,
       pomodoro: (Math.random() - 0.5) * 0.16,
       tts: (Math.random() - 0.5) * 0.16,
-      video: (Math.random() - 0.5) * 0.17
+      video: (Math.random() - 0.5) * 0.17,
+      movie: (Math.random() - 0.5) * 0.18
     };
 
     lastHomepage = applyFluctuation(lastHomepage, 'homepage', baseChanges.homepage);
@@ -125,6 +130,7 @@ export function generateRandomStatsData(): WebsiteStats[] {
     lastPomodoro = applyFluctuation(lastPomodoro, 'pomodoro', baseChanges.pomodoro);
     lastTts = applyFluctuation(lastTts, 'tts', baseChanges.tts);
     lastVideo = applyFluctuation(lastVideo, 'video', baseChanges.video);
+    lastMovie = applyFluctuation(lastMovie, 'movie', baseChanges.movie);
 
     if (lastSearch > lastHomepage && Math.random() > 0.1) {
       const temp = lastHomepage;
@@ -146,7 +152,8 @@ export function generateRandomStatsData(): WebsiteStats[] {
       fruitGame: lastFruitGame,
       pomodoro: lastPomodoro,
       tts: lastTts,
-      video: lastVideo
+      video: lastVideo,
+      movie: lastMovie
     });
   }
 
