@@ -154,7 +154,7 @@ export default function PortalHome() {
       icon: 'fa-tools',
       color: 'cyan',
       services: [
-        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换', badge: 'Beta' },
+        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换' },
         { id: 'homework', name: '作业管理系统', icon: 'fa-clipboard-list', color: 'green', url: '/homework', desc: '语音输入、按科目分组' },
         { id: 'pomodoro', name: '番茄钟', icon: 'fa-clock', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
         { id: 'tts', name: '语音朗读', icon: 'fa-volume-high', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
@@ -166,7 +166,7 @@ export default function PortalHome() {
       icon: 'fa-play',
       color: 'red',
       services: [
-        { id: 'movie', name: '影视资源', icon: 'fa-film', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放' },
+        { id: 'movie', name: '影视资源', icon: 'fa-film', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放', badge: 'Beta' },
         { id: 'radio', name: '城市深夜电台 · 声音星系', icon: 'fa-satellite-dish', color: 'indigo', url: '#', desc: '大项目，正在筹备中，敬请期待', badge: '施工中', soon: true },
         { id: 'video', name: '视频播放器', icon: 'fa-video', color: 'orange', url: '/video', desc: '视频播放与浏览' },
       ],

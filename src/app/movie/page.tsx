@@ -611,6 +611,9 @@ export default function MoviePage() {
   const [passwordError, setPasswordError] = useState('');
   const [showUpdateLog, setShowUpdateLog] = useState(false);
 
+  // 测试阶段提示弹窗（每次进入站点都弹出，直到用户点击"我已了解"关闭）
+  const [showBetaNotice, setShowBetaNotice] = useState(false);
+
   // ============ 数据请求 ============
   const fetchCategories = useCallback(async () => {
     try {
@@ -713,6 +716,15 @@ export default function MoviePage() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // 进入影视站弹出测试阶段提醒（每个会话首次进入弹一次）
+  useEffect(() => {
+    const SESSION_KEY = 'movie_beta_notice_shown';
+    if (typeof window === 'undefined') return;
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+      setShowBetaNotice(true);
+    }
+  }, []);
 
   useEffect(() => {
     fetchMovies();
@@ -938,7 +950,7 @@ export default function MoviePage() {
             <motion.h1
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl md:text-4xl font-bold tracking-tight"
+              className="text-3xl md:text-4xl font-bold tracking-tight inline-flex items-center gap-2"
               style={{
                 backgroundImage: 'linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b)',
                 backgroundSize: '200% 100%',
@@ -948,6 +960,9 @@ export default function MoviePage() {
             >
               <i className="fa-solid fa-film mr-3"></i>
               LYJY 影视
+              <span className="text-xs md:text-sm font-semibold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 align-middle">
+                Beta
+              </span>
             </motion.h1>
           </div>
 
@@ -1669,6 +1684,67 @@ export default function MoviePage() {
                 className="w-full mt-5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm rounded-lg transition-all font-medium"
               >
                 我知道了
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 测试阶段提醒弹窗 */}
+      <AnimatePresence>
+        {showBetaNotice && (
+          <motion.div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowBetaNotice(false)}
+          >
+            <motion.div
+              className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-xl shadow-2xl w-full max-w-md p-6 border border-amber-500/40 relative"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowBetaNotice(false)}
+                className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                aria-label="关闭"
+              >
+                <i className="fa-solid fa-times"></i>
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
+                  <i className="fa-solid fa-triangle-exclamation text-amber-400 text-xl"></i>
+                </div>
+                <h2 className="text-xl font-bold text-amber-300">测试阶段提醒</h2>
+              </div>
+
+              <div className="space-y-3 text-slate-200 text-sm leading-relaxed">
+                <p>现在是测试阶段，很多功能尚不完善，部分影片无法播放，请谅解。</p>
+                <p>
+                  有什么需求可以向{' '}
+                  <a
+                    href="mailto:lyjy0505@qq.com"
+                    className="text-blue-400 hover:text-blue-300 underline font-medium"
+                  >
+                    lyjy0505@qq.com
+                  </a>{' '}
+                  这个邮箱发送信息。
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('movie_beta_notice_shown', '1');
+                  setShowBetaNotice(false);
+                }}
+                className="w-full mt-5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm rounded-lg transition-all font-medium"
+              >
+                我已了解
               </button>
             </motion.div>
           </motion.div>
