@@ -154,10 +154,10 @@ export default function PortalHome() {
       icon: 'fa-tools',
       color: 'cyan',
       services: [
-        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换' },
-        { id: 'homework', name: '作业管理系统', icon: 'fa-clipboard-list', color: 'green', url: '/homework', desc: '语音输入、按科目分组' },
+        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换', badge: '下版本大更新' },
+        { id: 'homework', name: '作业管理系统', icon: 'fa-clipboard-list', color: 'green', url: '/homework', desc: '语音输入、按科目分组', badge: '下版本大更新' },
         { id: 'pomodoro', name: '番茄钟', icon: 'fa-clock', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
-        { id: 'tts', name: '语音朗读', icon: 'fa-volume-high', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
+        { id: 'tts', name: '语音朗读', icon: 'fa-volume-high', color: 'pink', url: '/tts', desc: 'TTS 语音合成', badge: '下版本大更新' },
       ],
     },
     {
