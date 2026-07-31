@@ -62,10 +62,17 @@ export async function POST(request: NextRequest) {
 
     const newUser = rows[0];
 
+    // 注册成功即返回登录态（新用户默认非 VIP、未试用）
     return NextResponse.json({
       success: true,
       message: '注册成功',
-      user: { id: newUser.id, username: newUser.username }
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        isVip: false,
+        vipExpiresAt: null,
+        trialUsed: false,
+      }
     });
   } catch (error) {
     console.error('注册错误:', error);

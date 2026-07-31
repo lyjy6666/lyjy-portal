@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+
+const API_KEY = 'sk-5sA83DFAASHDScmmvQuFxawtCkesKcQomSZlmCgxNloVuIVS';
+const BASE_URL = 'https://apihub.agnes-ai.com/v1';
+const MODEL = 'gpt-4o';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,35 +15,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const client = new LLMClient(config, customHeaders);
-
-    const messages = [
-      {
-        role: 'user' as const,
-        content: [
+    const response = await fetch(`${BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
           {
-            type: 'text' as const,
-            text: '请仔细识别这张图片中的所有文字内容，完整准确地输出图片中的文字。只输出识别到的文字内容，不要添加任何解释、说明或格式。如果图片中没有文字，请回复"未识别到文字"。',
-          },
-          {
-            type: 'image_url' as const,
-            image_url: {
-              url: image,
-              detail: 'high' as const,
-            },
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: '请仔细识别这张图片中的所有文字内容，完整准确地输出图片中的文字。只输出识别到的文字内容，不要添加任何解释、说明或格式。如果图片中没有文字，请回复"未识别到文字"。',
+              },
+              {
+                type: 'image_url',
+                image_url: { url: image, detail: 'high' },
+              },
+            ],
           },
         ],
-      },
-    ];
-
-    const response = await client.invoke(messages, {
-      model: 'doubao-seed-1-6-vision-250815',
-      temperature: 0.1,
+        temperature: 0.1,
+        max_tokens: 2048,
+      }),
     });
 
-    const text = response.content.trim();
+    if (!response.ok) {
+      console.error('OCR API error:', response.status);
+      return NextResponse.json(
+        { success: false, message: 'OCR 服务暂时不可用' },
+        { status: 500 }
+      );
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || '';
 
     if (text === '未识别到文字' || !text) {
       return NextResponse.json({

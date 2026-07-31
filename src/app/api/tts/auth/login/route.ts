@@ -6,6 +6,14 @@ interface LoginRequest {
   password: string;
 }
 
+// 计算用户当前 VIP 状态：以 vip_expires_at 为准
+function calcVip(vipExpiresAt: string | null): { isVip: boolean; vipExpiresAt: string | null } {
+  if (!vipExpiresAt) return { isVip: false, vipExpiresAt: null };
+  const exp = new Date(vipExpiresAt).getTime();
+  if (Number.isNaN(exp)) return { isVip: false, vipExpiresAt: null };
+  return { isVip: exp > Date.now(), vipExpiresAt };
+}
+
 // 登录
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 查找用户
+    // 查找用户（含 VIP 字段）
     const rows = await sql`
-      SELECT id, username, password, is_vip FROM users WHERE username = ${username}
+      SELECT id, username, password, is_vip, vip_trial_used, vip_expires_at
+      FROM users WHERE username = ${username}
     `;
 
     if (rows.length === 0) {
@@ -41,10 +50,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { isVip, vipExpiresAt } = calcVip(user.vip_expires_at);
+
     return NextResponse.json({
       success: true,
       message: '登录成功',
-      user: { id: user.id, username: user.username, isVip: user.is_vip || false }
+      user: {
+        id: user.id,
+        username: user.username,
+        isVip,
+        vipExpiresAt,
+        trialUsed: user.vip_trial_used || false,
+      }
     });
   } catch (error) {
     console.error('登录错误:', error);

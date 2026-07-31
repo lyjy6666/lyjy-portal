@@ -6,6 +6,7 @@ import { Mic, MicOff, Check, Trash2, Plus, Sparkles, Clock, AlertTriangle, Chevr
 import * as mammoth from 'mammoth';
 import { ConfettiExplosion } from '@/components/ConfettiExplosion';
 import CalendarDialog from '@/components/CalendarDialog';
+import AIGrader from '@/components/AIGrader';
 
 interface Task {
   id: number;
@@ -49,6 +50,7 @@ export default function HomeworkPage() {
 
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showAIGrader, setShowAIGrader] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -1978,6 +1980,15 @@ export default function HomeworkPage() {
           <i className="fa-solid fa-house text-white"></i>
         </Link>
 
+        {/* AI 批改作业按钮 */}
+        <button
+          onClick={() => setShowAIGrader(true)}
+          className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/50 hover:scale-110 transition-all flex items-center justify-center group"
+          title="AI 批改作业"
+        >
+          <Sparkles className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+        </button>
+
         {/* 时钟按钮 */}
         <button
           onClick={() => setShowUpdateLog(true)}
@@ -2132,7 +2143,7 @@ export default function HomeworkPage() {
               </button>
             </div>
 
-            {/* 最新版本 V4.0 */}
+            {/* 最新版本 V4.5 */}
             <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-4 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20 mb-3">
               <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
                 <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full shadow-lg">
@@ -2141,24 +2152,29 @@ export default function HomeworkPage() {
               </div>
               <div className="pl-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-blue-300 font-bold text-sm">2026.7.11</span>
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V4.0</span>
+                  <span className="text-blue-300 font-bold text-sm">2026.7.29</span>
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V4.5</span>
                 </div>
                 <ul className="text-slate-200 text-sm space-y-1.5 font-medium">
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增导入文档为作业功能</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增云端储存作业，登录即可多设备同步</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>修复了一些已知问题</span>
+                    <span>新增 AI 批改作业功能</span>
                   </li>
                 </ul>
               </div>
+            </div>
+
+            {/* 历史版本 V4.0 */}
+            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-slate-400 font-semibold text-sm">2026.7.11</span>
+                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V4.0</span>
+              </div>
+              <ul className="text-slate-400 text-sm space-y-1">
+                <li>• 新增导入文档为作业功能</li>
+                <li>• 新增云端储存作业，登录即可多设备同步</li>
+                <li>• 修复了一些已知问题</li>
+              </ul>
             </div>
 
             {/* 历史版本 V3.1 */}
@@ -2356,6 +2372,12 @@ export default function HomeworkPage() {
         isOpen={showCalendarDialog}
         onClose={() => setShowCalendarDialog(false)}
         tasks={tasks}
+      />
+
+      {/* AI 批改作业弹窗 */}
+      <AIGrader
+        isOpen={showAIGrader}
+        onClose={() => setShowAIGrader(false)}
       />
       </div>
     )}

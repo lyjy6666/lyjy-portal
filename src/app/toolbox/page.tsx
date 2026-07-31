@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle } from 'lucide-react';
+import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle, Droplet } from 'lucide-react';
 import ImageConverter from '@/components/converters/ImageConverter';
 import TextConverter from '@/components/converters/TextConverter';
 import CodeConverter from '@/components/converters/CodeConverter';
@@ -14,6 +14,7 @@ import DeveloperTools from '@/components/converters/DeveloperTools';
 import AudioConverter from '@/components/converters/AudioConverter';
 import VideoConverter from '@/components/converters/VideoConverter';
 import CompressConverter from '@/components/converters/CompressConverter';
+import WatermarkTool from '@/components/converters/WatermarkTool';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Link from 'next/link';
 
@@ -121,6 +122,13 @@ export default function ToolboxPage() {
               >
                 <Archive className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
                 压缩工具
+              </TabsTrigger>
+              <TabsTrigger
+                value="watermark"
+                className="group relative rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-fuchsia-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:scale-105 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/20"
+              >
+                <Droplet className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
+                水印工具
               </TabsTrigger>
             </TabsList>
           </div>
@@ -450,13 +458,37 @@ export default function ToolboxPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Watermark Tool */}
+          <TabsContent value="watermark">
+            <Card className="border-0 rounded-xl bg-white/80 shadow-2xl backdrop-blur-md dark:bg-slate-900/80">
+              <CardHeader className="space-y-4 border-b border-slate-200/50 pb-6 dark:border-slate-800/50">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 p-3 shadow-lg shadow-fuchsia-500/30">
+                    <Droplet className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      水印工具
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-slate-600 dark:text-slate-400">
+                      图片去水印（框选区域自动修复）/ 图片视频加水印
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <WatermarkTool />
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Update Record Button */}
         <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
           <DialogTrigger asChild>
             <Button
-              className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-0 shadow-2xl shadow-blue-500/30 hover:from-blue-700 hover:to-purple-700 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110"
+              className="fixed bottom-8 left-8 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 p-0 shadow-2xl shadow-blue-500/30 hover:from-blue-700 hover:to-purple-700 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110"
               size="icon"
             >
               <Clock className="h-6 w-6 text-white animate-pulse" />
@@ -472,7 +504,7 @@ export default function ToolboxPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="py-4 space-y-4">
-              {/* V2.2 - 突出显示 */}
+              {/* V2.3 - 突出显示 */}
               <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6 shadow-xl shadow-blue-500/20 dark:border-blue-500 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-pink-950/50 dark:shadow-blue-500/20">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -480,17 +512,35 @@ export default function ToolboxPage() {
                       🎉 当前版本
                     </span>
                     <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-pink-400">
-                      V2.2
+                      V2.3
                     </h3>
                   </div>
                   <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    2026.7.9
+                    2026.7.29
                   </span>
                 </div>
                 <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🔧</span>
-                    <span className="font-semibold">修复了一些已知问题</span>
+                    <span className="text-lg">💧</span>
+                    <span className="font-semibold">新增了水印工具</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* V2.2 - 历史版本 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-md dark:border-slate-700 dark:bg-slate-900/50">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                    V2.2
+                  </h3>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">
+                    2026.7.9
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🔧</span>
+                    <span>修复了一些已知问题</span>
                   </div>
                 </div>
               </div>

@@ -132,7 +132,7 @@ export default function PortalHome() {
     color: string;
     url: string;
     desc: string;
-    badge?: string;
+    badge?: string | string[];
     external?: boolean;
     type?: string;
     soon?: boolean;
@@ -144,8 +144,8 @@ export default function PortalHome() {
       icon: 'fa-compass',
       color: 'blue',
       services: [
-        { id: 'home', name: '主页', icon: 'fa-home', color: 'blue', url: '/home', desc: '每日名言、音乐播放器、功能入口' },
-        { id: 'search', name: '搜索页', icon: 'fa-search', color: 'purple', url: '/search', desc: '聚合 26+ 搜索引擎' },
+        { id: 'home', name: '主页', icon: 'fa-home', color: 'blue', url: '/home', desc: '每日名言、音乐播放器、功能入口', badge: '下版本更新' },
+        { id: 'search', name: '搜索页', icon: 'fa-search', color: 'purple', url: '/search', desc: '聚合 26+ 搜索引擎', badge: '下版本更新' },
       ],
     },
     {
@@ -154,10 +154,10 @@ export default function PortalHome() {
       icon: 'fa-tools',
       color: 'cyan',
       services: [
-        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换', badge: '下版本大更新' },
-        { id: 'homework', name: '作业管理系统', icon: 'fa-clipboard-list', color: 'green', url: '/homework', desc: '语音输入、按科目分组', badge: '下版本大更新' },
+        { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-tools', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换', badge: '近期更新' },
+        { id: 'homework', name: '作业管理系统', icon: 'fa-clipboard-list', color: 'green', url: '/homework', desc: '语音输入、按科目分组', badge: '近期更新' },
         { id: 'pomodoro', name: '番茄钟', icon: 'fa-clock', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
-        { id: 'tts', name: '语音朗读', icon: 'fa-volume-high', color: 'pink', url: '/tts', desc: 'TTS 语音合成', badge: '下版本大更新' },
+        { id: 'tts', name: '语音朗读', icon: 'fa-volume-high', color: 'pink', url: '/tts', desc: 'TTS 语音合成', badge: '近期更新' },
       ],
     },
     {
@@ -166,7 +166,7 @@ export default function PortalHome() {
       icon: 'fa-play',
       color: 'red',
       services: [
-        { id: 'movie', name: '影视资源', icon: 'fa-film', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放', badge: 'Beta' },
+        { id: 'movie', name: '影视资源', icon: 'fa-film', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放', badge: ['Beta', '下版本更新'] },
         { id: 'radio', name: '城市深夜电台 · 声音星系', icon: 'fa-satellite-dish', color: 'indigo', url: '#', desc: '大项目，正在筹备中，敬请期待', badge: '施工中', soon: true },
         { id: 'video', name: '视频播放器', icon: 'fa-video', color: 'orange', url: '/video', desc: '视频播放与浏览' },
       ],
@@ -177,7 +177,7 @@ export default function PortalHome() {
       icon: 'fa-gamepad',
       color: 'yellow',
       services: [
-        { id: 'doudizhu', name: '斗地主', icon: 'fa-diamond', color: 'red', url: 'https://doudizhu-play.netlify.app', desc: '在线斗地主游戏，经典扑克玩法', external: true },
+        { id: 'doudizhu', name: '斗地主', icon: 'fa-diamond', color: 'red', url: 'https://doudizhu-play.netlify.app', desc: '在线斗地主游戏，经典扑克玩法', badge: '下版本更新', external: true },
         { id: 'qianglilock', name: '强力锁', icon: 'fa-lock', color: 'blue', url: '/强力锁.exe', desc: '锁定电脑，更加专注，保护安全', badge: '新增', type: 'download' },
         { id: 'fruit', name: '水果游戏', icon: 'fa-apple-alt', color: 'orange', url: 'https://lyjyfruitgame.netlify.app', desc: '休闲益智类网页小游戏', external: true },
         { id: 'monopoly', name: '大富翁计分器', icon: 'fa-money-bill-wave', color: 'yellow', url: 'https://lyjymonopoly.netlify.app', desc: '桌游大富翁的多人计分工具', external: true },
@@ -386,9 +386,11 @@ export default function PortalHome() {
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-white text-sm font-medium truncate">{service.name}</span>
                                   {service.badge && (
-                                    <span className={`px-1.5 py-0.5 ${c.from} ${c.text} text-[10px] rounded-full border ${c.border} flex-shrink-0`}>
-                                      {service.badge}
-                                    </span>
+                                    (Array.isArray(service.badge) ? service.badge : [service.badge]).map((b, i) => (
+                                      <span key={i} className={`px-1.5 py-0.5 ${c.from} ${c.text} text-[10px] whitespace-nowrap rounded-full border ${c.border} flex-shrink-0`}>
+                                        {b}
+                                      </span>
+                                    ))
                                   )}
                                 </div>
                                 <span className="text-[11px] text-slate-400/80 truncate mt-0.5">{service.desc}</span>

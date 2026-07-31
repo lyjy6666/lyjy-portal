@@ -9,7 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw } from 'lucide-react';
+import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles } from 'lucide-react';
+import AudioEditor from '@/components/AudioEditor';
+import AuthDialog from '@/components/tts/AuthDialog';
+import VipPricingDialog from '@/components/tts/VipPricingDialog';
+import type { TtsUser } from '@/components/tts/types';
+import { createWorker } from 'tesseract.js';
 
 const VOICE_OPTIONS = {
   '普通话·女声': [
@@ -102,12 +107,15 @@ export default function NewsReaderPage() {
   const [bgmVolume, setBgmVolume] = useState(30);
   const [voiceVolume, setVoiceVolume] = useState(100);
   const [bgmUrl, setBgmUrl] = useState(DEFAULT_BGM_URL);
+  // 背景音乐总开关：默认关闭，开启后才会有声音
+  const [bgmEnabled, setBgmEnabled] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAudioEditor, setShowAudioEditor] = useState(false);
   const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const [isVoiceEnded, setIsVoiceEnded] = useState(false);
   const [isBgmLoaded, setIsBgmLoaded] = useState(false);
@@ -118,6 +126,17 @@ export default function NewsReaderPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  // 当前 TTS 模式：'edge-tts'（高质量神经语音）| 'web-speech'（浏览器降级）| null
+  const [ttsMode, setTtsMode] = useState<'edge-tts' | 'web-speech' | null>(null);
+
+  // 登录与 VIP 状态
+  const [user, setUser] = useState<TtsUser | null>(null);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showVipDialog, setShowVipDialog] = useState(false);
+  // 触发登录弹窗时的副标题（根据场景定制提示）
+  const [authSubtitle, setAuthSubtitle] = useState('所有功能需要登录后才能使用');
+  // 用于标记是否因想用某 VIP 功能而触发的登录（登录成功后自动弹 VIP 窗）
+  const [pendingVipAfterLogin, setPendingVipAfterLogin] = useState(false);
 
   const MAX_CHARS = isLongTextMode ? 10000 : 3000;
 
@@ -130,16 +149,33 @@ export default function NewsReaderPage() {
   useEffect(() => {
     setMounted(true);
     setHistory(loadHistory());
+    // 恢复登录态
+    try {
+      const raw = localStorage.getItem('tts_user');
+      if (raw) {
+        const u = JSON.parse(raw) as TtsUser;
+        // 简单校验：过期则视为非 VIP
+        if (u && typeof u.id === 'number') {
+          if (u.vipExpiresAt) {
+            const exp = new Date(u.vipExpiresAt).getTime();
+            u.isVip = exp > Date.now();
+          }
+          setUser(u);
+        }
+      }
+    } catch {}
     voiceAudioRef.current = new Audio();
     voiceAudioRef.current.addEventListener('ended', () => {
       setIsVoiceEnded(true);
       setCurrentTime(0);
+      // 朗读结束时暂停 BGM（若未播放则 pause 无副作用）
       if (bgmAudioRef.current) {
         bgmAudioRef.current.pause();
         setIsBgmPlaying(false);
       }
       setIsPlaying(false);
     });
+
     voiceAudioRef.current.addEventListener('timeupdate', () => {
       if (!isDraggingRef.current && voiceAudioRef.current) {
         setCurrentTime(voiceAudioRef.current.currentTime);
@@ -158,6 +194,7 @@ export default function NewsReaderPage() {
       if (voiceAudioRef.current) voiceAudioRef.current.pause();
       if (bgmAudioRef.current) bgmAudioRef.current.pause();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -175,13 +212,74 @@ export default function NewsReaderPage() {
     }
   }, [bgmUrl]);
 
+  // BGM 总开关：关闭时立即停止 BGM 播放并清空状态
+  useEffect(() => {
+    if (!bgmEnabled && bgmAudioRef.current) {
+      bgmAudioRef.current.pause();
+      bgmAudioRef.current.currentTime = 0;
+      setIsBgmPlaying(false);
+    }
+  }, [bgmEnabled]);
+
   useEffect(() => {
     if (showAlert && audioAreaRef.current) {
       audioAreaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [showAlert]);
 
+  // ============ 登录 / VIP 门控辅助 ============
+
+  // 触发登录弹窗（可定制副标题）
+  const requireLogin = (subtitle = '所有功能需要登录后才能使用') => {
+    setAuthSubtitle(subtitle);
+    setShowAuthDialog(true);
+  };
+
+  // 登录成功回调
+  const handleAuthSuccess = (u: TtsUser) => {
+    setUser(u);
+    setShowAuthDialog(false);
+    // 若是因 VIP 功能触发的登录，登录成功后自动弹 VIP 窗
+    if (pendingVipAfterLogin) {
+      setPendingVipAfterLogin(false);
+      setShowVipDialog(true);
+    }
+  };
+
+  // 退出登录
+  const handleLogout = () => {
+    setUser(null);
+    try { localStorage.removeItem('tts_user'); } catch {}
+    stopBgmIfAny();
+  };
+
+  // 停止 BGM（辅助）
+  const stopBgmIfAny = () => {
+    if (bgmAudioRef.current) {
+      bgmAudioRef.current.pause();
+      setIsBgmPlaying(false);
+    }
+  };
+
+  // 检查 VIP 功能：内测期间，所有登录用户均可使用全部功能
+  const requireVip = (): boolean => {
+    if (!user) {
+      setPendingVipAfterLogin(true);
+      requireLogin('内测期间，登录即可免费使用全部功能');
+      return false;
+    }
+    // 内测期间，登录用户直接放行（不再校验 VIP 状态）
+    return true;
+  };
+
+  // 更新用户状态（VIP 试用激活后）
+  const handleUserUpdate = (u: TtsUser) => {
+    setUser(u);
+  };
+
   const handleOcr = async (file: File) => {
+    // 图片识别：内测期间登录即可使用
+    if (!requireVip()) return;
     setIsOcrProcessing(true);
     setError(null);
     try {
@@ -193,22 +291,26 @@ export default function NewsReaderPage() {
       const base64Image = await base64Promise;
       setOcrPreview(base64Image);
 
-      const response = await fetch('/api/tts/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64Image }),
+      // 使用 Tesseract.js 在前端做 OCR，不依赖后端 API
+      // 使用 jsdelivr CDN 加载语言文件（tessdata.projectnaptha.com 国内无法访问）
+      const worker = await createWorker(['chi_sim', 'eng'], 1, {
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@7',
+        langPath: 'https://cdn.jsdelivr.net/gh/naptha/tessdata_fast@gh-pages/4.0.0',
+        logger: () => {},
       });
+      const { data: { text } } = await worker.recognize(base64Image);
+      await worker.terminate();
 
-      const data = await response.json();
-      if (data.success && data.text) {
-        const ocrText = data.text;
+      const ocrText = text.trim();
+      if (ocrText) {
         if (ocrText.length <= MAX_CHARS) {
           setText(ocrText);
         } else {
           setText(ocrText.slice(0, MAX_CHARS));
         }
       } else {
-        setError(data.message || 'OCR识别失败，请重试');
+        setError('未识别到文字，请上传更清晰的图片');
       }
     } catch {
       setError('图片识别失败，请重试');
@@ -222,6 +324,11 @@ export default function NewsReaderPage() {
       setError('请输入要朗读的文本');
       return;
     }
+    // 生成语音需要登录
+    if (!user) {
+      requireLogin('登录后才能生成语音');
+      return;
+    }
 
     setIsGenerating(true);
     setError(null);
@@ -232,8 +339,10 @@ export default function NewsReaderPage() {
     setShowAlert(false);
     setCurrentTime(0);
     setDuration(0);
+    setTtsMode(null);
 
     try {
+      // 调用 Edge TTS 后端生成高质量神经语音
       const response = await fetch('/api/tts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -241,30 +350,28 @@ export default function NewsReaderPage() {
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || '生成失败');
+
+      if (!response.ok || !data.success || !data.audioUrl) {
+        throw new Error(data.error || '语音生成失败，请稍后重试');
       }
 
       setVoiceUrl(data.audioUrl);
+      setTtsMode('edge-tts');
       if (voiceAudioRef.current) {
         voiceAudioRef.current.src = data.audioUrl;
         voiceAudioRef.current.volume = voiceVolume / 100;
       }
       setIsVoiceEnded(false);
-
-      // 自动播放
       if (voiceAudioRef.current) {
         await voiceAudioRef.current.play();
         setIsPlaying(true);
       }
-
-      // 如果有BGM，同时播放
-      if (bgmAudioRef.current && bgmUrl) {
+      // 仅当背景音乐开关开启时才自动播放 BGM
+      if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
         bgmAudioRef.current.currentTime = 0;
-        bgmAudioRef.current.play();
+        bgmAudioRef.current.play().catch(() => {});
         setIsBgmPlaying(true);
       }
-
       setTimeout(() => setShowAlert(true), 100);
 
       // 添加到历史记录
@@ -287,11 +394,14 @@ export default function NewsReaderPage() {
   };
 
   const togglePlay = () => {
-    if (!voiceUrl || !voiceAudioRef.current) return;
+    if (!voiceUrl) return;
     setShowAlert(false);
+
+    // Edge TTS 模式（唯一模式）
+    if (!voiceAudioRef.current) return;
     if (isPlaying) {
       voiceAudioRef.current.pause();
-      if (bgmAudioRef.current) bgmAudioRef.current.pause();
+      if (bgmEnabled && bgmAudioRef.current) bgmAudioRef.current.pause();
       setIsPlaying(false);
       setIsBgmPlaying(false);
     } else {
@@ -301,8 +411,9 @@ export default function NewsReaderPage() {
       }
       voiceAudioRef.current.play();
       setIsPlaying(true);
-      if (bgmAudioRef.current && bgmUrl) {
-        bgmAudioRef.current.play();
+      // 仅当背景音乐开关开启时才同步播放 BGM
+      if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
+        bgmAudioRef.current.play().catch(() => {});
         setIsBgmPlaying(true);
       }
     }
@@ -351,13 +462,15 @@ export default function NewsReaderPage() {
   };
 
   const toggleBgmPlay = () => {
+    // 背景音乐总开关关闭时禁用
+    if (!bgmEnabled) return;
     if (!bgmAudioRef.current || !bgmUrl) return;
     if (isBgmPlaying) {
       bgmAudioRef.current.pause();
       setIsBgmPlaying(false);
     } else {
       bgmAudioRef.current.currentTime = 0;
-      bgmAudioRef.current.play();
+      bgmAudioRef.current.play().catch(() => {});
       setIsBgmPlaying(true);
     }
   };
@@ -389,12 +502,53 @@ export default function NewsReaderPage() {
               <span className="text-white/80 text-sm font-medium">LYJY 智能语音系统</span>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent drop-shadow-lg">
-              智能新闻朗读器
+              语音朗读
             </h1>
           </div>
 
-          {/* Right side - 留空占位 */}
-          <div className="flex items-center gap-3" />
+          {/* Right side - 用户/登录/VIP */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                {/* VIP 徽章 */}
+                {user.isVip ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/40">
+                    <Crown className="w-4 h-4 text-amber-300" />
+                    <span className="text-amber-200 text-xs font-semibold">VIP</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowVipDialog(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-400/40 hover:from-emerald-500/30 hover:to-cyan-500/30 transition-all"
+                    title="内测期间免费使用"
+                  >
+                    <Sparkles className="w-4 h-4 text-emerald-300" />
+                    <span className="text-emerald-200 text-xs font-semibold">内测免费</span>
+                  </button>
+                )}
+                {/* 用户名 */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                  <span className="text-white/80 text-xs">{user.username}</span>
+                </div>
+                {/* 退出 */}
+                <button
+                  onClick={handleLogout}
+                  title="退出登录"
+                  className="p-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => requireLogin('登录后即可使用语音朗读功能')}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-medium shadow-lg shadow-purple-500/30 transition-all hover:scale-[1.03]"
+              >
+                <LogIn className="w-4 h-4" />
+                登录
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Main Content */}
@@ -451,7 +605,7 @@ export default function NewsReaderPage() {
                   {text.length} / {MAX_CHARS}
                 </span>
                 <div className="flex items-center gap-3">
-                  {/* 图片识别 */}
+                  {/* 图片识别（内测免费） */}
                   <label className="cursor-pointer">
                     <input
                       type="file"
@@ -464,7 +618,7 @@ export default function NewsReaderPage() {
                         e.target.value = '';
                       }}
                     />
-                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all ${isOcrProcessing ? 'bg-purple-600/30 text-purple-300 cursor-wait' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'}`}>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all relative ${isOcrProcessing ? 'bg-purple-600/30 text-purple-300 cursor-wait' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'}`}>
                       {isOcrProcessing ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -474,20 +628,34 @@ export default function NewsReaderPage() {
                         <>
                           <ScanText className="w-3.5 h-3.5" />
                           <span>图片识别</span>
+                          {!user?.isVip && (
+                            <span className="inline-flex items-center gap-0.5 ml-0.5 px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-semibold">
+                              <Sparkles className="w-2.5 h-2.5" />内测
+                            </span>
+                          )}
                         </>
                       )}
                     </div>
                   </label>
-                  {/* 长文本模式 */}
+                  {/* 长文本模式（内测免费） */}
                   <div className="flex items-center gap-2">
                     <Switch
                       id="long-text"
                       checked={isLongTextMode}
-                      onCheckedChange={setIsLongTextMode}
+                      onCheckedChange={(checked) => {
+                        // 开启长文本模式需要 VIP；关闭允许
+                        if (checked && !requireVip()) return;
+                        setIsLongTextMode(checked);
+                      }}
                       className="data-[state=checked]:bg-purple-500"
                     />
-                    <Label htmlFor="long-text" className="text-white/70 text-sm cursor-pointer">
+                    <Label htmlFor="long-text" className="text-white/70 text-sm cursor-pointer flex items-center gap-1">
                       长文本模式
+                      {!user?.isVip && (
+                        <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-semibold">
+                          <Sparkles className="w-2.5 h-2.5" />内测
+                        </span>
+                      )}
                     </Label>
                   </div>
                 </div>
@@ -561,14 +729,37 @@ export default function NewsReaderPage() {
           <Card className={`bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden transition-all duration-700 delay-200 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0'}`}>
             <div className="h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
             <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2 text-lg">
-                <Music className="w-5 h-5 text-cyan-400" />
-                背景音乐
+              <CardTitle className="text-white flex items-center justify-between text-lg">
+                <span className="flex items-center gap-2">
+                  <Music className="w-5 h-5 text-cyan-400" />
+                  背景音乐
+                </span>
+                {/* 背景音乐总开关：默认关闭 */}
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="bgm-switch" className={`text-xs cursor-pointer ${bgmEnabled ? 'text-cyan-300' : 'text-white/40'}`}>
+                    {bgmEnabled ? '已开启' : '已关闭'}
+                  </Label>
+                  <Switch
+                    id="bgm-switch"
+                    checked={bgmEnabled}
+                    onCheckedChange={setBgmEnabled}
+                    className="data-[state=checked]:bg-cyan-500"
+                  />
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* 关闭时的遮罩提示 */}
+              {!bgmEnabled && (
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <p className="text-white/50 text-xs">
+                    背景音乐已关闭，开启开关后才会有声音
+                  </p>
+                </div>
+              )}
+
               {/* 上传背景音乐 */}
-              <div className="space-y-2">
+              <div className={`space-y-2 transition-opacity ${bgmEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
                 <Label className="text-white/80 text-sm">上传背景音乐</Label>
                 <Button
                   variant="outline"
@@ -588,7 +779,7 @@ export default function NewsReaderPage() {
               </div>
 
               {/* 背景音乐播放 */}
-              <div className="p-3 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl border border-white/10">
+              <div className={`p-3 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl border border-white/10 transition-opacity ${bgmEnabled ? 'opacity-100' : 'opacity-50'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-medium flex items-center gap-2 text-sm">
                     <Music className="w-4 h-4 text-cyan-400" />
@@ -598,8 +789,8 @@ export default function NewsReaderPage() {
                     variant="ghost"
                     size="sm"
                     onClick={toggleBgmPlay}
-                    disabled={!bgmUrl}
-                    className="text-white hover:bg-white/10"
+                    disabled={!bgmEnabled || !bgmUrl}
+                    className="text-white hover:bg-white/10 disabled:opacity-30"
                   >
                     {isBgmPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </Button>
@@ -740,6 +931,15 @@ export default function NewsReaderPage() {
           </div>
         )}
 
+        {/* TTS 模式提示 */}
+        {ttsMode === 'edge-tts' && voiceUrl && (
+          <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl backdrop-blur">
+            <p className="text-emerald-200 text-center text-xs">
+              当前为<span className="font-semibold">高质量神经语音模式</span>（Edge TTS）
+            </p>
+          </div>
+        )}
+
         {/* 历史记录 */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -832,14 +1032,63 @@ export default function NewsReaderPage() {
         }
       `}</style>
 
-      {/* 返回首页按钮 */}
-      <Link
-        href="/"
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-pink-600 to-pink-700 shadow-lg hover:scale-110 transition-all duration-300 flex items-center justify-center"
-        title="返回首页"
-      >
-        <i className="fa-solid fa-house text-white"></i>
-      </Link>
+      {/* 右下角浮动按钮组：返回首页 + 音频编辑器 */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
+        {/* 音频编辑器按钮（内测免费） */}
+        <button
+          onClick={() => {
+            // 音频编辑器：内测期间登录即可使用
+            if (!requireVip()) return;
+            setShowAudioEditor(true);
+          }}
+          className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-600 to-fuchsia-600 shadow-lg shadow-purple-500/40 hover:scale-110 transition-all duration-300 flex items-center justify-center relative"
+          title="音频编辑器"
+          aria-label="音频编辑器"
+        >
+          <Music className="h-6 w-6 text-white" />
+        </button>
+
+        {/* 返回首页按钮 */}
+        <Link
+          href="/"
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-600 to-pink-700 shadow-lg hover:scale-110 transition-all duration-300 flex items-center justify-center"
+          title="返回首页"
+          aria-label="返回首页"
+        >
+          <i className="fa-solid fa-house text-white"></i>
+        </Link>
+      </div>
+
+      {/* 音频编辑器弹窗 */}
+      <AudioEditor
+        isOpen={showAudioEditor}
+        onClose={() => setShowAudioEditor(false)}
+        initialAudioUrl={voiceUrl || undefined}
+      />
+
+      {/* 登录弹窗 */}
+      <AuthDialog
+        isOpen={showAuthDialog}
+        onClose={() => {
+          setShowAuthDialog(false);
+          setPendingVipAfterLogin(false);
+        }}
+        onSuccess={handleAuthSuccess}
+        subtitle={authSubtitle}
+      />
+
+      {/* VIP 定价弹窗 */}
+      <VipPricingDialog
+        isOpen={showVipDialog}
+        onClose={() => setShowVipDialog(false)}
+        user={user}
+        onTrialActivated={handleUserUpdate}
+        onRequireLogin={() => {
+          setShowVipDialog(false);
+          setPendingVipAfterLogin(true);
+          requireLogin('登录后可开通 VIP 或领取免费试用');
+        }}
+      />
     </div>
   );
 }
