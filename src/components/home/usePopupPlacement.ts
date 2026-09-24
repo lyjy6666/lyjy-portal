@@ -74,18 +74,21 @@ export function usePopupPlacement(preferred: string[] = []) {
     const tcx = t.left + t.width / 2;
     const tcy = t.top + t.height / 2;
     // 每个方位再试几档距离：贴着放不下就往外挪，直到找到不碰任何按钮的位置
-    const GAPS = [GAP, GAP + 32, GAP + 76, GAP + 140];
-    const cand: Record<string, { l: number; t: number }> = {};
+    const GAPS = [GAP, GAP + 24, GAP + 56, GAP + 100];
+    const cand: Record<string, { l: number; t: number; g: number; dir: string }> = {};
     for (const g of GAPS) {
       const s = g === GAP ? '' : '-' + g;
-      cand['top' + s] = { l: tcx - W / 2, t: t.top - g - H };
-      cand['bottom' + s] = { l: tcx - W / 2, t: t.bottom + g };
-      cand['left' + s] = { l: t.left - g - W, t: tcy - H / 2 };
-      cand['right' + s] = { l: t.right + g, t: tcy - H / 2 };
-      cand['top-left' + s] = { l: tcx - W, t: t.top - g - H };
-      cand['top-right' + s] = { l: tcx, t: t.top - g - H };
-      cand['bottom-left' + s] = { l: tcx - W, t: t.bottom + g };
-      cand['bottom-right' + s] = { l: tcx, t: t.bottom + g };
+      const put = (dir: string, l: number, t: number) => {
+        cand[dir + s] = { l, t, g, dir };
+      };
+      put('top', tcx - W / 2, t.top - g - H);
+      put('bottom', tcx - W / 2, t.bottom + g);
+      put('left', t.left - g - W, tcy - H / 2);
+      put('right', t.right + g, tcy - H / 2);
+      put('top-left', tcx - W, t.top - g - H);
+      put('top-right', tcx, t.top - g - H);
+      put('bottom-left', tcx - W, t.bottom + g);
+      put('bottom-right', tcx, t.bottom + g);
     }
 
     const keys = Object.keys(cand);
@@ -107,12 +110,15 @@ export function usePopupPlacement(preferred: string[] = []) {
       let overlap = 0;
       for (const o of obstacles) overlap += overlapArea(box, o);
       const clamped = Math.abs(l - c.l) + Math.abs(top - c.t); // 越界位移量
-      // 零重叠绝对优先：任何不碰按钮的位置都胜过碰按钮的位置，
-      // 越界只在同等重叠时作为次要排序依据（clamp 后卡片仍在视口内，不影响可读性）
-      const score = overlap * 1000 + clamped;
+      // 排序优先级：
+      //   1) 零重叠绝对优先（overlap 权重极高）
+      //   2) 同等不碰撞时，离触发按钮越近越好——卡片越近，鼠标越容易移过去
+      //   3) 首选方位给一点点加成（保持"朝圆环外侧弹"的观感）
+      const near = c.g + clamped;
+      const dirBonus = preferred.includes(c.dir) ? 0 : 6;
+      const score = overlap * 1e6 + near + dirBonus;
 
       if (!best || score < best.score) best = { score, left: l, top, side: name };
-      if (overlap === 0 && clamped === 0) break; // 完美位置，直接用
     }
 
     if (best) setPos({ left: best.left, top: best.top, side: best.side });
