@@ -1,190 +1,318 @@
-import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { PRODUCTS, getProduct } from '@/data/products';
+import HashCopy from './HashCopy';
 
 export function generateStaticParams() {
   return PRODUCTS.map((p) => ({ slug: p.slug }));
 }
 
-// 每个产品的强调色（用于光晕 / 渐变，让四页各有个性）
-const ACCENT: Record<string, { hex: string; glow: string; from: string; to: string }> = {
-  blue: { hex: '#3b82f6', glow: 'rgba(59,130,246,0.45)', from: 'from-blue-500/20', to: 'to-blue-600/5' },
-  green: { hex: '#22c55e', glow: 'rgba(34,197,94,0.45)', from: 'from-green-500/20', to: 'to-green-600/5' },
-  purple: { hex: '#a855f7', glow: 'rgba(168,85,247,0.45)', from: 'from-purple-500/20', to: 'to-purple-600/5' },
-  cyan: { hex: '#06b6d4', glow: 'rgba(6,182,212,0.45)', from: 'from-cyan-500/20', to: 'to-cyan-600/5' },
-};
-
-export default async function ProductPage({
+export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = getProduct(slug);
+  if (!product) return {};
+  return {
+    title: `${product.name} 下载`,
+    description: product.tagline,
+  };
+}
+
+// Tailwind 只识别字面量类名，所以这里把每个配色的类名写全，不用模板拼接
+const ACCENT: Record<string, { tile: string; icon: string; btn: string; chip: string; bar: string }> = {
+  blue: {
+    tile: 'bg-blue-50 border-blue-100',
+    icon: 'text-blue-600',
+    btn: 'bg-blue-600 hover:bg-blue-700 focus-visible:outline-blue-600',
+    chip: 'bg-blue-50 text-blue-700 border-blue-100',
+    bar: 'bg-blue-600',
+  },
+  green: {
+    tile: 'bg-emerald-50 border-emerald-100',
+    icon: 'text-emerald-600',
+    btn: 'bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-emerald-600',
+    chip: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    bar: 'bg-emerald-600',
+  },
+  purple: {
+    tile: 'bg-violet-50 border-violet-100',
+    icon: 'text-violet-600',
+    btn: 'bg-violet-600 hover:bg-violet-700 focus-visible:outline-violet-600',
+    chip: 'bg-violet-50 text-violet-700 border-violet-100',
+    bar: 'bg-violet-600',
+  },
+  cyan: {
+    tile: 'bg-cyan-50 border-cyan-100',
+    icon: 'text-cyan-600',
+    btn: 'bg-cyan-600 hover:bg-cyan-700 focus-visible:outline-cyan-600',
+    chip: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+    bar: 'bg-cyan-600',
+  },
+};
+
+const ICONS: Record<string, React.ReactNode> = {
+  qianglilock: (
+    <>
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  'toolbox-desktop': (
+    <>
+      <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path d="m3 13 9 5 9-5" />
+    </>
+  ),
+  'windows-toolbox': (
+    <>
+      <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
+      <path d="M3 7l9 5 9-5" />
+      <path d="M12 12v10" />
+    </>
+  ),
+  'windows-tool-web': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3c2.5 2.4 3.8 5.4 3.8 9S14.5 18.6 12 21c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3Z" />
+    </>
+  ),
+};
+
+function formatBytes(n?: number) {
+  if (!n) return null;
+  if (n < 1024) return `${n} 字节`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="mb-5 flex items-baseline justify-between gap-4">
+      <h2 className="text-lg font-semibold tracking-tight text-slate-900">{children}</h2>
+      {hint && <span className="text-xs text-slate-400">{hint}</span>}
+    </div>
+  );
+}
+
+function Row({ label, children, mono }: { label: string; children: React.ReactNode; mono?: boolean }) {
+  return (
+    <div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:gap-6">
+      <dt className="w-28 shrink-0 text-sm text-slate-500">{label}</dt>
+      <dd className={`min-w-0 flex-1 text-sm text-slate-900 ${mono ? 'font-mono' : ''}`}>{children}</dd>
+    </div>
+  );
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = getProduct(slug);
   if (!product) notFound();
 
-  const accent = ACCENT[product.color] ?? ACCENT.blue;
+  const a = ACCENT[product.color] ?? ACCENT.blue;
+  const icon = ICONS[product.slug] ?? ICONS['windows-toolbox'];
+
+  const metaChips = [product.platform, product.size, product.format, product.version].filter(Boolean) as string[];
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-[#0a0c12] text-white">
-      {/* 背景：双层强调色光晕 + 细网格 */}
-      <div
-        className="pointer-events-none absolute -top-40 -right-32 h-[40rem] w-[40rem] rounded-full blur-[120px] opacity-40 animate-float"
-        style={{ background: accent.glow }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-48 -left-40 h-[36rem] w-[36rem] rounded-full blur-[130px] opacity-25 animate-float"
-        style={{ background: accent.glow, animationDelay: '1.5s' }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {/* 顶栏 */}
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5" />
+              <path d="m12 19-7-7 7-7" />
+            </svg>
+            返回导航
+          </Link>
+          <span className="text-sm text-slate-400">LYJY 下载专区</span>
+        </div>
+      </header>
 
-      <div className="relative mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
-        {/* 面包屑 */}
-        <nav className="mb-10 flex items-center gap-2 text-sm text-white/45 animate-fade-in-up">
-          <Link href="/" className="transition-colors hover:text-white">导航系统</Link>
-          <i className="fa-solid fa-chevron-right text-[10px]"></i>
-          <span className="text-white/70">下载专区</span>
-          <i className="fa-solid fa-chevron-right text-[10px]"></i>
-          <span className="text-white">{product.name}</span>
-        </nav>
-
-        {/* 英雄区：非对称排版 */}
-        <header className="mb-14 flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-          <div className="min-w-0 flex-1">
-            <div
-              className="mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
-              style={{ borderColor: `${accent.hex}55`, color: accent.hex, background: `${accent.hex}14` }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent.hex }}></span>
-              体积 {product.size} · 官方发布
+      <main className="mx-auto max-w-5xl px-5 pb-20 sm:px-8">
+        {/* 产品头部 + 下载面板 */}
+        <section className="grid gap-8 py-12 md:grid-cols-[1fr_20rem] md:py-16">
+          <div>
+            <div className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border ${a.tile}`}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={a.icon}>
+                {icon}
+              </svg>
             </div>
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl">
-              {product.name}
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-white/70 sm:text-lg" style={{ fontWeight: 300 }}>
-              {product.tagline}
-            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.name}</h1>
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-600">{product.tagline}</p>
+            <ul className="mt-6 flex flex-wrap gap-2">
+              {metaChips.map((m) => (
+                <li key={m} className={`rounded-full border px-3 py-1 text-xs ${a.chip}`}>
+                  {m}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* 图标徽章：发光圆环 + 浮动 */}
-          <div className="relative flex-shrink-0 animate-float">
-            <div
-              className="absolute inset-0 rounded-3xl blur-2xl opacity-50"
-              style={{ background: accent.glow }}
-            />
-            <div
-              className="relative flex h-28 w-28 items-center justify-center rounded-3xl border sm:h-36 sm:w-36"
-              style={{ borderColor: `${accent.hex}55`, background: `${accent.hex}1a` }}
+          {/* 下载面板 */}
+          <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:sticky md:top-20 md:self-start">
+            <div className="text-sm font-medium text-slate-900">获取安装包</div>
+            {product.fileName ? (
+              <p className="mt-1.5 break-all font-mono text-xs text-slate-500">
+                {product.fileName}
+                {formatBytes(product.bytes) ? ` · ${formatBytes(product.bytes)}` : ''}
+              </p>
+            ) : (
+              product.size && <p className="mt-1.5 text-xs text-slate-500">{product.size}</p>
+            )}
+
+            <a
+              href={product.downloadUrl}
+              target={product.external ? '_blank' : undefined}
+              rel={product.external ? 'noopener noreferrer' : undefined}
+              download={product.external ? undefined : ''}
+              className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white transition ${a.btn}`}
             >
-              <i className={`fa-solid ${product.icon} text-5xl sm:text-6xl`} style={{ color: accent.hex }}></i>
-            </div>
-          </div>
-        </header>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              {product.downloadLabel}
+            </a>
 
-        {/* 简介：编辑式陈述 */}
-        <section className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="relative border-l-2 pl-6" style={{ borderColor: accent.hex }}>
-            <p className="text-lg leading-relaxed text-white/85 sm:text-xl">
-              {product.desc}
-            </p>
-          </div>
+            {product.external && <p className="mt-3 text-xs leading-relaxed text-slate-500">将跳转到外部资源站获取安装包</p>}
+
+            <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-xs">
+              {product.requirement && (
+                <p className="flex gap-2">
+                  <span className="text-slate-400">运行环境</span>
+                  <span className="text-slate-700">{product.requirement}</span>
+                </p>
+              )}
+              {product.updatedAt && (
+                <p className="flex gap-2">
+                  <span className="text-slate-400">最近更新</span>
+                  <span className="text-slate-700">{product.updatedAt}</span>
+                </p>
+              )}
+              {product.sha256 && (
+                <p className="flex gap-2">
+                  <span className="text-slate-400">校验</span>
+                  <a href="#file-info" className="text-slate-700 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500">
+                    查看 SHA-256
+                  </a>
+                </p>
+              )}
+            </div>
+
+            {product.note && (
+              <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">{product.note}</p>
+            )}
+          </aside>
         </section>
 
-        {/* 功能亮点：编号 + hairline，非套娃卡片 */}
-        <section className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-          <div className="mb-8 flex items-end justify-between">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">功能亮点</h2>
-            <span className="text-sm text-white/40">{product.features.length} 项核心能力</span>
-          </div>
-          <div className="grid grid-cols-1 gap-x-10 sm:grid-cols-2">
-            {product.features.map((f, i) => (
-              <div
-                key={f.title}
-                className="flex gap-4 border-b border-white/10 py-5"
-              >
-                <span
-                  className="font-mono text-sm font-medium tabular-nums"
-                  style={{ color: accent.hex }}
-                >
-                  {String(i + 1).padStart(2, '0')}
+        {/* 产品简介 */}
+        <section className="border-t border-slate-200 py-12">
+          <SectionTitle>产品简介</SectionTitle>
+          <p className="max-w-3xl text-[15px] leading-8 text-slate-700">{product.desc}</p>
+        </section>
+
+        {/* 功能特性 */}
+        <section className="border-t border-slate-200 py-12">
+          <SectionTitle hint={`${product.features.length} 项核心能力`}>功能特性</SectionTitle>
+          <ul className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+            {product.features.map((f) => (
+              <li key={f.title} className="flex gap-3.5">
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${a.tile}`}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={a.icon}>
+                    <path d="m5 13 4 4L19 7" />
+                  </svg>
                 </span>
                 <div className="min-w-0">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <i className="fa-solid fa-circle-check text-sm" style={{ color: accent.hex }}></i>
-                    <span className="font-medium text-white">{f.title}</span>
-                  </div>
-                  <p className="text-sm leading-relaxed text-white/60">{f.text}</p>
+                  <div className="text-sm font-medium text-slate-900">{f.title}</div>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{f.text}</p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
-        {/* 注意事项 */}
-        {product.note && (
-          <section className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div
-              className="flex items-start gap-3 rounded-2xl border p-5"
-              style={{ borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)' }}
-            >
-              <i className="fa-solid fa-triangle-exclamation mt-0.5 text-amber-400"></i>
-              <div>
-                <p className="mb-1 text-sm font-medium text-amber-200">使用须知</p>
-                <p className="text-sm leading-relaxed text-amber-100/80">{product.note}</p>
-              </div>
+        {/* 文件信息 */}
+        <section id="file-info" className="scroll-mt-20 border-t border-slate-200 py-12">
+          <SectionTitle hint="下载后可自行核对">文件信息</SectionTitle>
+          <dl className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {product.fileName && (
+              <Row label="文件名" mono>
+                {product.fileName}
+              </Row>
+            )}
+            {product.bytes && (
+              <Row label="文件大小">
+                {formatBytes(product.bytes)}
+                <span className="ml-2 text-slate-400">（{product.bytes.toLocaleString()} 字节）</span>
+              </Row>
+            )}
+            {product.format && <Row label="文件格式">{product.format}</Row>}
+            {product.platform && <Row label="适用系统">{product.platform}</Row>}
+            {product.requirement && <Row label="运行要求">{product.requirement}</Row>}
+            {product.version && <Row label="版本">{product.version}</Row>}
+            {product.updatedAt && <Row label="最近更新">{product.updatedAt}</Row>}
+            {product.sha256 ? (
+              <Row label="SHA-256">
+                <HashCopy value={product.sha256} />
+                <p className="mt-2 text-xs text-slate-400">
+                  在 Windows 上可用 PowerShell 执行{' '}
+                  <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">Get-FileHash 文件名 -Algorithm SHA256</code> 对比结果。
+                </p>
+              </Row>
+            ) : (
+              <Row label="校验值">
+                <span className="text-slate-500">该资源托管在外部网盘，未提供校验值。</span>
+              </Row>
+            )}
+          </dl>
+        </section>
+
+        {/* 安装步骤 */}
+        {product.steps?.length ? (
+          <section className="border-t border-slate-200 py-12">
+            <SectionTitle>安装步骤</SectionTitle>
+            <ol className="max-w-3xl space-y-4">
+              {product.steps.map((s, i) => (
+                <li key={s} className="flex gap-4">
+                  <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white ${a.bar}`}>
+                    {i + 1}
+                  </span>
+                  <p className="text-sm leading-7 text-slate-700">{s}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
+
+        {/* 常见问题 */}
+        {product.faq?.length ? (
+          <section className="border-t border-slate-200 py-12">
+            <SectionTitle>常见问题</SectionTitle>
+            <div className="max-w-3xl divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              {product.faq.map((item) => (
+                <div key={item.q} className="px-5 py-4">
+                  <div className="text-sm font-medium text-slate-900">{item.q}</div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{item.a}</p>
+                </div>
+              ))}
             </div>
           </section>
-        )}
+        ) : null}
 
-        {/* 下载 CTA：精致主面板 + 微光按钮 */}
-        <section
-          className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br ${accent.from} ${accent.to} p-8 text-center sm:p-12 animate-fade-in-up`}
-          style={{ animationDelay: '0.25s', borderColor: `${accent.hex}33` }}
-        >
-          <div className="pointer-events-none absolute inset-0 opacity-20" style={{ background: `radial-gradient(60% 120% at 50% 0%, ${accent.glow}, transparent)` }} />
-          <div className="relative">
-            <h3 className="text-xl font-semibold sm:text-2xl">准备好开始了吗？</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-white/60">
-              确认信息无误后，点击下方按钮即可获取 {product.name}。完全免费，无需登录。
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <a
-                href={product.downloadUrl}
-                target={product.external ? '_blank' : undefined}
-                rel={product.external ? 'noopener noreferrer' : undefined}
-                download={product.external ? undefined : ''}
-                className="group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-xl px-10 py-4 text-base font-semibold text-white shadow-lg transition-transform duration-300 hover:scale-[1.03]"
-                style={{ background: accent.hex }}
-              >
-                <span className="absolute inset-0 -translate-x-full animate-shimmer group-hover:translate-x-full" style={{ transition: 'transform 0.6s' }}></span>
-                <i className="fa-solid fa-download"></i>
-                {product.downloadLabel}
-              </a>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-8 py-4 text-base font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                <i className="fa-solid fa-arrow-left"></i>
-                返回导航
-              </Link>
-            </div>
-            {product.external && (
-              <p className="mt-4 text-xs text-white/40">点击后将跳转至外部资源站点获取安装包</p>
-            )}
-          </div>
-        </section>
-
-        <footer className="mt-12 text-center text-xs text-white/30">
-          LYJY 门户 · 下载专区 · 本站所有工具均免费提供
+        <footer className="flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-8 text-xs text-slate-500 sm:flex-row sm:items-center">
+          <span>LYJY 下载专区 · 所有工具均免费提供，不含任何付费或捆绑内容</span>
+          <Link href="/" className="text-slate-600 underline decoration-slate-300 underline-offset-2 transition hover:text-slate-900 hover:decoration-slate-500">
+            返回导航系统
+          </Link>
         </footer>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
