@@ -1930,6 +1930,30 @@ export default function HomeworkPage() {
                     </div>
                   </>
                 )}
+
+                {/* 视图切换：与批量选择同一行，靠右对齐 */}
+                <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                  {([
+                    { key: 'subject' as const, label: '分科目', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                    { key: 'time' as const, label: '按待完成时间', icon: <Clock className="w-3.5 h-3.5" /> },
+                  ]).map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => {
+                        setListView(v.key);
+                        localStorage.setItem('homeworkListView', v.key);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-all ${
+                        listView === v.key
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                      }`}
+                    >
+                      {v.icon}
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* 任务列表 - 按科目分组显示未完成的 */}
@@ -1944,29 +1968,6 @@ export default function HomeworkPage() {
                   </button>
                 )}
 
-                {/* 视图切换：分科目 / 按待完成时间 */}
-                <div className="flex items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/40 p-1">
-                  {([
-                    { key: 'subject' as const, label: '分科目', icon: <BookOpen className="w-3.5 h-3.5" /> },
-                    { key: 'time' as const, label: '按待完成时间', icon: <Clock className="w-3.5 h-3.5" /> },
-                  ]).map(v => (
-                    <button
-                      key={v.key}
-                      onClick={() => {
-                        setListView(v.key);
-                        localStorage.setItem('homeworkListView', v.key);
-                      }}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-all ${
-                        listView === v.key
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
-                      }`}
-                    >
-                      {v.icon}
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
 
                 {listView === 'subject' ? (
                   /* ===== 视图一：按科目分组 ===== */
