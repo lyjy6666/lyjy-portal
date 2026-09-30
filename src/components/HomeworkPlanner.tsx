@@ -16,7 +16,10 @@ export interface PlannerDay {
   date: string;
   items: PlannerItem[];
   load: number;
-  /** 当天可用时间（与难度同单位，1 = 正常一天）；0 表示这天没空、不排作业 */
+  /**
+   * 当天可用时间，单位与难度系数一致（「份」）：
+   * 3 = 正常一天（能写 3 个普通作业）；0 表示这天没空、不排作业。
+   */
   capacity: number;
 }
 
@@ -29,7 +32,18 @@ interface HomeworkPlannerProps {
   onImport?: (assignments: { text: string; dueDate: string }[]) => Promise<{ ok: boolean; message?: string }>;
 }
 
-const STORAGE_KEY = 'homeworkPlannerState';
+// 键名带 V2：早期版本「可用时间 1 = 一整天」的语义已废弃。
+// 但旧键的数据必须迁移过来（用户可能已经填了很多作业），见下方的读取逻辑。
+const STORAGE_KEY = 'homeworkPlannerStateV2';
+const LEGACY_STORAGE_KEY = 'homeworkPlannerState';
+
+/**
+ * 难度与可用时间用同一套单位（「份」）：
+ *   普通作业 = 1 份；试卷/大作业 ≈ 3 份（正好一整天）；正常一天 = 3 份。
+ * 这样「试卷占一整天」和「一天能写 3 个普通作业」才能同时成立。
+ */
+const DEFAULT_DAY_CAPACITY = 3;
+const DEFAULT_DIFFICULTY = 1;
 
 /* ---------- 日期工具 ---------- */
 
@@ -149,8 +163,8 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState<{ type: 'ok' | 'warn'; text: string } | null>(null);
-  /** 每天的可用时间（1 = 正常一天）；长度始终与 dayCount 一致 */
-  const [dayCapacity, setDayCapacity] = useState<number[]>(() => Array(7).fill(1));
+  /** 每天的可用时间（份）；长度始终与 dayCount 一致 */
+  const [dayCapacity, setDayCapacity] = useState<number[]>(() => Array(7).fill(DEFAULT_DAY_CAPACITY));
   const [showCapacity, setShowCapacity] = useState(false);
 
   // 天数变化时同步容量数组：保留已填的值，多出来的用 1 补齐
@@ -158,25 +172,41 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
     const n = Math.max(1, Math.min(60, Math.round(dayCount)));
     setDayCapacity((prev) => {
       if (prev.length === n) return prev;
-      const next = Array(n).fill(1) as number[];
+      const next = Array(n).fill(DEFAULT_DAY_CAPACITY) as number[];
       for (let i = 0; i < Math.min(n, prev.length); i++) next[i] = prev[i];
       return next;
     });
   }, [dayCount]);
 
-  // 打开时恢复上次的输入
+  // 打开时恢复上次的输入；若只有旧版键的数据，则迁移过来（含容量单位换算）
   useEffect(() => {
     if (!isOpen) return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (Array.isArray(saved.items)) setItems(saved.items);
-        if (typeof saved.dayCount === 'number') setDayCount(saved.dayCount);
-        if (typeof saved.startDate === 'string') setStartDate(saved.startDate);
-        if (Array.isArray(saved.dayCapacity) && saved.dayCapacity.every((v: unknown) => typeof v === 'number')) {
-          setDayCapacity(saved.dayCapacity);
-        }
+      const legacyRaw = raw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
+      const saved = JSON.parse(raw ?? legacyRaw ?? 'null');
+      if (!saved) return;
+
+      if (Array.isArray(saved.items)) setItems(saved.items);
+      if (typeof saved.dayCount === 'number') setDayCount(saved.dayCount);
+      if (typeof saved.startDate === 'string') setStartDate(saved.startDate);
+
+      let caps: number[] | null = null;
+      if (Array.isArray(saved.dayCapacity) && saved.dayCapacity.every((v: unknown) => typeof v === 'number')) {
+        // 旧版语义是「1 = 一整天」，新版是「3 份 = 一整天」→ 乘 3 保留原来的意图
+        const next: number[] = legacyRaw
+          ? saved.dayCapacity.map((v: number) => Math.round(v * 3 * 2) / 2)
+          : saved.dayCapacity;
+        caps = next;
+        setDayCapacity(next);
+      }
+
+      // 迁移完成即落到新键，旧键保留不动（万一要回退）
+      if (legacyRaw) {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ ...saved, dayCapacity: caps ?? saved.dayCapacity })
+        );
       }
     } catch {
       /* 忽略损坏的缓存 */
@@ -242,7 +272,7 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
     // 容量数组长度对齐到天数
     const caps = Array.from({ length: days }, (_, i) => {
       const v = dayCapacity[i];
-      return typeof v === 'number' && v >= 0 ? v : 1;
+      return typeof v === 'number' && v >= 0 ? v : DEFAULT_DAY_CAPACITY;
     });
     if (caps.every((c) => c <= 0)) {
       setNotice({ type: 'warn', text: '所有天的可用时间都是 0，至少给一天留出时间' });
@@ -384,8 +414,8 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                 <span className="text-xs text-slate-300">
                   每天可用时间
                   <span className="ml-1.5 text-[11px] text-slate-500">
-                    {dayCapacity.slice(0, Math.max(1, Math.round(dayCount))).every((c) => c === 1)
-                      ? '默认每天一样'
+                    {dayCapacity.slice(0, Math.max(1, Math.round(dayCount))).every((c) => c === DEFAULT_DAY_CAPACITY)
+                      ? `默认每天 ${DEFAULT_DAY_CAPACITY} 份`
                       : '已按天单独设置'}
                   </span>
                 </span>
@@ -402,22 +432,22 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                     <button
                       type="button"
                       onClick={() => {
-                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(1));
+                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(DEFAULT_DAY_CAPACITY));
                         setPlan(null);
                       }}
                       className="rounded border border-slate-600/60 px-1.5 py-0.5 text-slate-300 transition hover:border-fuchsia-500 hover:text-white"
                     >
-                      全部正常
+                      全部正常（3 份）
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(0.5));
+                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(DEFAULT_DAY_CAPACITY / 2));
                         setPlan(null);
                       }}
                       className="rounded border border-slate-600/60 px-1.5 py-0.5 text-slate-300 transition hover:border-fuchsia-500 hover:text-white"
                     >
-                      全部半天
+                      全部减半（1.5 份）
                     </button>
                   </div>
                   <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto">
@@ -431,12 +461,12 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                           type="number"
                           min={0}
                           step={0.5}
-                          value={dayCapacity[i] ?? 1}
+                          value={dayCapacity[i] ?? DEFAULT_DAY_CAPACITY}
                           onChange={(e) => {
                             const v = Math.max(0, Number(e.target.value) || 0);
                             setDayCapacity((prev) => {
                               const next = [...prev];
-                              while (next.length <= i) next.push(1);
+                              while (next.length <= i) next.push(DEFAULT_DAY_CAPACITY);
                               next[i] = v;
                               return next;
                             });
@@ -449,7 +479,8 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                     ))}
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-                    1 = 正常一天，0.5 = 只有半天，0 = 这天没空（不排作业）。可用时间少的天会自动少排。
+                    <b className="text-slate-400">3 份 = 正常一天</b>（能写 3 个普通作业）；2 份 = 这天时间偏少；
+                    0 = 这天没空、不排作业。可用时间少的天会自动少排。
                   </p>
                 </div>
               )}
@@ -498,7 +529,7 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                     {d}
                   </button>
                 ))}
-                <span className="ml-1">越大占用时间越多（试卷类可给 3）</span>
+                <span className="ml-1">1 = 普通作业，3 = 试卷 / 大作业（正好占一整天）</span>
               </div>
             </div>
 
@@ -644,6 +675,20 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                     负载差 {balanced.toFixed(2)} {balanced <= 0.25 ? '· 分配均衡' : '· 略有差异'}
                   </span>
                 </div>
+
+                {/* 总负载超过可用时间时给出可操作的调整建议 */}
+                {totalCapacity > 0 && overallRate > 1.02 && (
+                  <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span className="leading-relaxed">
+                      作业总量是可用时间的 <b>{Math.round(overallRate * 100)}%</b>，按现在的时间安排写不完。
+                      把天数从 {plan.length} 天增加到{' '}
+                      <b>{Math.ceil(totalDifficulty / Math.max(1, totalCapacity / plan.length))}</b> 天，
+                      或把每天的可用时间调大（现在平均每天 {Math.round((totalCapacity / plan.length) * 10) / 10} 份），
+                      也可以把部分作业的难度系数调小。
+                    </span>
+                  </div>
+                )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   {plan.map((day) => {
