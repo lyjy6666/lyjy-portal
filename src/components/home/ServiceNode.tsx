@@ -20,6 +20,8 @@ type ServiceNodeProps = {
   showCard?: boolean;
   /** 悬停状态变化回调（方案 E 用来驱动中心详情面板） */
   onHoverChange?: (service: ServiceItem | null) => void;
+  /** 是否允许悬停效果（刚进页面 1 秒内为 false，避免误触发） */
+  hoverEnabled?: boolean;
 };
 
 function ServiceNode({
@@ -30,6 +32,7 @@ function ServiceNode({
   variant = 'A',
   showCard = true,
   onHoverChange,
+  hoverEnabled = true,
 }: ServiceNodeProps) {
   const radius = 46;
   const rad = (angle * Math.PI) / 180;
@@ -62,6 +65,8 @@ function ServiceNode({
   };
 
   const handleOpen = () => {
+    // 刚进页面时忽略悬停，避免鼠标恰好落在节点上就弹出效果
+    if (!hoverEnabled) return;
     cancelClose();
     if (showCard) setCardOpen(true);
     onHoverChange?.(service);

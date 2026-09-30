@@ -55,7 +55,7 @@ export default function RingLayout({
   };
   const startIdle = () => {
     clearIdle();
-    idleTimer.current = window.setTimeout(() => setHovered(null), 5000);
+    idleTimer.current = window.setTimeout(() => setHovered(null), 2500);
   };
   const handleHover = (service: ServiceItem | null) => {
     clearIdle();
@@ -64,6 +64,14 @@ export default function RingLayout({
   };
 
   useEffect(() => () => clearIdle(), []);
+
+  // 刚进页面时鼠标可能正好落在某个节点上（或手一抖划过），
+  // 这时不该弹出效果 —— 先静默 1 秒再启用悬停。
+  const [hoverEnabled, setHoverEnabled] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setHoverEnabled(true), 1000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (localStorage.getItem('portalLayoutSeen')) return;
@@ -190,6 +198,7 @@ export default function RingLayout({
               variant={variant}
               showCard={!isE}
               onHoverChange={isE ? handleHover : undefined}
+              hoverEnabled={hoverEnabled}
             />
           ))}
         </div>
