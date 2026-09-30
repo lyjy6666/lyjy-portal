@@ -957,3 +957,24 @@ button, a, input, textarea, select {
     animation: none;
   }
 }
+
+/* ===== 使用教程：聚光灯高亮圈 ===== */
+.tour-ring {
+  border: 2px solid rgba(125, 211, 252, 0.95);
+  animation: tour-ring-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tour-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18), 0 0 24px rgba(56, 189, 248, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(56, 189, 248, 0.1), 0 0 34px rgba(56, 189, 248, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring {
+    animation: none;
+  }
+}

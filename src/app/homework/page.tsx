@@ -8,6 +8,7 @@ import { ConfettiExplosion } from '@/components/ConfettiExplosion';
 import CalendarDialog from '@/components/CalendarDialog';
 import AIGrader from '@/components/AIGrader';
 import HomeworkPlanner from '@/components/HomeworkPlanner';
+import HomeworkTour, { type TourStep } from '@/components/HomeworkTour';
 
 interface Task {
   id: number;
@@ -42,6 +43,48 @@ export default function HomeworkPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
+  /** 首次使用的引导教程 */
+  const [showTour, setShowTour] = useState(false);
+
+  // 教程步骤：目标用 data-tour 锚点定位；页面里不存在的步骤会被组件自动过滤
+  const TOUR_STEPS: TourStep[] = [
+    {
+      target: '[data-tour="input"]',
+      title: '在这里写作业',
+      desc: '把作业内容打进去就行。一次可以写好几条，系统会自动拆分成一项一项的清单。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="voice"]',
+      title: '懒得打字就说话',
+      desc: '点这个麦克风用语音输入，说完自动转文字并整理成作业清单。',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="planner"]',
+      title: '作业太多？让它帮你排',
+      desc: '设定完成天数，给每个作业标上难度系数（普通作业填 1，试卷这类填 3），系统会把它们均衡地分到每一天——难题独占一天，轻松的几个凑一天。某天没时间还能单独把那天调小。',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="views"]',
+      title: '清单有两种看法',
+      desc: '「分科目」按学科归类，适合按科目推进；「按待完成时间」按紧迫程度分组（已逾期 / 今天 / 明天 / 3 天内 / 本周内…），适合赶截止日期。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="batch"]',
+      title: '批量选择',
+      desc: '点开后可以勾选多个作业，一次性删除，或统一改截止时间——支持「只改日期」「只改时间」，不必把两者都重填。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-task-id]',
+      title: '每一项都能单独设置',
+      desc: '左侧圆圈点一下就是完成；下面可以给这项单独设截止时间，越紧急显示越醒目；鼠标移到条目上右侧会出现置顶和删除按钮。',
+      placement: 'top',
+    },
+  ];
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRightClickWarning, setShowRightClickWarning] = useState(false);
   const [exportButtonFlash, setExportButtonFlash] = useState(false);
@@ -66,7 +109,30 @@ export default function HomeworkPage() {
     }
   }, []);
 
+
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+
+  // 首次使用自动弹出教程（跳过或看完都会记下来，之后不再自动弹）
+  useEffect(() => {
+    if (!currentUser || initialLoading) return;
+    try {
+      if (localStorage.getItem('homeworkTourDone')) return;
+    } catch {
+      return;
+    }
+    const t = window.setTimeout(() => setShowTour(true), 1500);
+    return () => window.clearTimeout(t);
+  }, [currentUser, initialLoading]);
+
+  const closeTour = (completed: boolean) => {
+    setShowTour(false);
+    try {
+      localStorage.setItem('homeworkTourDone', completed ? '1' : '1');
+    } catch {
+      /* 忽略 */
+    }
+  };
+
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showAIGrader, setShowAIGrader] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
@@ -1789,6 +1855,7 @@ export default function HomeworkPage() {
               <div className="flex flex-col gap-4">
             <div className="relative">
               <textarea
+                data-tour="input"
                 value={taskInput}
                 onChange={(e) => setTaskInput(e.target.value)}
                 placeholder="在此输入您的作业内容..."
@@ -1796,6 +1863,7 @@ export default function HomeworkPage() {
               />
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button
+                  data-tour="voice"
                   onClick={handleVoiceInput}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
                     isRecording
@@ -1909,6 +1977,7 @@ export default function HomeworkPage() {
               {/* 智能排期：按天数与难度把作业分配到每一天 */}
               <div className="mt-3 border-t border-slate-700/50 pt-5">
                 <button
+                  data-tour="planner"
                   onClick={() => setShowPlanner(true)}
                   className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/25 enabled:hover:scale-105"
                 >
@@ -1924,7 +1993,7 @@ export default function HomeworkPage() {
 
           {/* 右侧：作业列表 */}
           <div className="lg:w-2/3 flex-1">
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
+            <div data-tour="list" className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
                   <Check className="w-5 h-5 text-blue-400" />
@@ -1934,12 +2003,20 @@ export default function HomeworkPage() {
                   </span>
             </h2>
             {!isLoading && currentUser && tasks.length > 0 && (
-              <button
-                onClick={loadTasks}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                刷新
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowTour(true)}
+                  className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  使用教程
+                </button>
+                <button
+                  onClick={loadTasks}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  刷新
+                </button>
+              </div>
             )}
           </div>
           
@@ -1960,6 +2037,7 @@ export default function HomeworkPage() {
               {/* 批量操作按钮栏 */}
               <div className="mb-4 flex items-center gap-2 flex-wrap">
                 <button
+                  data-tour="batch"
                   onClick={toggleBatchOperations}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all text-sm"
                 >
@@ -2035,7 +2113,7 @@ export default function HomeworkPage() {
                 )}
 
                 {/* 视图切换：与批量选择同一行，靠右对齐 */}
-                <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                <div data-tour="views" className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
                   {([
                     { key: 'subject' as const, label: '分科目', icon: <BookOpen className="w-3.5 h-3.5" /> },
                     { key: 'time' as const, label: '按待完成时间', icon: <Clock className="w-3.5 h-3.5" /> },
@@ -2691,6 +2769,9 @@ export default function HomeworkPage() {
         existingTaskNames={tasks.filter((t) => !t.completed).map((t) => t.text)}
         onImport={importPlannerPlan}
       />
+
+      {/* 首次使用引导教程 */}
+      <HomeworkTour isOpen={showTour} steps={TOUR_STEPS} onClose={closeTour} />
       </div>
     )}
     </>
