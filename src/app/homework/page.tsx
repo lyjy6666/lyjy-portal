@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
 import Link from 'next/link';
-import { Mic, MicOff, Check, Trash2, Plus, Sparkles, Clock, AlertTriangle, ChevronUp, Calendar, X, ChevronDown, RefreshCw, Download, Upload, User, LogOut } from 'lucide-react';
+import { Mic, MicOff, Check, Trash2, Plus, Sparkles, Clock, AlertTriangle, ChevronUp, Calendar, X, ChevronDown, RefreshCw, Download, Upload, User, LogOut, BookOpen } from 'lucide-react';
 import * as mammoth from 'mammoth';
 import { ConfettiExplosion } from '@/components/ConfettiExplosion';
 import CalendarDialog from '@/components/CalendarDialog';
@@ -49,6 +49,20 @@ export default function HomeworkPage() {
   const [clickCount, setClickCount] = useState(0);
   const [warningColor, setWarningColor] = useState<'yellow' | 'red'>('yellow');
   const [collapsedSubjects, setCollapsedSubjects] = useState<Set<string>>(new Set());
+  /** 作业清单视图：按科目分组 / 按待完成时间分组 */
+  const [listView, setListView] = useState<'subject' | 'time'>('subject');
+  /** 时间视图里折叠的分组 */
+  const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
+
+  // 恢复上次选择的清单视图
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('homeworkListView');
+      if (saved === 'time' || saved === 'subject') setListView(saved);
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
 
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -464,6 +478,65 @@ export default function HomeworkPage() {
         newSet.add(subject);
       }
       return newSet;
+    });
+  };
+
+  // 按「待完成时间」分组：已逾期 / 今天 / 明天 / 3天内 / 本周内 / 更晚 / 未设截止
+  const TIME_BUCKETS = [
+    { key: 'overdue', label: '已逾期', icon: '!', ring: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/30', tone: 'text-red-300' },
+    { key: 'today', label: '今天', icon: '今', ring: 'from-orange-500 to-amber-600', shadow: 'shadow-orange-500/30', tone: 'text-orange-300' },
+    { key: 'tomorrow', label: '明天', icon: '明', ring: 'from-amber-500 to-yellow-600', shadow: 'shadow-amber-500/30', tone: 'text-amber-300' },
+    { key: 'd3', label: '3 天内', icon: '3', ring: 'from-yellow-500 to-lime-600', shadow: 'shadow-yellow-500/30', tone: 'text-yellow-300' },
+    { key: 'week', label: '本周内', icon: '周', ring: 'from-blue-500 to-cyan-600', shadow: 'shadow-blue-500/30', tone: 'text-blue-300' },
+    { key: 'later', label: '更晚', icon: '远', ring: 'from-slate-500 to-slate-600', shadow: 'shadow-slate-500/30', tone: 'text-slate-300' },
+    { key: 'none', label: '未设截止时间', icon: '—', ring: 'from-slate-600 to-slate-700', shadow: 'shadow-slate-600/30', tone: 'text-slate-400' },
+  ] as const;
+
+  const groupTasksByTime = (list: Task[]) => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayDiff = (d: Date) =>
+      Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - startOfToday) / 86400000);
+
+    const buckets: Record<string, Task[]> = {
+      overdue: [], today: [], tomorrow: [], d3: [], week: [], later: [], none: [],
+    };
+
+    list.forEach(task => {
+      const raw = task.dueDate ? (task.dueDate instanceof Date ? task.dueDate : new Date(task.dueDate)) : null;
+      if (!raw || isNaN(raw.getTime())) {
+        buckets.none.push(task);
+        return;
+      }
+      const diff = dayDiff(raw);
+      if (diff < 0) buckets.overdue.push(task);
+      else if (diff === 0) buckets.today.push(task);
+      else if (diff === 1) buckets.tomorrow.push(task);
+      else if (diff <= 3) buckets.d3.push(task);
+      else if (diff <= 7) buckets.week.push(task);
+      else buckets.later.push(task);
+    });
+
+    // 组内：置顶优先，其次按截止时间从近到远
+    const timeOf = (t: Task) => {
+      const d = t.dueDate ? (t.dueDate instanceof Date ? t.dueDate : new Date(t.dueDate)) : null;
+      return d && !isNaN(d.getTime()) ? d.getTime() : Number.POSITIVE_INFINITY;
+    };
+    Object.values(buckets).forEach(arr =>
+      arr.sort((a, b) => Number(b.isPinned ?? false) - Number(a.isPinned ?? false) || timeOf(a) - timeOf(b))
+    );
+
+    return TIME_BUCKETS
+      .map(meta => ({ ...meta, tasks: buckets[meta.key] }))
+      .filter(b => b.tasks.length > 0);
+  };
+
+  const toggleBucketCollapse = (key: string) => {
+    setCollapsedBuckets(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
   };
 
@@ -1401,6 +1474,108 @@ export default function HomeworkPage() {
     return dateA.getTime() - dateB.getTime();
   });
 
+  // 单条待完成作业的渲染（科目视图与时间视图共用）
+  const renderTaskItem = (task: Task) => {
+    const timeInfo = getTimeUntilDue(task.dueDate);
+
+    return (
+      <div
+        key={task.id}
+        data-task-id={task.id}
+        className={`group flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
+          task.recentlyRestored
+            ? 'bg-amber-950/30 border-2 border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/30 animate-pulse'
+            : timeInfo?.urgent
+            ? 'bg-red-950/30 border border-red-500/50 hover:border-red-500/80 hover:shadow-lg hover:shadow-red-500/30'
+            : 'bg-slate-800/50 border border-slate-700 hover:border-blue-500/80 hover:shadow-lg hover:shadow-blue-500/30'
+        } ${task.isPinned ? 'ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/20' : ''}`}
+      >
+        {/* 批量选择框 */}
+        {showBatchOperations && (
+          <button
+            onClick={() => toggleSelectTask(task.id)}
+            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
+              selectedTasks.has(task.id)
+                ? 'bg-blue-500 border-blue-500 shadow-lg shadow-blue-500/50'
+                : 'border-slate-600 hover:border-blue-500'
+            }`}
+          >
+            {selectedTasks.has(task.id) && <Check className="w-3 h-3 text-white" />}
+          </button>
+        )}
+
+        {/* 完成状态切换 */}
+        <button
+          onClick={() => toggleTask(task.id)}
+          className={`complete-button flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-300 mt-0.5 ${
+            'border-slate-600 hover:border-green-400 hover:bg-green-500/10'
+          }`}
+        >
+          <Check className="w-4 h-4 text-transparent" />
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <span className={`block text-base transition-all duration-300 ${
+            task.recentlyRestored ? 'text-amber-200' : 'text-slate-200'
+          }`}>
+            {task.text}
+            {task.recentlyRestored && (
+              <span className="ml-2 text-xs text-amber-400">✨ 已恢复</span>
+            )}
+          </span>
+
+          {/* 到期时间显示和修改 */}
+          {timeInfo && (
+            <div className={`flex items-center gap-1.5 mt-2 text-xs ${
+              timeInfo.urgent ? 'text-red-400 font-semibold animate-pulse' : 'text-slate-400'
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>{timeInfo.text}</span>
+              {timeInfo.urgent && <AlertTriangle className="w-3.5 h-3.5" />}
+            </div>
+          )}
+
+          {/* 单个任务到期时间选择器 */}
+          <div className="mt-2 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-500" />
+            <input
+              type="datetime-local"
+              value={
+                task.dueDate
+                  ? (task.dueDate instanceof Date
+                      ? formatDateTimeLocal(task.dueDate)
+                      : formatDateTimeLocal(new Date(task.dueDate)))
+                  : ''
+              }
+              onChange={(e) => updateTaskDueDate(task.id, e.target.value)}
+              className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        {/* 置顶按钮（移到右边，悬停显示） */}
+        <button
+          onClick={() => toggleTaskPin(task.id)}
+          className={`flex-shrink-0 w-8 h-8 rounded-lg transition-all flex items-center ${
+            task.isPinned
+              ? 'bg-purple-500 text-white opacity-100 shadow-lg shadow-purple-500/50'
+              : 'bg-slate-700/50 text-slate-400 hover:text-purple-400 hover:bg-purple-500/20 opacity-0 group-hover:opacity-100'
+          }`}
+          title={task.isPinned ? '取消置顶' : '置顶'}
+        >
+          <ChevronUp className="w-6 h-6 pl-3" />
+        </button>
+
+        <button
+          onClick={() => deleteTask(task.id)}
+          className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-700/50 text-slate-400 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 flex items-center"
+        >
+          <Trash2 className="w-6 h-6 pl-3" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* 加载动画 */}
@@ -1769,158 +1944,146 @@ export default function HomeworkPage() {
                   </button>
                 )}
 
-                {/* 按科目分组 */}
-                {(() => {
-                  const activeTasks = sortedTasks.filter(t => !t.completed);
-                  const groupedTasks = groupTasksBySubject(activeTasks);
+                {/* 视图切换：分科目 / 按待完成时间 */}
+                <div className="flex items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/40 p-1">
+                  {([
+                    { key: 'subject' as const, label: '分科目', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                    { key: 'time' as const, label: '按待完成时间', icon: <Clock className="w-3.5 h-3.5" /> },
+                  ]).map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => {
+                        setListView(v.key);
+                        localStorage.setItem('homeworkListView', v.key);
+                      }}
+                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-all ${
+                        listView === v.key
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                      }`}
+                    >
+                      {v.icon}
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
 
-                  return Object.entries(groupedTasks).map(([subject, subjectTasks]) => {
-                    const isCollapsed = collapsedSubjects.has(subject);
-                    const shouldCollapse = subjectTasks.length >= 2 && isCollapsed;
+                {listView === 'subject' ? (
+                  /* ===== 视图一：按科目分组 ===== */
+                  (() => {
+                    const activeTasks = sortedTasks.filter(t => !t.completed);
+                    const groupedTasks = groupTasksBySubject(activeTasks);
 
-                    return (
-                      <div key={subject} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
-                        {/* 科目标题 */}
-                        <button
-                          onClick={() => toggleSubjectCollapse(subject)}
-                          className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
-                            subjectTasks.length >= 2
-                              ? 'hover:bg-slate-800/50 cursor-pointer'
-                              : 'cursor-default'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30">
-                              {subject.charAt(0)}
-                            </div>
-                            <div className="text-left">
-                              <div className="text-lg font-semibold text-slate-200">
-                                {subject}
+                    return Object.entries(groupedTasks).map(([subject, subjectTasks]) => {
+                      const isCollapsed = collapsedSubjects.has(subject);
+                      const shouldCollapse = subjectTasks.length >= 2 && isCollapsed;
+
+                      return (
+                        <div key={subject} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
+                          {/* 科目标题 */}
+                          <button
+                            onClick={() => toggleSubjectCollapse(subject)}
+                            className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
+                              subjectTasks.length >= 2
+                                ? 'hover:bg-slate-800/50 cursor-pointer'
+                                : 'cursor-default'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30">
+                                {subject.charAt(0)}
                               </div>
-                              <div className="text-xs text-slate-500">
-                                {subjectTasks.length} 项作业
-                              </div>
-                            </div>
-                          </div>
-
-                          {subjectTasks.length >= 2 && (
-                            <ChevronDown
-                              className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
-                                shouldCollapse ? 'rotate-180' : ''
-                              }`}
-                            />
-                          )}
-                        </button>
-
-                        {/* 任务列表 */}
-                        {(!shouldCollapse || subjectTasks.length < 2) && (
-                          <div className="px-4 pb-4 space-y-3">
-                            {subjectTasks.map((task) => {
-                              const timeInfo = getTimeUntilDue(task.dueDate);
-
-                              return (
-                                <div
-                                  key={task.id}
-                                  data-task-id={task.id}
-                                  className={`group flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
-                                    task.recentlyRestored
-                                      ? 'bg-amber-950/30 border-2 border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/30 animate-pulse'
-                                      : timeInfo?.urgent
-                                      ? 'bg-red-950/30 border border-red-500/50 hover:border-red-500/80 hover:shadow-lg hover:shadow-red-500/30'
-                                      : 'bg-slate-800/50 border border-slate-700 hover:border-blue-500/80 hover:shadow-lg hover:shadow-blue-500/30'
-                                  } ${task.isPinned ? 'ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/20' : ''}`}
-                                >
-                                  {/* 批量选择框 */}
-                                  {showBatchOperations && (
-                                    <button
-                                      onClick={() => toggleSelectTask(task.id)}
-                                      className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
-                                        selectedTasks.has(task.id)
-                                          ? 'bg-blue-500 border-blue-500 shadow-lg shadow-blue-500/50'
-                                          : 'border-slate-600 hover:border-blue-500'
-                                      }`}
-                                    >
-                                      {selectedTasks.has(task.id) && <Check className="w-3 h-3 text-white" />}
-                                    </button>
-                                  )}
-
-                                  {/* 完成状态切换 */}
-                                  <button
-                                    onClick={() => toggleTask(task.id)}
-                                    className={`complete-button flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-300 mt-0.5 ${
-                                      'border-slate-600 hover:border-green-400 hover:bg-green-500/10'
-                                    }`}
-                                  >
-                                    <Check className="w-4 h-4 text-transparent" />
-                                  </button>
-
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`block text-base transition-all duration-300 ${
-                                      task.recentlyRestored ? 'text-amber-200' : 'text-slate-200'
-                                    }`}>
-                                      {task.text}
-                                      {task.recentlyRestored && (
-                                        <span className="ml-2 text-xs text-amber-400">✨ 已恢复</span>
-                                      )}
-                                    </span>
-
-                                    {/* 到期时间显示和修改 */}
-                                    {timeInfo && (
-                                      <div className={`flex items-center gap-1.5 mt-2 text-xs ${
-                                        timeInfo.urgent ? 'text-red-400 font-semibold animate-pulse' : 'text-slate-400'
-                                      }`}>
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span>{timeInfo.text}</span>
-                                        {timeInfo.urgent && <AlertTriangle className="w-3.5 h-3.5" />}
-                                      </div>
-                                    )}
-
-                                    {/* 单个任务到期时间选择器 */}
-                                    <div className="mt-2 flex items-center gap-2">
-                                      <Calendar className="w-4 h-4 text-slate-500" />
-                                      <input
-                                        type="datetime-local"
-                                        value={
-                                          task.dueDate
-                                            ? (task.dueDate instanceof Date
-                                                ? formatDateTimeLocal(task.dueDate)
-                                                : formatDateTimeLocal(new Date(task.dueDate)))
-                                            : ''
-                                        }
-                                        onChange={(e) => updateTaskDueDate(task.id, e.target.value)}
-                                        className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* 置顶按钮（移到右边，悬停显示） */}
-                                  <button
-                                    onClick={() => toggleTaskPin(task.id)}
-                                    className={`flex-shrink-0 w-8 h-8 rounded-lg transition-all flex items-center ${
-                                      task.isPinned
-                                        ? 'bg-purple-500 text-white opacity-100 shadow-lg shadow-purple-500/50'
-                                        : 'bg-slate-700/50 text-slate-400 hover:text-purple-400 hover:bg-purple-500/20 opacity-0 group-hover:opacity-100'
-                                    }`}
-                                    title={task.isPinned ? '取消置顶' : '置顶'}
-                                  >
-                                    <ChevronUp className="w-6 h-6 pl-3" />
-                                  </button>
-
-                                  <button
-                                    onClick={() => deleteTask(task.id)}
-                                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-700/50 text-slate-400 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 flex items-center"
-                                  >
-                                    <Trash2 className="w-6 h-6 pl-3" />
-                                  </button>
+                              <div className="text-left">
+                                <div className="text-lg font-semibold text-slate-200">
+                                  {subject}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+                                <div className="text-xs text-slate-500">
+                                  {subjectTasks.length} 项作业
+                                </div>
+                              </div>
+                            </div>
+
+                            {subjectTasks.length >= 2 && (
+                              <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                                  shouldCollapse ? 'rotate-180' : ''
+                                }`}
+                              />
+                            )}
+                          </button>
+
+                          {/* 任务列表 */}
+                          {(!shouldCollapse || subjectTasks.length < 2) && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {subjectTasks.map(renderTaskItem)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()
+                ) : (
+                  /* ===== 视图二：按待完成时间分组 ===== */
+                  (() => {
+                    const activeTasks = sortedTasks.filter(t => !t.completed);
+                    const buckets = groupTasksByTime(activeTasks);
+
+                    if (buckets.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500 text-sm">
+                          暂无待完成的作业
+                        </div>
+                      );
+                    }
+
+                    return buckets.map(bucket => {
+                      const isCollapsed = collapsedBuckets.has(bucket.key);
+                      const shouldCollapse = bucket.tasks.length >= 2 && isCollapsed;
+
+                      return (
+                        <div key={bucket.key} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
+                          {/* 时间分组标题 */}
+                          <button
+                            onClick={() => toggleBucketCollapse(bucket.key)}
+                            className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
+                              bucket.tasks.length >= 2
+                                ? 'hover:bg-slate-800/50 cursor-pointer'
+                                : 'cursor-default'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${bucket.ring} flex items-center justify-center text-white font-bold text-sm shadow-lg ${bucket.shadow}`}>
+                                {bucket.icon}
+                              </div>
+                              <div className="text-left">
+                                <div className={`text-lg font-semibold ${bucket.tone}`}>
+                                  {bucket.label}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {bucket.tasks.length} 项作业
+                                </div>
+                              </div>
+                            </div>
+
+                            {bucket.tasks.length >= 2 && (
+                              <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                                  shouldCollapse ? 'rotate-180' : ''
+                                }`}
+                              />
+                            )}
+                          </button>
+
+                          {(!shouldCollapse || bucket.tasks.length < 2) && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {bucket.tasks.map(renderTaskItem)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()
+                )}
               </div>
 
               {/* 历史记录区域 */}
