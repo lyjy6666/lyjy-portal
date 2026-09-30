@@ -1668,13 +1668,18 @@ export default function HomeworkPage() {
                 )}
               </button>
               {/* 智能排期：按天数与难度把作业分配到每一天 */}
-              <button
-                onClick={() => setShowPlanner(true)}
-                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/25 enabled:hover:scale-105"
-              >
-                <Sparkles className="w-5 h-5" />
-                <span>智能排期（按天数分配作业）</span>
-              </button>
+              <div className="mt-3 border-t border-slate-700/50 pt-5">
+                <button
+                  onClick={() => setShowPlanner(true)}
+                  className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/25 enabled:hover:scale-105"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>智能排期（按天数分配作业）</span>
+                </button>
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  按难度把作业分到每一天，难题可独占一天
+                </p>
+              </div>
             </div>
           </div>
 

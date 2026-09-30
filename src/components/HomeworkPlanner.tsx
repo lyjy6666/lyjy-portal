@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  X, Plus, Trash2, Shuffle, Sparkles, Copy, Check, Calendar, Wand2, AlertTriangle, Info,
+  X, Plus, Trash2, Shuffle, Sparkles, Copy, Check, Calendar, Wand2, AlertTriangle, Info, ChevronDown,
 } from 'lucide-react';
 
 export interface PlannerItem {
@@ -16,6 +16,8 @@ export interface PlannerDay {
   date: string;
   items: PlannerItem[];
   load: number;
+  /** 当天可用时间（与难度同单位，1 = 正常一天）；0 表示这天没空、不排作业 */
+  capacity: number;
 }
 
 interface HomeworkPlannerProps {
@@ -52,47 +54,64 @@ function formatDay(iso: string): string {
 
 /* ---------- 分配算法 ---------- */
 
-function loadRange(bins: PlannerItem[][]): number {
-  const loads = bins.map((b) => b.reduce((s, i) => s + i.difficulty, 0));
-  return Math.max(...loads) - Math.min(...loads);
+function sumLoad(bin: PlannerItem[]): number {
+  return bin.reduce((s, i) => s + i.difficulty, 0);
+}
+
+/** 各天「负载率」= 当天难度合计 / 当天可用时间；可用时间为 0 的天不参与 */
+function ratios(bins: PlannerItem[][], caps: number[]): number[] {
+  return bins
+    .map((b, i) => (caps[i] > 0 ? sumLoad(b) / caps[i] : null))
+    .filter((v): v is number => v !== null);
+}
+
+function spreadOf(bins: PlannerItem[][], caps: number[]): number {
+  const rs = ratios(bins, caps);
+  if (rs.length === 0) return Number.POSITIVE_INFINITY;
+  return Math.max(...rs) - Math.min(...rs);
 }
 
 /**
- * 把作业分配到各天：
+ * 把作业分配到各天（支持每天可用时间不同）：
  *   1) 按难度降序（LPT 贪心，先放大件，天然让「一张试卷」独占一天）
- *   2) 每次都放进当前最轻的一天；负载相同的天之间随机挑 → 结果不唯一
- *   3) 随机局部搜索（移动 / 交换），只在极差变小时接受 → 既均衡又随机
+ *   2) 每次放进「负载率最低」的一天（负载率 = 已排难度 / 当天可用时间），
+ *      可用时间少的天会自然少排；负载率相同的天之间随机挑 → 结果不唯一
+ *   3) 随机局部搜索（移动 / 交换），只在负载率极差变小时接受 → 均衡又随机
+ *   4) 可用时间为 0 的天完全不排
  */
-function distribute(items: PlannerItem[], dayCount: number): PlannerItem[][] {
-  const bins: PlannerItem[][] = Array.from({ length: dayCount }, () => []);
-  if (items.length === 0) return bins;
+function distribute(items: PlannerItem[], caps: number[]): PlannerItem[][] {
+  const n = caps.length;
+  const bins: PlannerItem[][] = Array.from({ length: n }, () => []);
+  const usable = caps.map((c, i) => (c > 0 ? i : -1)).filter((i) => i >= 0);
+  if (items.length === 0 || usable.length === 0) return bins;
+
+  const rate = (i: number) => (caps[i] > 0 ? sumLoad(bins[i]) / caps[i] : Number.POSITIVE_INFINITY);
 
   const sorted = [...items].sort((a, b) => b.difficulty - a.difficulty);
   for (const item of sorted) {
-    const loads = bins.map((b) => b.reduce((s, i) => s + i.difficulty, 0));
-    const min = Math.min(...loads);
-    const candidates = bins.filter((_, idx) => loads[idx] <= min + 1e-9);
+    let minRate = Number.POSITIVE_INFINITY;
+    for (const i of usable) minRate = Math.min(minRate, rate(i));
+    const candidates = usable.filter((i) => rate(i) <= minRate + 1e-9);
     const target = candidates[Math.floor(Math.random() * candidates.length)];
-    target.push(item);
+    bins[target].push(item);
   }
 
-  // 局部搜索：400 次随机扰动，只在极差严格变小时保留
-  let bestRange = loadRange(bins);
-  for (let iter = 0; iter < 400 && bestRange > 1e-9; iter++) {
-    const a = Math.floor(Math.random() * dayCount);
-    const b = Math.floor(Math.random() * dayCount);
+  // 局部搜索：400 次随机扰动，只在负载率极差严格变小时保留
+  let best = spreadOf(bins, caps);
+  for (let iter = 0; iter < 400 && best > 1e-9; iter++) {
+    const a = usable[Math.floor(Math.random() * usable.length)];
+    const b = usable[Math.floor(Math.random() * usable.length)];
     if (a === b || bins[a].length === 0) continue;
 
     if (Math.random() < 0.5 || bins[b].length === 0) {
       // 移动：把 a 的随机一项挪到 b
       const idx = Math.floor(Math.random() * bins[a].length);
       const moved = bins[a][idx];
-      const before = bestRange;
       bins[a].splice(idx, 1);
       bins[b].push(moved);
-      const after = loadRange(bins);
-      if (after < before) {
-        bestRange = after;
+      const after = spreadOf(bins, caps);
+      if (after < best) {
+        best = after;
       } else {
         bins[b].pop();
         bins[a].splice(idx, 0, moved);
@@ -101,13 +120,12 @@ function distribute(items: PlannerItem[], dayCount: number): PlannerItem[][] {
       // 交换：a、b 各取一项互换
       const ia = Math.floor(Math.random() * bins[a].length);
       const ib = Math.floor(Math.random() * bins[b].length);
-      const before = bestRange;
-      const tmp = bins[a][ia];
+      const t = bins[a][ia];
       bins[a][ia] = bins[b][ib];
-      bins[b][ib] = tmp;
-      const after = loadRange(bins);
-      if (after < before) {
-        bestRange = after;
+      bins[b][ib] = t;
+      const after = spreadOf(bins, caps);
+      if (after < best) {
+        best = after;
       } else {
         const t2 = bins[a][ia];
         bins[a][ia] = bins[b][ib];
@@ -131,6 +149,20 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState<{ type: 'ok' | 'warn'; text: string } | null>(null);
+  /** 每天的可用时间（1 = 正常一天）；长度始终与 dayCount 一致 */
+  const [dayCapacity, setDayCapacity] = useState<number[]>(() => Array(7).fill(1));
+  const [showCapacity, setShowCapacity] = useState(false);
+
+  // 天数变化时同步容量数组：保留已填的值，多出来的用 1 补齐
+  useEffect(() => {
+    const n = Math.max(1, Math.min(60, Math.round(dayCount)));
+    setDayCapacity((prev) => {
+      if (prev.length === n) return prev;
+      const next = Array(n).fill(1) as number[];
+      for (let i = 0; i < Math.min(n, prev.length); i++) next[i] = prev[i];
+      return next;
+    });
+  }, [dayCount]);
 
   // 打开时恢复上次的输入
   useEffect(() => {
@@ -142,6 +174,9 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
         if (Array.isArray(saved.items)) setItems(saved.items);
         if (typeof saved.dayCount === 'number') setDayCount(saved.dayCount);
         if (typeof saved.startDate === 'string') setStartDate(saved.startDate);
+        if (Array.isArray(saved.dayCapacity) && saved.dayCapacity.every((v: unknown) => typeof v === 'number')) {
+          setDayCapacity(saved.dayCapacity);
+        }
       }
     } catch {
       /* 忽略损坏的缓存 */
@@ -151,15 +186,20 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
   useEffect(() => {
     if (!isOpen) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, dayCount, startDate }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, dayCount, startDate, dayCapacity }));
     } catch {
       /* 存储不可用时忽略 */
     }
-  }, [isOpen, items, dayCount, startDate]);
+  }, [isOpen, items, dayCount, startDate, dayCapacity]);
 
   const totalDifficulty = useMemo(() => items.reduce((s, i) => s + i.difficulty, 0), [items]);
-  const avgLoad = dayCount > 0 ? totalDifficulty / dayCount : 0;
-  const maxLoad = plan ? Math.max(1, ...plan.map((d) => d.load)) : 1;
+  /** 所有天的可用时间总和（可用时间为 0 的天不计） */
+  const totalCapacity = useMemo(
+    () => dayCapacity.slice(0, Math.max(1, Math.round(dayCount))).reduce((s, c) => s + c, 0),
+    [dayCapacity, dayCount]
+  );
+  const overallRate = totalCapacity > 0 ? totalDifficulty / totalCapacity : 0;
+  const maxRatio = plan ? Math.max(0.0001, ...plan.filter((d) => d.capacity > 0).map((d) => d.load / d.capacity)) : 1;
 
   const addItem = useCallback(
     (name: string, difficulty: number) => {
@@ -199,13 +239,23 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
     }
     const days = Math.max(1, Math.min(60, Math.round(dayCount)));
     setDayCount(days);
-    const bins = distribute(items, days);
+    // 容量数组长度对齐到天数
+    const caps = Array.from({ length: days }, (_, i) => {
+      const v = dayCapacity[i];
+      return typeof v === 'number' && v >= 0 ? v : 1;
+    });
+    if (caps.every((c) => c <= 0)) {
+      setNotice({ type: 'warn', text: '所有天的可用时间都是 0，至少给一天留出时间' });
+      return;
+    }
+    const bins = distribute(items, caps);
     setPlan(
       bins.map((bin, i) => ({
         index: i + 1,
         date: addDays(startDate || todayISO(), i),
         items: bin,
         load: bin.reduce((s, it) => s + it.difficulty, 0),
+        capacity: caps[i],
       }))
     );
     setNotice(null);
@@ -218,8 +268,10 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
       .map((d) => {
         const list = d.items.length
           ? d.items.map((i) => `  · ${i.name}（难度 ${i.difficulty}）`).join('\n')
-          : '  · （休息日）';
-        return `第 ${d.index} 天 ${formatDay(d.date)}  合计难度 ${d.load.toFixed(1)}\n${list}`;
+          : d.capacity > 0
+            ? '  · （休息日）'
+            : '  · （这天没空）';
+        return `第 ${d.index} 天 ${formatDay(d.date)}  合计难度 ${d.load.toFixed(1)} / 可用 ${d.capacity}\n${list}`;
       })
       .join('\n\n');
     return `${head}\n\n${body}`;
@@ -249,7 +301,13 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
 
   if (!isOpen) return null;
 
-  const balanced = plan ? Math.max(...plan.map((d) => d.load)) - Math.min(...plan.map((d) => d.load)) : 0;
+  // 负载差异：各天「负载率」的极差（可用时间为 0 的天不参与比较）
+  const balanced = plan
+    ? (() => {
+        const rs = plan.filter((d) => d.capacity > 0).map((d) => d.load / d.capacity);
+        return rs.length ? Math.max(...rs) - Math.min(...rs) : 0;
+      })()
+    : 0;
 
   return (
     <div
@@ -314,6 +372,87 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                   className="w-full rounded-lg border border-slate-600/60 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-fuchsia-500"
                 />
               </label>
+            </div>
+
+            {/* 每天可用时间：允许某些天时间少 */}
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/30">
+              <button
+                type="button"
+                onClick={() => setShowCapacity((v) => !v)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+              >
+                <span className="text-xs text-slate-300">
+                  每天可用时间
+                  <span className="ml-1.5 text-[11px] text-slate-500">
+                    {dayCapacity.slice(0, Math.max(1, Math.round(dayCount))).every((c) => c === 1)
+                      ? '默认每天一样'
+                      : '已按天单独设置'}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-[11px] text-slate-500">
+                  {showCapacity ? '收起' : '展开'}
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCapacity ? 'rotate-180' : ''}`} />
+                </span>
+              </button>
+
+              {showCapacity && (
+                <div className="border-t border-slate-700/60 p-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-500">快速设置</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(1));
+                        setPlan(null);
+                      }}
+                      className="rounded border border-slate-600/60 px-1.5 py-0.5 text-slate-300 transition hover:border-fuchsia-500 hover:text-white"
+                    >
+                      全部正常
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDayCapacity(Array(Math.max(1, Math.round(dayCount))).fill(0.5));
+                        setPlan(null);
+                      }}
+                      className="rounded border border-slate-600/60 px-1.5 py-0.5 text-slate-300 transition hover:border-fuchsia-500 hover:text-white"
+                    >
+                      全部半天
+                    </button>
+                  </div>
+                  <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto">
+                    {Array.from({ length: Math.max(1, Math.min(60, Math.round(dayCount))) }).map((_, i) => (
+                      <label
+                        key={i}
+                        className="flex items-center gap-1.5 rounded border border-slate-700/60 bg-slate-900/40 px-2 py-1"
+                      >
+                        <span className="w-10 shrink-0 text-[11px] text-slate-400">第{i + 1}天</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={dayCapacity[i] ?? 1}
+                          onChange={(e) => {
+                            const v = Math.max(0, Number(e.target.value) || 0);
+                            setDayCapacity((prev) => {
+                              const next = [...prev];
+                              while (next.length <= i) next.push(1);
+                              next[i] = v;
+                              return next;
+                            });
+                            setPlan(null);
+                          }}
+                          className="w-full rounded border border-slate-600/60 bg-slate-900 px-1.5 py-0.5 text-center text-xs text-white outline-none focus:border-fuchsia-500"
+                          aria-label={`第${i + 1}天可用时间`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                    1 = 正常一天，0.5 = 只有半天，0 = 这天没空（不排作业）。可用时间少的天会自动少排。
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 添加作业 */}
@@ -493,23 +632,35 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                     总难度 <span className="font-semibold text-white">{totalDifficulty.toFixed(1)}</span>
                   </span>
                   <span>
-                    日均 <span className="font-semibold text-white">{avgLoad.toFixed(1)}</span>
+                    总可用 <span className="font-semibold text-white">{totalCapacity.toFixed(1)}</span>
                   </span>
-                  <span className={balanced <= 1 ? 'text-emerald-300' : 'text-amber-300'}>
-                    极差 {balanced.toFixed(1)} {balanced <= 1 ? '· 分配均衡' : '· 略有差异'}
+                  <span>
+                    整体负载{' '}
+                    <span className={`font-semibold ${overallRate > 1.15 ? 'text-amber-300' : 'text-white'}`}>
+                      {totalCapacity > 0 ? `${Math.round(overallRate * 100)}%` : '—'}
+                    </span>
+                  </span>
+                  <span className={balanced <= 0.25 ? 'text-emerald-300' : 'text-amber-300'}>
+                    负载差 {balanced.toFixed(2)} {balanced <= 0.25 ? '· 分配均衡' : '· 略有差异'}
                   </span>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   {plan.map((day) => {
-                    const ratio = day.load / maxLoad;
-                    const over = avgLoad > 0 && day.load > avgLoad * 1.25;
-                    const light = avgLoad > 0 && day.load < avgLoad * 0.6;
+                    const noTime = day.capacity <= 0;
+                    const fill = noTime ? 0 : day.load / day.capacity; // 该天负载率（相对自己的可用时间）
+                    const ratio = maxRatio > 0 ? fill / maxRatio : 0; // 相对最忙的一天，用于着色
+                    const overload = !noTime && fill > 1.15; // 超出当天可用时间
+                    const light = !noTime && ratio < 0.5;
                     return (
                       <div
                         key={day.index}
                         className={`rounded-xl border bg-slate-800/40 p-3.5 ${
-                          over ? 'border-amber-500/50' : light ? 'border-slate-700/60' : 'border-emerald-500/40'
+                          noTime
+                            ? 'border-slate-700/40 opacity-70'
+                            : light
+                              ? 'border-slate-700/60'
+                              : 'border-emerald-500/40'
                         }`}
                       >
                         <div className="mb-2 flex items-center justify-between">
@@ -517,18 +668,24 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                             <Calendar className="h-3.5 w-3.5 text-fuchsia-400" />
                             第 {day.index} 天
                           </span>
-                          <span className="text-[11px] text-slate-400">{formatDay(day.date)}</span>
+                          <span className="text-[11px] text-slate-400">
+                            {formatDay(day.date)}
+                            {!noTime && day.capacity !== 1 && (
+                              <span className="ml-1.5 text-slate-500">可用 {day.capacity}</span>
+                            )}
+                            {noTime && <span className="ml-1.5 text-slate-500">没空</span>}
+                          </span>
                         </div>
                         <div className="mb-2.5 h-1.5 overflow-hidden rounded-full bg-slate-700/60">
                           <div
                             className={`h-full rounded-full ${
-                              over ? 'bg-amber-400' : light ? 'bg-slate-500' : 'bg-emerald-400'
+                              noTime ? 'bg-slate-700' : light ? 'bg-sky-400/70' : 'bg-emerald-400'
                             }`}
-                            style={{ width: `${Math.max(4, ratio * 100)}%` }}
+                            style={{ width: `${Math.max(noTime ? 0 : 4, ratio * 100)}%` }}
                           />
                         </div>
                         {day.items.length === 0 ? (
-                          <p className="text-xs text-slate-500">（休息日）</p>
+                          <p className="text-xs text-slate-500">{noTime ? '（这天没空）' : '（休息日）'}</p>
                         ) : (
                           <ul className="space-y-1">
                             {day.items.map((it) => (
@@ -541,7 +698,18 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
                             ))}
                           </ul>
                         )}
-                        <div className="mt-2 text-right text-[11px] text-slate-400">合计 {day.load.toFixed(1)}</div>
+                        <div className="mt-2 flex items-baseline justify-between text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1.5">
+                            {noTime ? '' : `负载 ${Math.round(fill * 100)}%`}
+                            {overload && (
+                              <span className="rounded bg-amber-400/15 px-1 py-0.5 text-[10px] text-amber-300">超出可用时间</span>
+                            )}
+                          </span>
+                          <span>
+                            合计 {day.load.toFixed(1)}
+                            {!noTime && <span className="text-slate-500"> / {day.capacity}</span>}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -549,7 +717,8 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
 
                 <p className="flex items-start gap-1.5 pt-1 text-[11px] text-slate-500">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  分配结果每次不同但总量均衡。觉得某天太满就调大它的难度系数或增加天数，再点「重新随机」。
+                  分配结果每次不同但负载均衡。某天时间少就在左侧把它的「可用时间」调小，那天自然排得少；
+                  填 0 表示那天完全没空。觉得整体偏满就增加天数。
                 </p>
               </div>
             )}
