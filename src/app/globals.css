@@ -1061,16 +1061,36 @@ button, a, input, textarea, select {
    平时中心是标题；悬停任意节点时标题「瞬移」到左上角，
    中间腾出来固定展示该节点的详情（位置不随节点变化）。 */
 .portal-ring-stage--e .portal-ring-core {
-  z-index: 4;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, filter 0.35s ease;
+  /* 用 fixed 定位：left/top 50% 即视口中心，与 stage 中心重合。
+     这样停靠时可以直接用 vw/vh 把整块搬到视口左上角，不必测量 stage 位置。 */
+  position: fixed;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: max-content;
+  max-width: min(24rem, 88vw);
+  transform: translate(-50%, -50%);
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  z-index: 8;
 }
 
 .portal-ring-stage--e .portal-ring-core.is-docked {
-  /* 从 stage 中心平移到左上角并缩小（stage 是正方形，中心到边角距离 = stage/2） */
-  /* 注意：不要写成 calc(-1 * (...))，Lightning CSS 会整段丢弃这条规则 */
-  transform: translate(calc(2.5rem - var(--stage-w) / 2), calc(2.5rem - var(--stage-w) / 2)) scale(0.34);
-  opacity: 0.85;
-  filter: blur(0.4px);
+  /* 移到视口左上角，保持原始字号（不缩放），改为左对齐 */
+  transform: translate(calc(1.5rem - 50vw), calc(1.5rem - 50vh));
+  align-items: flex-start;
+  text-align: left;
+  opacity: 0.95;
+}
+
+/* 停靠后标题放大一档，作为「大标题」存在 */
+.portal-ring-stage--e .portal-ring-core.is-docked .portal-core-title {
+  font-size: 2.25rem;
+  line-height: 1.15;
+}
+
+.portal-ring-stage--e .portal-ring-core.is-docked .portal-core-desc {
+  max-width: 20rem;
+  text-align: left;
 }
 
 /* 传送门闪光：每次悬停新节点重新播放一次 */

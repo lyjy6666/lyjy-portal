@@ -40,9 +40,30 @@ export default function RingLayout({
   // 节点角度：方案 C/D 会按分类分组并留出空隙
   const angles = useMemo(() => anglesForVariant(variant, serviceCategories), [variant]);
 
-  // 方案 E：中心详情面板要跟随悬停的节点
+  // 方案 E：中心详情面板要跟随悬停的节点。
+  // 注意：鼠标从节点移向中心面板（点「进入网站」）时会先离开节点，
+  // 所以不能立刻收回 —— 离开后等 5 秒再收回，期间移到面板上会重置计时。
   const isE = variant === 'E';
   const [hovered, setHovered] = useState<ServiceItem | null>(null);
+  const idleTimer = useRef<number | null>(null);
+
+  const clearIdle = () => {
+    if (idleTimer.current) {
+      window.clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    }
+  };
+  const startIdle = () => {
+    clearIdle();
+    idleTimer.current = window.setTimeout(() => setHovered(null), 5000);
+  };
+  const handleHover = (service: ServiceItem | null) => {
+    clearIdle();
+    if (service) setHovered(service);
+    else startIdle();
+  };
+
+  useEffect(() => () => clearIdle(), []);
 
   useEffect(() => {
     if (localStorage.getItem('portalLayoutSeen')) return;
@@ -168,7 +189,7 @@ export default function RingLayout({
               }
               variant={variant}
               showCard={!isE}
-              onHoverChange={isE ? setHovered : undefined}
+              onHoverChange={isE ? handleHover : undefined}
             />
           ))}
         </div>
@@ -198,7 +219,11 @@ export default function RingLayout({
             {hovered && <span key={hovered.id} className="portal-teleport-flash" aria-hidden="true" />}
 
             {/* 中心详情面板：固定在同一位置，内容跟随悬停的节点 */}
-            <div className={`portal-center-panel ${hovered ? 'is-on' : ''}`}>
+            <div
+              className={`portal-center-panel ${hovered ? 'is-on' : ''}`}
+              onMouseEnter={clearIdle}
+              onMouseLeave={startIdle}
+            >
               {hovered && (
                 <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
                   {hovered.categoryName && (
