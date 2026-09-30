@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChartLine, Headset, History, LayoutGrid, Sparkles, X } from 'lucide-react';
-import { flattenServices, serviceCategories } from '@/data/services';
+import { flattenServices, serviceCategories, type ServiceItem } from '@/data/services';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
-import { ServiceIcon, accentStyle, accents, handleNudge } from './shared';
+import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle, accents, handleNudge } from './shared';
 import { anglesForVariant, type RingVariant } from './ringAngles';
 
 const RING_RADIUS = 46;
@@ -39,6 +39,10 @@ export default function RingLayout({
 
   // 节点角度：方案 C/D 会按分类分组并留出空隙
   const angles = useMemo(() => anglesForVariant(variant, serviceCategories), [variant]);
+
+  // 方案 E：中心详情面板要跟随悬停的节点
+  const isE = variant === 'E';
+  const [hovered, setHovered] = useState<ServiceItem | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem('portalLayoutSeen')) return;
@@ -155,13 +159,28 @@ export default function RingLayout({
               service={service}
               index={index}
               angle={angles[index] ?? -90 + index * (360 / services.length)}
-              state={nodeState(service.categoryId)}
+              state={
+                isE && hovered
+                  ? hovered.id === service.id
+                    ? 'active'
+                    : 'dim'
+                  : nodeState(service.categoryId)
+              }
               variant={variant}
+              showCard={!isE}
+              onHoverChange={isE ? setHovered : undefined}
             />
           ))}
         </div>
 
-        <div className="portal-ring-core">
+        {/* 中心核心区：
+            方案 E 下悬停任意节点时，标题会「瞬移」到左上角，
+            中间腾出来固定展示该节点的详情（位置不随节点变化）。 */}
+        <div
+          className={`portal-ring-core ${
+            isE ? `portal-core-dock ${hovered ? 'is-docked' : ''}` : ''
+          }`}
+        >
           <span className="portal-core-halo" aria-hidden="true" />
           <span className="portal-core-ring" aria-hidden="true" />
           <p className="portal-core-eyebrow">Unified Portal</p>
@@ -172,6 +191,35 @@ export default function RingLayout({
             <Sparkles size={14} />敬请期待更多功能
           </button>
         </div>
+
+        {isE && (
+          <>
+            {/* 传送门闪光：每次悬停新节点都重新播放 */}
+            {hovered && <span key={hovered.id} className="portal-teleport-flash" aria-hidden="true" />}
+
+            {/* 中心详情面板：固定在同一位置，内容跟随悬停的节点 */}
+            <div className={`portal-center-panel ${hovered ? 'is-on' : ''}`}>
+              {hovered && (
+                <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
+                  {hovered.categoryName && (
+                    <div
+                      className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: 'var(--service-accent)' }}
+                    >
+                      {hovered.categoryName}
+                    </div>
+                  )}
+                  <div className="text-base font-semibold text-white">{hovered.name}</div>
+                  <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
+                  <ServiceBadges service={hovered} />
+                  <div className="mt-3 flex justify-center">
+                    <ServiceAction service={hovered} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="portal-hud portal-hud--bottom">

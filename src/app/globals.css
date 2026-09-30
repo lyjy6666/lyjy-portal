@@ -1056,3 +1056,87 @@ button, a, input, textarea, select {
   width: var(--node-d);
   height: var(--node-d);
 }
+
+/* ===== 方案 E：中心详情 =====
+   平时中心是标题；悬停任意节点时标题「瞬移」到左上角，
+   中间腾出来固定展示该节点的详情（位置不随节点变化）。 */
+.portal-ring-stage--e .portal-ring-core {
+  z-index: 4;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, filter 0.35s ease;
+}
+
+.portal-ring-stage--e .portal-ring-core.is-docked {
+  /* 从 stage 中心平移到左上角并缩小（stage 是正方形，中心到边角距离 = stage/2） */
+  /* 注意：不要写成 calc(-1 * (...))，Lightning CSS 会整段丢弃这条规则 */
+  transform: translate(calc(2.5rem - var(--stage-w) / 2), calc(2.5rem - var(--stage-w) / 2)) scale(0.34);
+  opacity: 0.85;
+  filter: blur(0.4px);
+}
+
+/* 传送门闪光：每次悬停新节点重新播放一次 */
+.portal-teleport-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7rem;
+  height: 7rem;
+  margin: -3.5rem 0 0 -3.5rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(147, 197, 253, 0.9);
+  box-shadow: 0 0 40px rgba(125, 211, 252, 0.6), inset 0 0 30px rgba(125, 211, 252, 0.35);
+  pointer-events: none;
+  z-index: 5;
+  animation: portal-teleport 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes portal-teleport {
+  0% {
+    transform: scale(0.35) rotate(0deg);
+    opacity: 0.95;
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(2.8) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+/* 中心详情面板：固定位置，只换内容 */
+.portal-center-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(20rem, 56%);
+  transform: translate(-50%, -50%) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 6;
+}
+
+.portal-center-panel.is-on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.portal-tooltip--center {
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.portal-tooltip--center .portal-badges {
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-teleport-flash {
+    animation: none;
+    opacity: 0;
+  }
+  .portal-ring-stage--e .portal-ring-core {
+    transition: none;
+  }
+}

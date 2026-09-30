@@ -16,9 +16,21 @@ type ServiceNodeProps = {
   state?: 'idle' | 'active' | 'dim';
   /** 布局方案（仅影响标签显隐与尺寸，角度由 RingLayout 决定） */
   variant?: RingVariant;
+  /** 是否显示节点自带的悬停卡片（方案 E 由中心面板代替，传 false） */
+  showCard?: boolean;
+  /** 悬停状态变化回调（方案 E 用来驱动中心详情面板） */
+  onHoverChange?: (service: ServiceItem | null) => void;
 };
 
-function ServiceNode({ service, index, angle, state = 'idle', variant = 'A' }: ServiceNodeProps) {
+function ServiceNode({
+  service,
+  index,
+  angle,
+  state = 'idle',
+  variant = 'A',
+  showCard = true,
+  onHoverChange,
+}: ServiceNodeProps) {
   const radius = 46;
   const rad = (angle * Math.PI) / 180;
   const left = `calc(50% + ${radius}% * ${Math.cos(rad).toFixed(4)})`;
@@ -51,7 +63,13 @@ function ServiceNode({ service, index, angle, state = 'idle', variant = 'A' }: S
 
   const handleOpen = () => {
     cancelClose();
-    setCardOpen(true);
+    if (showCard) setCardOpen(true);
+    onHoverChange?.(service);
+  };
+
+  const handleClose = (ms: number) => {
+    scheduleClose(ms);
+    onHoverChange?.(null);
   };
 
   useEffect(
@@ -71,10 +89,10 @@ function ServiceNode({ service, index, angle, state = 'idle', variant = 'A' }: S
       animate={{ opacity: state === 'dim' ? 0.22 : 1, scale: 1 }}
       // 入场才需要错峰延迟；状态变化（分类高亮）不该再延迟，否则看着迟钝
       transition={{ delay: index * 0.045, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      onMouseLeave={() => scheduleClose(150)}
+      onMouseLeave={() => handleClose(150)}
       onBlur={(e) => {
         // 焦点离开整个节点（按钮 + 卡片）才关闭，键盘 Tab 进卡片不会闪断
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) scheduleClose(0);
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) handleClose(0);
       }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -112,7 +130,7 @@ function ServiceNode({ service, index, angle, state = 'idle', variant = 'A' }: S
           data-open={cardOpen ? 'true' : 'false'}
           data-card-side={side}
           className={`portal-card portal-card--${side} transition-opacity duration-150 ${
-            cardOpen ? 'pointer-events-auto visible opacity-100' : 'pointer-events-none invisible opacity-0'
+            showCard && cardOpen ? 'pointer-events-auto visible opacity-100' : 'pointer-events-none invisible opacity-0'
           }`}
           onMouseEnter={cancelClose}
           onMouseLeave={() => scheduleClose(120)}

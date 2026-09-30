@@ -37,11 +37,12 @@ export function groupedAngles(categories: ServiceCategory[], extraGap = 9): numb
   return angles;
 }
 
-export type RingVariant = 'A' | 'B' | 'C' | 'D';
+export type RingVariant = 'A' | 'B' | 'C' | 'D' | 'E';
 
 /** 各方案用哪种角度分配 */
 export function anglesForVariant(variant: RingVariant, categories: ServiceCategory[]): number[] {
   const total = categories.reduce((sum, c) => sum + c.services.length, 0);
   if (variant === 'C' || variant === 'D') return groupedAngles(categories);
+  // A / B / E 都用均匀分布
   return uniformAngles(total);
 }

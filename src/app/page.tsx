@@ -18,6 +18,7 @@ const RING_VARIANTS: { key: RingVariant; label: string; desc: string }[] = [
   { key: 'B', label: 'B', desc: '整体随圆环缩放：节点与标签一起变小' },
   { key: 'C', label: 'C', desc: '按分类分组：同类靠拢，分类间留空隙' },
   { key: 'D', label: 'D', desc: '缩放 + 分类分组：两者结合' },
+  { key: 'E', label: 'E', desc: '中心详情：悬停时标题瞬移到左上角，中间展示该节点详情' },
 ];
 
 export default function PortalHome() {
@@ -41,7 +42,7 @@ export default function PortalHome() {
     query.addEventListener('change', syncViewport);
 
     const storedVariant = localStorage.getItem('portalRingVariant');
-    if (storedVariant === 'A' || storedVariant === 'B' || storedVariant === 'C' || storedVariant === 'D') {
+    if (storedVariant === 'A' || storedVariant === 'B' || storedVariant === 'C' || storedVariant === 'D' || storedVariant === 'E') {
       setVariant(storedVariant);
     }
 
