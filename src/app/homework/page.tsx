@@ -61,6 +61,18 @@ export default function HomeworkPage() {
       placement: 'top',
     },
     {
+      target: '[data-tour="io"]',
+      title: '已有文档？直接导入',
+      desc: '「导入文档为作业」支持 txt / doc / docx / md，选中文件就会自动拆成作业条目；「导出作业为文档」可以把当前清单存成文件带走或打印。',
+      placement: 'auto',
+    },
+    {
+      target: '[data-tour="grader"]',
+      title: 'AI 批改作业',
+      desc: '写完的作业想对答案？点这个按钮把内容交给 AI 批改，会给出对错判断和讲解。（需要登录）',
+      placement: 'auto',
+    },
+    {
       target: '[data-tour="planner"]',
       title: '作业太多？让它帮你排',
       desc: '设定完成天数，给每个作业标上难度系数（普通作业填 1，试卷这类填 3），系统会把它们均衡地分到每一天——难题独占一天，轻松的几个凑一天。某天没时间还能单独把那天调小。',
@@ -1919,7 +1931,7 @@ export default function HomeworkPage() {
             </div>
 
             {/* 导入 / 导出作业板块 */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl mt-4">
+            <div data-tour="io" className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl mt-4">
               <h2 className="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-blue-400" />
                 导入 / 导出作业
@@ -2364,6 +2376,7 @@ export default function HomeworkPage() {
 
         {/* AI 批改作业按钮 */}
         <button
+          data-tour="grader"
           onClick={() => setShowAIGrader(true)}
           className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/50 hover:scale-110 transition-all flex items-center justify-center group"
           title="AI 批改作业"
