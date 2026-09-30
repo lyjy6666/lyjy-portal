@@ -32,6 +32,8 @@ export default function HomeworkPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [batchDueDate, setBatchDueDate] = useState('');
+  /** 批量改期方式：整条替换 / 只改日期（保留各自时刻）/ 只改时间（保留各自日期） */
+  const [batchDateMode, setBatchDateMode] = useState<'full' | 'dateOnly' | 'timeOnly'>('full');
   const [showUpdateLog, setShowUpdateLog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -962,29 +964,91 @@ export default function HomeworkPage() {
       return;
     }
     if (!batchDueDate) {
-      alert('请选择到期时间');
+      alert('请先选择日期时间');
       return;
     }
-    
+
+    // 按模式解析输入框的值。注意：不能先无条件 new Date(batchDueDate) ——
+    // 'HH:mm'（只改时间）和 'YYYY-MM-DD'（只改日期）都不是合法的完整日期时间，
+    // 只有「整条替换」的 datetime-local 值才需要交给 Date 解析。
+    let pY = 0, pM = 0, pD = 0, pH = 0, pMin = 0;
+    if (batchDateMode === 'timeOnly') {
+      const [h, m] = batchDueDate.split(':').map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) {
+        alert('请选择要改成的时间');
+        return;
+      }
+      pH = h; pMin = m;
+    } else if (batchDateMode === 'dateOnly') {
+      const [y, mo, d] = batchDueDate.split('-').map(Number);
+      if (Number.isNaN(y) || Number.isNaN(mo) || Number.isNaN(d)) {
+        alert('请选择要改成的日期');
+        return;
+      }
+      pY = y; pM = mo - 1; pD = d;
+    } else {
+      const picker = new Date(batchDueDate);
+      if (isNaN(picker.getTime())) {
+        alert('日期时间格式不正确');
+        return;
+      }
+      pY = picker.getFullYear(); pM = picker.getMonth(); pD = picker.getDate();
+      pH = picker.getHours(); pMin = picker.getMinutes();
+    }
+
+    // 按所选方式为每个作业算出新的到期时间
+    const updates: { id: number; dueDate: Date }[] = [];
+    let skipped = 0;
+
+    Array.from(selectedTasks).forEach(id => {
+      const task = tasks.find(t => t.id === id);
+      const existing = task?.dueDate
+        ? (task.dueDate instanceof Date ? task.dueDate : new Date(task.dueDate))
+        : null;
+      const valid = existing && !isNaN(existing.getTime()) ? existing : null;
+
+      let next: Date;
+      if (batchDateMode === 'dateOnly') {
+        // 只改日期：保留每个作业原本的时刻（没有截止时间的按 00:00）
+        next = new Date(pY, pM, pD, valid ? valid.getHours() : 0, valid ? valid.getMinutes() : 0, 0, 0);
+      } else if (batchDateMode === 'timeOnly') {
+        // 只改时间：保留每个作业原本的日期；没有截止时间的无法保留日期，跳过
+        if (!valid) {
+          skipped++;
+          return;
+        }
+        next = new Date(valid.getFullYear(), valid.getMonth(), valid.getDate(), pH, pMin, 0, 0);
+      } else {
+        next = new Date(pY, pM, pD, pH, pMin, 0, 0);
+      }
+      updates.push({ id, dueDate: next });
+    });
+
+    if (updates.length === 0) {
+      alert('所选作业都没有截止日期，无法只改时间。请改用「只改日期」或「整条替换」。');
+      return;
+    }
+
     try {
-      const newDueDate = new Date(batchDueDate);
       await Promise.all(
-        Array.from(selectedTasks).map(id =>
-          fetch(`/api/homework/tasks/${id}`, {
+        updates.map(u =>
+          fetch(`/api/homework/tasks/${u.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({ dueDate: newDueDate }),
+            body: JSON.stringify({ dueDate: u.dueDate }),
           })
         )
       );
+      const map = new Map(updates.map(u => [u.id, u.dueDate]));
       setTasks(prev => prev.map(task =>
-        selectedTasks.has(task.id)
-          ? { ...task, dueDate: newDueDate }
-          : task
+        map.has(task.id) ? { ...task, dueDate: map.get(task.id) } : task
       ));
       setSelectedTasks(new Set());
       setBatchDueDate('');
       setShowBatchOperations(false);
+      if (skipped > 0) {
+        alert(`已更新 ${updates.length} 项；另有 ${skipped} 项原本没有截止日期，无法只改时间，已跳过。`);
+      }
     } catch (error) {
       console.error('Error batch updating due dates:', error);
       alert('批量修改时间失败，请重试');
@@ -1903,6 +1967,17 @@ export default function HomeworkPage() {
                   {showBatchOperations ? '取消批量选择' : `批量选择 (${selectedTasks.size})`}
                 </button>
 
+                {/* 全选待完成：紧挨着批量选择，做小一号 */}
+                {showBatchOperations && (
+                  <button
+                    onClick={handleSelectAllActive}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/50 transition-all text-xs"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    全选待完成
+                  </button>
+                )}
+
                 {showBatchOperations && selectedTasks.size > 0 && (
                   <>
                     <div className="h-6 w-px bg-slate-600 mx-1" />
@@ -1915,17 +1990,45 @@ export default function HomeworkPage() {
                     </button>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
+                      {/* 输入框类型随模式变化：只改时间就只让人选时间，不用再填日期 */}
                       <input
-                        type="datetime-local"
+                        key={batchDateMode}
+                        type={batchDateMode === 'timeOnly' ? 'time' : batchDateMode === 'dateOnly' ? 'date' : 'datetime-local'}
                         value={batchDueDate}
                         onChange={(e) => setBatchDueDate(e.target.value)}
                         className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
                       />
+
+                      {/* 改期方式：整条替换 / 只改日期 / 只改时间 */}
+                      <div className="flex items-center gap-0.5 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                        {([
+                          { key: 'full' as const, label: '整条替换', title: '日期和时间都改成所选的值' },
+                          { key: 'dateOnly' as const, label: '只改日期', title: '只改日期，各作业保留自己原本的时刻（只填日期即可）' },
+                          { key: 'timeOnly' as const, label: '只改时间', title: '只改时间，各作业保留自己原本的日期（只填时间即可）' },
+                        ]).map(m => (
+                          <button
+                            key={m.key}
+                            onClick={() => {
+                              setBatchDateMode(m.key);
+                              setBatchDueDate(''); // 格式随模式变化，旧值作废
+                            }}
+                            title={m.title}
+                            className={`rounded-md px-2.5 py-1 text-xs transition-all ${
+                              batchDateMode === m.key
+                                ? 'bg-blue-600 text-white shadow shadow-blue-500/25'
+                                : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+
                       <button
                         onClick={handleBatchUpdateDueDate}
                         className="px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all text-sm"
                       >
-                        设置时间
+                        应用
                       </button>
                     </div>
                   </>
@@ -1956,19 +2059,8 @@ export default function HomeworkPage() {
                 </div>
               </div>
 
-              {/* 任务列表 - 按科目分组显示未完成的 */}
+              {/* 任务列表 */}
               <div className="space-y-4">
-                {showBatchOperations && (
-                  <button
-                    onClick={handleSelectAllActive}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/50 transition-all text-sm"
-                  >
-                    <Check className="w-4 h-4" />
-                    全选待完成任务
-                  </button>
-                )}
-
-
                 {listView === 'subject' ? (
                   /* ===== 视图一：按科目分组 ===== */
                   (() => {
