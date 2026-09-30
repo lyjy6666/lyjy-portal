@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { serviceCategories, type ServiceItem } from '@/data/services';
+import { isNavigable } from '@/lib/serviceNav';
 import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle, handleNudge } from './shared';
+import { useServiceNav } from './useServiceNav';
 
 type ListLayoutProps = {
   dynamicNumber: number;
@@ -27,9 +29,32 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; f
 
 function ServiceRow({ service }: { service: ServiceItem }) {
   const c = colorClasses[service.color] ?? colorClasses.blue;
+  const open = useServiceNav();
+  const navigable = isNavigable(service);
+
   return (
     <motion.div whileHover={{ scale: 1.02, borderColor: c.hover }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
-      <div className={`flex items-center justify-between w-full py-2.5 px-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm`}>
+      <div
+        // 整行都可点击，和圆环「点圆圈即进入」保持一致。
+        // 行内已有按钮/链接时让它们自己处理，避免双跳转。
+        role={navigable ? 'button' : undefined}
+        tabIndex={navigable ? 0 : undefined}
+        onClick={(e) => {
+          if (!navigable) return;
+          if ((e.target as HTMLElement).closest('a, button')) return;
+          open(service);
+        }}
+        onKeyDown={(e) => {
+          if (!navigable) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open(service);
+          }
+        }}
+        className={`flex items-center justify-between w-full py-2.5 px-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
+          navigable ? 'cursor-pointer' : ''
+        }`}
+      >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className={`w-9 h-9 rounded-full ${c.from} flex items-center justify-center ${c.text} flex-shrink-0`}>
             <ServiceIcon icon={service.icon} size={16} />

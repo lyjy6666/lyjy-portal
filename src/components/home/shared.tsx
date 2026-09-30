@@ -1,10 +1,11 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import Link from 'next/link';
 import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
+import { resolveService } from '@/lib/serviceNav';
+import { useServiceNav } from './useServiceNav';
 
 const icons: Record<string, LucideIcon> = {
   'fa-house-signal': House, 'fa-magnifying-glass-chart': Search,
@@ -30,22 +31,40 @@ export function ServiceIcon({ icon, size = 22 }: { icon: string; size?: number }
   return <Icon size={size} strokeWidth={1.5} aria-hidden="true" />;
 }
 export function ServiceAction({ service, className = 'portal-enter' }: { service: ServiceItem; className?: string }) {
-  if (service.soon || service.unavailable) {
-    return <span className="portal-unavailable">{service.unavailable ?? '正在筹备中，敬请期待'}</span>;
+  // 与圆环节点、列表整行共用同一个跳转入口，保证行为完全一致
+  const open = useServiceNav();
+  const target = resolveService(service);
+
+  if (target.mode === 'soon') {
+    return <span className="portal-unavailable">{target.message ?? '正在筹备中，敬请期待'}</span>;
   }
-  const label = service.type === 'download' ? '下载' : service.external ? '访问网站' : '进入网站';
+
   // 箭头必须与文字同行，否则窄卡片里 → 会被挤到下一行
   const content = (
     <span className="inline-flex items-center gap-1 whitespace-nowrap">
-      {label}
+      {target.label}
       <ArrowRight size={14} className="shrink-0" aria-hidden="true" />
     </span>
   );
-  if (service.external || service.type === 'download') {
-    return <a className={className} href={service.url} download={service.type === 'download' || undefined}
-      target={service.external ? '_blank' : undefined} rel={service.external ? 'noopener noreferrer' : undefined}>{content}</a>;
-  }
-  return <Link className={className} href={service.url}>{content}</Link>;
+
+  // 保留真实 <a href>：中键新标签、复制链接仍然可用；
+  // 普通左键点击则统一交给 open()，与圆圈点击走同一条逻辑。
+  return (
+    <a
+      className={className}
+      href={target.href}
+      target={target.mode === 'external' ? '_blank' : undefined}
+      rel={target.mode === 'external' ? 'noopener noreferrer' : undefined}
+      download={target.mode === 'download' || undefined}
+      onClick={(e) => {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        open(service);
+      }}
+    >
+      {content}
+    </a>
+  );
 }
 export function ServiceBadges({ service }: { service: ServiceItem }) {
   const badges = service.badge ? (Array.isArray(service.badge) ? service.badge : [service.badge]) : [];

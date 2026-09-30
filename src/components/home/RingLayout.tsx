@@ -7,7 +7,7 @@ import { flattenServices, serviceCategories } from '@/data/services';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
 import { ServiceIcon, accentStyle, accents, handleNudge } from './shared';
-import { usePopupPlacement } from './usePopupPlacement';
+import { anglesForVariant, type RingVariant } from './ringAngles';
 
 const RING_RADIUS = 46;
 
@@ -21,31 +21,30 @@ type RingLayoutProps = {
   onOpenStats: () => void;
   onOpenVersion: () => void;
   onSwitchLayout: () => void;
+  /** 布局方案：A 标签悬停显示 / B 整体缩放 / C 分类分组 / D 缩放+分组 */
+  variant?: RingVariant;
 };
 
-export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout }: RingLayoutProps) {
+export default function RingLayout({
+  dynamicNumber,
+  onOpenStats,
+  onOpenVersion,
+  onSwitchLayout,
+  variant = 'A',
+}: RingLayoutProps) {
   const services = flattenServices();
   const [showGuide, setShowGuide] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  // 引导卡片的定位交给碰撞检测：优先弹到按钮组左侧，
-  // 若那里会碰到别的按钮就自动换边，保证不压住任何按钮
-  const { triggerRef: fabRef, popupRef: guideRef, pos: guidePos, place: placeGuide } =
-    usePopupPlacement(['left', 'bottom-left', 'top-left', 'top', 'bottom']);
+  // 节点角度：方案 C/D 会按分类分组并留出空隙
+  const angles = useMemo(() => anglesForVariant(variant, serviceCategories), [variant]);
 
   useEffect(() => {
     if (localStorage.getItem('portalLayoutSeen')) return;
     const openTimer = window.setTimeout(() => setShowGuide(true), 800);
     return () => window.clearTimeout(openTimer);
   }, []);
-
-  // 引导卡片渲染出来后立刻算一次不碰撞的位置
-  useEffect(() => {
-    if (!showGuide) return;
-    const id = requestAnimationFrame(() => placeGuide());
-    return () => cancelAnimationFrame(id);
-  }, [showGuide, placeGuide]);
 
   useEffect(() => {
     if (!showGuide) return;
@@ -65,16 +64,17 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
     localStorage.setItem('portalLayoutSeen', '1');
   };
 
-  const step = 360 / services.length;
-
-  // 每个分类在圆环上对应一段彩色弧线，弧线中点外侧放分类名
+  // 每个分类在圆环上对应一段彩色弧线，弧线中点外侧放分类名。
+  // 弧线端点直接取该分类首尾节点的真实角度（方案 C/D 分组后也自动对齐）。
   const segments = useMemo(() => {
+    const gap = angles.length > 1 ? Math.abs(angles[1] - angles[0]) * 0.45 : 3;
     let cursor = 0;
     return serviceCategories.map((category) => {
-      const start = cursor;
+      const startIdx = cursor;
       cursor += category.services.length;
-      const from = -90 + (start - 0.45) * step;
-      const to = -90 + (start + category.services.length - 0.55) * step;
+      const endIdx = cursor - 1;
+      const from = (angles[startIdx] ?? -90) - gap;
+      const to = (angles[endIdx] ?? -90) + gap;
       const a = polar(from, RING_RADIUS);
       const b = polar(to, RING_RADIUS);
       const label = polar((from + to) / 2, RING_RADIUS + 7.5);
@@ -87,7 +87,7 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         labelTop: `${label.y}%`,
       };
     });
-  }, [step]);
+  }, [angles]);
 
   const nodeState = (categoryId?: string) => {
     if (!activeCategory) return 'idle' as const;
@@ -121,7 +121,7 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         ))}
       </div>
 
-      <div className="portal-ring-stage">
+      <div className={`portal-ring-stage portal-ring-stage--${variant.toLowerCase()}`}>
         <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.4 }} aria-hidden="true">
           <GalaxyRing />
         </motion.div>
@@ -154,8 +154,9 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
               key={service.id}
               service={service}
               index={index}
-              angle={-90 + index * (360 / services.length)}
+              angle={angles[index] ?? -90 + index * (360 / services.length)}
               state={nodeState(service.categoryId)}
+              variant={variant}
             />
           ))}
         </div>
@@ -178,7 +179,7 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         <button type="button" onClick={onOpenVersion} className="text-sky-300 hover:text-sky-200">V6.0</button>
       </div>
 
-      <div ref={fabRef as React.RefObject<HTMLDivElement>} className="fixed bottom-4 right-6 z-40 flex flex-col gap-2">
+      <div className="fixed bottom-4 right-6 z-40 flex flex-col gap-2">
         <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
         <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
         <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><History size={20} /></button>
@@ -188,14 +189,8 @@ export default function RingLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
       <AnimatePresence>
         {showGuide && (
           <motion.div
-            ref={guideRef as React.RefObject<HTMLDivElement>}
             data-popup-layer
             className="portal-guide-pop"
-            style={{
-              left: guidePos?.left ?? -9999,
-              top: guidePos?.top ?? -9999,
-              // 进场动画交给 framer，这里只保留位移目标
-            }}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
