@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 
 const API_KEY = 'sk-5sA83DFAASHDScmmvQuFxawtCkesKcQomSZlmCgxNloVuIVS';
 const BASE_URL = 'https://apihub.agnes-ai.com/v1';
-const MODEL = 'agnes-2.0-flash';
+// 模型名可用环境变量覆盖，避免服务商升级模型时还要改代码
+const MODEL = process.env.AGNES_MODEL || 'agnes-3.0-flash';
 
 const SYSTEM_PROMPT = `你是"LYJY导航系统"的智能客服助手。你的职责是回答用户关于本网站的各种问题。
 

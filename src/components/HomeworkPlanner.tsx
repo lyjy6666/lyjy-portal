@@ -166,6 +166,8 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
   /** 每天的可用时间（份）；长度始终与 dayCount 一致 */
   const [dayCapacity, setDayCapacity] = useState<number[]>(() => Array(7).fill(DEFAULT_DAY_CAPACITY));
   const [showCapacity, setShowCapacity] = useState(false);
+  /** 载入完成前禁止回写，否则会用空状态覆盖刚迁移过来的数据 */
+  const [hydrated, setHydrated] = useState(false);
 
   // 天数变化时同步容量数组：保留已填的值，多出来的用 1 补齐
   useEffect(() => {
@@ -178,43 +180,55 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
     });
   }, [dayCount]);
 
-  // 打开时恢复上次的输入；若只有旧版键的数据，则迁移过来（含容量单位换算）
+  // 打开时恢复上次的输入；新键为空而旧键有数据时执行迁移（含容量单位换算）
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setHydrated(false);
+      return;
+    }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const legacyRaw = raw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
-      const saved = JSON.parse(raw ?? legacyRaw ?? 'null');
-      if (!saved) return;
+      const v2 = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) ?? 'null');
+      const v2Items: unknown[] = Array.isArray(v2?.items) ? v2.items : [];
+      const legacyItems: unknown[] = Array.isArray(legacy?.items) ? legacy.items : [];
+      // 注意：不能只判断「新键是否存在」。回写逻辑可能已用空状态写过新键，
+      // 那种情况下新键存在但没内容，必须继续用旧键的数据。
+      const useLegacy = legacyItems.length > 0 && v2Items.length === 0;
+      const saved = useLegacy ? legacy : v2 ?? legacy;
 
-      if (Array.isArray(saved.items)) setItems(saved.items);
-      if (typeof saved.dayCount === 'number') setDayCount(saved.dayCount);
-      if (typeof saved.startDate === 'string') setStartDate(saved.startDate);
+      if (saved) {
+        if (Array.isArray(saved.items)) setItems(saved.items);
+        if (typeof saved.dayCount === 'number') setDayCount(saved.dayCount);
+        if (typeof saved.startDate === 'string') setStartDate(saved.startDate);
 
-      let caps: number[] | null = null;
-      if (Array.isArray(saved.dayCapacity) && saved.dayCapacity.every((v: unknown) => typeof v === 'number')) {
-        // 旧版语义是「1 = 一整天」，新版是「3 份 = 一整天」→ 乘 3 保留原来的意图
-        const next: number[] = legacyRaw
-          ? saved.dayCapacity.map((v: number) => Math.round(v * 3 * 2) / 2)
-          : saved.dayCapacity;
-        caps = next;
-        setDayCapacity(next);
-      }
+        let caps: number[] | null = null;
+        if (Array.isArray(saved.dayCapacity) && saved.dayCapacity.every((v: unknown) => typeof v === 'number')) {
+          // 旧版语义是「1 = 一整天」，新版是「3 份 = 一整天」→ 乘 3 保留原来的意图
+          const next: number[] = useLegacy
+            ? (saved.dayCapacity as number[]).map((v: number) => Math.round(v * 3 * 2) / 2)
+            : (saved.dayCapacity as number[]);
+          caps = next;
+          setDayCapacity(next);
+        }
 
-      // 迁移完成即落到新键，旧键保留不动（万一要回退）
-      if (legacyRaw) {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ ...saved, dayCapacity: caps ?? saved.dayCapacity })
-        );
+        // 迁移完成即落到新键，旧键保留不动（万一要回退）
+        if (useLegacy) {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ ...saved, dayCapacity: caps ?? saved.dayCapacity })
+          );
+        }
       }
     } catch {
       /* 忽略损坏的缓存 */
     }
+    setHydrated(true);
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    // hydrated 与上面的 setState 在同一批更新里生效，因此这里读到的 items 一定是恢复后的值。
+    // 没有这道闸门，首次打开会用空状态覆盖刚迁移过来的数据。
+    if (!isOpen || !hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, dayCount, startDate, dayCapacity }));
     } catch {
