@@ -7,6 +7,7 @@ import * as mammoth from 'mammoth';
 import { ConfettiExplosion } from '@/components/ConfettiExplosion';
 import CalendarDialog from '@/components/CalendarDialog';
 import AIGrader from '@/components/AIGrader';
+import HomeworkPlanner from '@/components/HomeworkPlanner';
 
 interface Task {
   id: number;
@@ -38,6 +39,7 @@ export default function HomeworkPage() {
   const [loadingText, setLoadingText] = useState('正在加载历史作业，请稍候');
   const [showHistory, setShowHistory] = useState(false);
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRightClickWarning, setShowRightClickWarning] = useState(false);
   const [exportButtonFlash, setExportButtonFlash] = useState(false);
@@ -526,6 +528,39 @@ export default function HomeworkPage() {
     }
     
     setIsProcessing(false);
+  };
+
+  // 把智能排期的结果逐条写入作业清单（带对应日期作为截止日）
+  const importPlannerPlan = async (assignments: { text: string; dueDate: string }[]) => {
+    if (!currentUser) {
+      return { ok: false, message: '请先登录后再写入作业清单' };
+    }
+    let success = 0;
+    let failed = 0;
+    for (const item of assignments) {
+      try {
+        const response = await fetch('/api/homework/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ text: item.text, dueDate: item.dueDate }),
+        });
+        if (response.ok) {
+          success++;
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+    if (success > 0) {
+      await loadTasks();
+      return {
+        ok: true,
+        message: failed > 0 ? `已写入 ${success} 条，${failed} 条失败` : `已写入 ${success} 条作业`,
+      };
+    }
+    return { ok: false, message: '写入失败，请确认已登录且后端服务正常' };
   };
 
   // 语音输入
@@ -1632,6 +1667,14 @@ export default function HomeworkPage() {
                   </>
                 )}
               </button>
+              {/* 智能排期：按天数与难度把作业分配到每一天 */}
+              <button
+                onClick={() => setShowPlanner(true)}
+                className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/25 enabled:hover:scale-105"
+              >
+                <Sparkles className="w-5 h-5" />
+                <span>智能排期（按天数分配作业）</span>
+              </button>
             </div>
           </div>
 
@@ -2378,6 +2421,14 @@ export default function HomeworkPage() {
       <AIGrader
         isOpen={showAIGrader}
         onClose={() => setShowAIGrader(false)}
+      />
+
+      {/* 智能排期弹窗 */}
+      <HomeworkPlanner
+        isOpen={showPlanner}
+        onClose={() => setShowPlanner(false)}
+        existingTaskNames={tasks.filter((t) => !t.completed).map((t) => t.text)}
+        onImport={importPlannerPlan}
       />
       </div>
     )}
