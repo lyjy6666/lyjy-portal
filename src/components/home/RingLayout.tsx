@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChartLine, Headset, History, LayoutGrid, Sparkles, X } from 'lucide-react';
@@ -7,7 +8,7 @@ import { flattenServices, serviceCategories, type ServiceItem } from '@/data/ser
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
 import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle, accents, handleNudge } from './shared';
-import { anglesForVariant, type RingVariant } from './ringAngles';
+import { uniformAngles } from './ringAngles';
 
 const RING_RADIUS = 46;
 
@@ -21,8 +22,6 @@ type RingLayoutProps = {
   onOpenStats: () => void;
   onOpenVersion: () => void;
   onSwitchLayout: () => void;
-  /** 布局方案：A 标签悬停显示 / B 整体缩放 / C 分类分组 / D 缩放+分组 */
-  variant?: RingVariant;
 };
 
 export default function RingLayout({
@@ -30,20 +29,18 @@ export default function RingLayout({
   onOpenStats,
   onOpenVersion,
   onSwitchLayout,
-  variant = 'A',
 }: RingLayoutProps) {
   const services = flattenServices();
   const [showGuide, setShowGuide] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  // 节点角度：方案 C/D 会按分类分组并留出空隙
-  const angles = useMemo(() => anglesForVariant(variant, serviceCategories), [variant]);
+  // 节点角度：17 个均匀分布
+  const angles = useMemo(() => uniformAngles(services.length), [services.length]);
 
-  // 方案 E：中心详情面板要跟随悬停的节点。
+  // 中心详情面板跟随悬停的节点。
   // 注意：鼠标从节点移向中心面板（点「进入网站」）时会先离开节点，
-  // 所以不能立刻收回 —— 离开后等 5 秒再收回，期间移到面板上会重置计时。
-  const isE = variant === 'E';
+  // 所以不能立刻收回 —— 离开后等 2.5 秒再收回，期间移到面板上会重置计时。
   const [hovered, setHovered] = useState<ServiceItem | null>(null);
   const idleTimer = useRef<number | null>(null);
 
@@ -66,10 +63,10 @@ export default function RingLayout({
   useEffect(() => () => clearIdle(), []);
 
   // 刚进页面时鼠标可能正好落在某个节点上（或手一抖划过），
-  // 这时不该弹出效果 —— 先静默 1 秒再启用悬停。
+  // 这时不该弹出效果 —— 先静默 1.5 秒再启用悬停。
   const [hoverEnabled, setHoverEnabled] = useState(false);
   useEffect(() => {
-    const t = window.setTimeout(() => setHoverEnabled(true), 1000);
+    const t = window.setTimeout(() => setHoverEnabled(true), 1500);
     return () => window.clearTimeout(t);
   }, []);
 
@@ -154,7 +151,7 @@ export default function RingLayout({
         ))}
       </div>
 
-      <div className={`portal-ring-stage portal-ring-stage--${variant.toLowerCase()}`}>
+      <div className="portal-ring-stage">
         <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.4 }} aria-hidden="true">
           <GalaxyRing />
         </motion.div>
@@ -189,15 +186,13 @@ export default function RingLayout({
               index={index}
               angle={angles[index] ?? -90 + index * (360 / services.length)}
               state={
-                isE && hovered
+                hovered
                   ? hovered.id === service.id
                     ? 'active'
                     : 'dim'
                   : nodeState(service.categoryId)
               }
-              variant={variant}
-              showCard={!isE}
-              onHoverChange={isE ? handleHover : undefined}
+              onHoverChange={handleHover}
               hoverEnabled={hoverEnabled}
             />
           ))}
@@ -208,7 +203,7 @@ export default function RingLayout({
             中间腾出来固定展示该节点的详情（位置不随节点变化）。 */}
         <div
           className={`portal-ring-core ${
-            isE ? `portal-core-dock ${hovered ? 'is-docked' : ''}` : ''
+            `portal-core-dock ${hovered ? 'is-docked' : ''}`
           }`}
         >
           <span className="portal-core-halo" aria-hidden="true" />
@@ -222,38 +217,42 @@ export default function RingLayout({
           </button>
         </div>
 
-        {isE && (
-          <>
-            {/* 传送门闪光：每次悬停新节点都重新播放 */}
-            {hovered && <span key={hovered.id} className="portal-teleport-flash" aria-hidden="true" />}
+        {/* 传送门闪光：每次悬停新节点都重新播放 */}
+        {hovered && <span key={hovered.id} className="portal-teleport-flash" aria-hidden="true" />}
 
-            {/* 中心详情面板：固定在同一位置，内容跟随悬停的节点 */}
-            <div
-              className={`portal-center-panel ${hovered ? 'is-on' : ''}`}
-              onMouseEnter={clearIdle}
-              onMouseLeave={startIdle}
-            >
-              {hovered && (
-                <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
-                  {hovered.categoryName && (
-                    <div
-                      className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-                      style={{ color: 'var(--service-accent)' }}
-                    >
-                      {hovered.categoryName}
-                    </div>
-                  )}
-                  <div className="text-base font-semibold text-white">{hovered.name}</div>
-                  <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
-                  <ServiceBadges service={hovered} />
-                  <div className="mt-3 flex justify-center">
-                    <ServiceAction service={hovered} />
-                  </div>
+        {/* 中心详情面板：固定在同一位置，内容跟随悬停的节点 */}
+        <div
+          className={`portal-center-panel ${hovered ? 'is-on' : ''}`}
+          onMouseEnter={clearIdle}
+          onMouseLeave={startIdle}
+        >
+          {hovered && (
+            <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
+              {hovered.categoryName && (
+                <div
+                  className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+                  style={{ color: 'var(--service-accent)' }}
+                >
+                  {hovered.categoryName}
                 </div>
               )}
+              <div className="text-base font-semibold text-white">{hovered.name}</div>
+              <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
+              <ServiceBadges service={hovered} />
+              <div className="mt-3 flex justify-center">
+                <ServiceAction service={hovered} />
+              </div>
+              {hovered.upgradeHref && (
+                <Link
+                  href={hovered.upgradeHref}
+                  className="mt-2 block text-[10px] text-slate-500 hover:text-slate-300"
+                >
+                  {hovered.oldLabel ?? '返回旧版'}
+                </Link>
+              )}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="portal-hud portal-hud--bottom">

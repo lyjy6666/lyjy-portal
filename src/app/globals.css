@@ -980,89 +980,36 @@ button, a, input, textarea, select {
   }
 }
 
-/* ===== 圆环节点：列宽与标签（替代原来的 Tailwind 宽度类） ===== */
+/* ===== 圆环节点：列宽与标签 =====
+   节点尺寸随圆环联动缩放：相邻弦长 ≈ 0.169 × stage，列宽取 0.13 × stage，
+   恒留约 23% 间隙，因此任何窗口下都不会出现标签互相压字。 */
+.portal-ring-stage {
+  --node-col-w: clamp(56px, calc(var(--stage-w) * 0.13), 108px);
+  --node-d: clamp(44px, calc(var(--stage-w) * 0.075), 64px);
+}
+
 .portal-node-col {
   position: relative;
-  width: 5rem; /* 80px */
+  width: var(--node-col-w);
 }
+
 .portal-node-label {
-  max-width: 5rem;
+  max-width: var(--node-col-w);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-@media (min-width: 640px) {
-  .portal-node-col { width: 6rem; }
-  .portal-node-label { max-width: 6rem; }
-}
-@media (min-width: 768px) {
-  .portal-node-col { width: 7rem; }
-  .portal-node-label { max-width: 7rem; }
-}
 
-/* ===== 悬停卡片：固定弹在节点外侧，不再实时计算避让 ===== */
-.portal-card {
-  position: absolute;
-  z-index: 50;
-  width: 14rem; /* 224px */
-}
-.portal-card--right  { left: 100%;  top: 50%;    transform: translate(10px, -50%); }
-.portal-card--left   { right: 100%; top: 50%;    transform: translate(-10px, -50%); }
-.portal-card--bottom { top: 100%;   left: 50%;   transform: translate(-50%, 10px); }
-.portal-card--top    { bottom: 100%; left: 50%;  transform: translate(-50%, -10px); }
-
-/* ===== 方案 A：标签默认隐藏，悬停才显示 =====
-   列宽收窄到 4rem，标签脱离文档流，因此相邻节点不再互相压字。
-   固定高度 5rem 保证节点的垂直位置与其它方案一致，便于对比。 */
-.portal-ring-stage--a .portal-node-col {
-  width: 4rem;
-  height: 5rem;
-}
-.portal-ring-stage--a .portal-node-label {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 0.3rem;
-  max-width: 9rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-  z-index: 30;
-  text-shadow: 0 1px 3px rgba(2, 6, 23, 0.9);
-}
-.portal-ring-stage--a .portal-node-item:hover .portal-node-label,
-.portal-ring-stage--a .portal-node-item:focus-within .portal-node-label {
-  opacity: 1;
-}
-
-/* ===== 方案 B：节点与标签随圆环尺寸联动缩放 =====
-   相邻弦长约为 0.169 × stage，节点列宽取 0.13 × stage，恒留约 23% 间隙。 */
-.portal-ring-stage--b,
-.portal-ring-stage--d {
-  --node-col-w: clamp(56px, calc(var(--stage-w) * 0.13), 108px);
-  --node-d: clamp(44px, calc(var(--stage-w) * 0.075), 64px);
-}
-.portal-ring-stage--b .portal-node-col,
-.portal-ring-stage--d .portal-node-col {
-  width: var(--node-col-w);
-}
-.portal-ring-stage--b .portal-node-label,
-.portal-ring-stage--d .portal-node-label {
-  max-width: var(--node-col-w);
-}
-.portal-ring-stage--b .portal-node,
-.portal-ring-stage--d .portal-node {
+.portal-ring-stage .portal-node {
   width: var(--node-d);
   height: var(--node-d);
 }
 
-/* ===== 方案 E：中心详情 =====
-   平时中心是标题；悬停任意节点时标题「瞬移」到左上角，
-   中间腾出来固定展示该节点的详情（位置不随节点变化）。 */
-.portal-ring-stage--e .portal-ring-core {
-  /* 用 fixed 定位：left/top 50% 即视口中心，与 stage 中心重合。
-     这样停靠时可以直接用 vw/vh 把整块搬到视口左上角，不必测量 stage 位置。 */
+/* ===== 中心核心：悬停任意节点时「瞬移」到视口左上角 =====
+   用 fixed 定位：left/top 50% 即视口中心，与 stage 中心重合，
+   停靠时可直接用 vw/vh 把整块搬到左上角，不必测量 stage 位置。
+   注意：不要写成 calc(-1 * (...))，Lightning CSS 会整段丢弃那条规则。 */
+.portal-ring-stage .portal-ring-core {
   position: fixed;
   inset: auto;
   left: 50%;
@@ -1074,8 +1021,7 @@ button, a, input, textarea, select {
   z-index: 8;
 }
 
-.portal-ring-stage--e .portal-ring-core.is-docked {
-  /* 移到视口左上角，保持原始字号（不缩放），改为左对齐 */
+.portal-ring-stage .portal-ring-core.is-docked {
   transform: translate(calc(1.5rem - 50vw), calc(1.5rem - 50vh));
   align-items: flex-start;
   text-align: left;
@@ -1083,12 +1029,12 @@ button, a, input, textarea, select {
 }
 
 /* 停靠后标题放大一档，作为「大标题」存在 */
-.portal-ring-stage--e .portal-ring-core.is-docked .portal-core-title {
+.portal-ring-stage .portal-ring-core.is-docked .portal-core-title {
   font-size: 2.25rem;
   line-height: 1.15;
 }
 
-.portal-ring-stage--e .portal-ring-core.is-docked .portal-core-desc {
+.portal-ring-stage .portal-ring-core.is-docked .portal-core-desc {
   max-width: 20rem;
   text-align: left;
 }
@@ -1156,7 +1102,7 @@ button, a, input, textarea, select {
     animation: none;
     opacity: 0;
   }
-  .portal-ring-stage--e .portal-ring-core {
+  .portal-ring-stage .portal-ring-core {
     transition: none;
   }
 }

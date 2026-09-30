@@ -6,20 +6,10 @@ import StatisticsModal from '@/components/StatisticsModal';
 import ListLayout from '@/components/home/ListLayout';
 import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
-import type { RingVariant } from '@/components/home/ringAngles';
 import { generateRandomStatsData, type WebsiteStats } from '@/lib/utils';
 import { toast } from 'sonner';
 
 type LayoutMode = 'ring' | 'list';
-
-/** 4 版圆环布局方案（临时对比用，选定后固化） */
-const RING_VARIANTS: { key: RingVariant; label: string; desc: string }[] = [
-  { key: 'A', label: 'A', desc: '标签悬停才显示：列宽收窄，彻底不压字' },
-  { key: 'B', label: 'B', desc: '整体随圆环缩放：节点与标签一起变小' },
-  { key: 'C', label: 'C', desc: '按分类分组：同类靠拢，分类间留空隙' },
-  { key: 'D', label: 'D', desc: '缩放 + 分类分组：两者结合' },
-  { key: 'E', label: 'E', desc: '中心详情：悬停时标题瞬移到左上角，中间展示该节点详情' },
-];
 
 export default function PortalHome() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('ring');
@@ -29,7 +19,6 @@ export default function PortalHome() {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [statsData, setStatsData] = useState<WebsiteStats[]>([]);
   const [dynamicNumber, setDynamicNumber] = useState(0);
-  const [variant, setVariant] = useState<RingVariant>('A');
 
   useEffect(() => {
     // 布局偏好与视口能力只能在客户端读取，避免 SSR/hydration 不一致
@@ -40,11 +29,6 @@ export default function PortalHome() {
     const syncViewport = () => setIsCompact(!query.matches);
     syncViewport();
     query.addEventListener('change', syncViewport);
-
-    const storedVariant = localStorage.getItem('portalRingVariant');
-    if (storedVariant === 'A' || storedVariant === 'B' || storedVariant === 'C' || storedVariant === 'D' || storedVariant === 'E') {
-      setVariant(storedVariant);
-    }
 
     setReady(true);
     return () => query.removeEventListener('change', syncViewport);
@@ -95,13 +79,6 @@ export default function PortalHome() {
     toast(mode === 'list' ? '已切换到旧版列表布局，可在右下角切回' : '已切换到圆环布局，可在右下角切回');
   };
 
-  const switchVariant = (next: RingVariant) => {
-    setVariant(next);
-    localStorage.setItem('portalRingVariant', next);
-    const info = RING_VARIANTS.find((v) => v.key === next);
-    toast(`布局方案 ${next}：${info?.desc ?? ''}`);
-  };
-
   const sharedProps = {
     dynamicNumber,
     onOpenStats: () => setShowStatsModal(true),
@@ -129,31 +106,9 @@ export default function PortalHome() {
           </div>
         </div>
       ) : renderRing ? (
-        <RingLayout {...sharedProps} variant={variant} onSwitchLayout={() => switchLayout('list')} />
+        <RingLayout {...sharedProps} onSwitchLayout={() => switchLayout('list')} />
       ) : (
         <ListLayout {...sharedProps} onSwitchLayout={() => switchLayout('ring')} />
-      )}
-
-      {/* 临时：4 版圆环布局方案对比切换器（选定方案后删除整块） */}
-      {renderRing && (
-        <div className="fixed bottom-4 left-4 z-40 flex items-center gap-1 rounded-xl border border-fuchsia-400/40 bg-slate-950/85 p-1 backdrop-blur">
-          <span className="px-1.5 text-[11px] text-fuchsia-300">布局方案</span>
-          {RING_VARIANTS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => switchVariant(v.key)}
-              title={v.desc}
-              className={`h-7 w-7 rounded-lg text-xs font-medium transition-all ${
-                variant === v.key
-                  ? 'bg-fuchsia-600 text-white shadow shadow-fuchsia-500/30'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
       )}
 
       <StatisticsModal isOpen={showStatsModal} onClose={() => setShowStatsModal(false)} data={statsData} />
