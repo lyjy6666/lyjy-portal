@@ -40,7 +40,7 @@ export default function RingLayout({
 
   // 中心详情面板跟随悬停的节点。
   // 注意：鼠标从节点移向中心面板（点「进入网站」）时会先离开节点，
-  // 所以不能立刻收回 —— 离开后等 2.5 秒再收回，期间移到面板上会重置计时。
+  // 所以不能立刻收回 —— 离开后等 1.5 秒再收回，期间移到面板上会重置计时。
   const [hovered, setHovered] = useState<ServiceItem | null>(null);
   const idleTimer = useRef<number | null>(null);
 
@@ -52,7 +52,7 @@ export default function RingLayout({
   };
   const startIdle = () => {
     clearIdle();
-    idleTimer.current = window.setTimeout(() => setHovered(null), 2500);
+    idleTimer.current = window.setTimeout(() => setHovered(null), 1500);
   };
   const handleHover = (service: ServiceItem | null) => {
     clearIdle();
@@ -63,10 +63,10 @@ export default function RingLayout({
   useEffect(() => () => clearIdle(), []);
 
   // 刚进页面时鼠标可能正好落在某个节点上（或手一抖划过），
-  // 这时不该弹出效果 —— 先静默 1.5 秒再启用悬停。
+  // 这时不该弹出效果 —— 先静默 1 秒再启用悬停。
   const [hoverEnabled, setHoverEnabled] = useState(false);
   useEffect(() => {
-    const t = window.setTimeout(() => setHoverEnabled(true), 1500);
+    const t = window.setTimeout(() => setHoverEnabled(true), 1000);
     return () => window.clearTimeout(t);
   }, []);
 

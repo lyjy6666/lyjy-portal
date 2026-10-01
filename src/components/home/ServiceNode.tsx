@@ -14,7 +14,7 @@ type ServiceNodeProps = {
   state?: 'idle' | 'active' | 'dim';
   /** 悬停状态变化回调（驱动中心的详情面板） */
   onHoverChange?: (service: ServiceItem | null) => void;
-  /** 是否允许悬停效果（刚进页面 1.5 秒内为 false，避免误触发） */
+  /** 是否允许悬停效果（刚进页面 1 秒内为 false，避免误触发） */
   hoverEnabled?: boolean;
 };
 
