@@ -1435,36 +1435,6 @@ const socialItems: SocialItem[] = [
               </div>
               )}
 
-              {/* 临时：功能按钮玻璃效果对比切换器（选定后删除整块） */}
-      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-1 rounded-xl border border-fuchsia-400/40 bg-black/70 p-1 backdrop-blur">
-        <span className="px-1.5 text-[11px] text-fuchsia-300">按钮玻璃</span>
-        {GLASS_MODES.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => {
-              setGlassMode(m.key);
-              try {
-                localStorage.setItem('homeGlassMode', m.key);
-              } catch {
-                /* 忽略 */
-              }
-            }}
-            title={m.desc}
-            className={`h-7 w-7 rounded-lg text-xs font-medium transition-all ${
-              glassMode === m.key
-                ? 'bg-fuchsia-600 text-white shadow shadow-fuchsia-500/30'
-                : 'text-white/50 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            {m.label}
-          </button>
-        ))}
-        {!supportsLiquidGlass() && (
-          <span className="px-1.5 text-[10px] text-amber-300">当前浏览器不支持真折射，B/C 会退化为毛玻璃</span>
-        )}
-      </div>
-
       {/* 更新日志弹窗 */}
               {isUpdateLogOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2144,6 +2114,36 @@ const socialItems: SocialItem[] = [
    >
      V4.0
    </div>
+
+  {/* 临时：功能按钮玻璃效果对比切换器（选定后删除整块） */}
+  <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-1 rounded-xl border border-fuchsia-400/40 bg-black/70 p-1 backdrop-blur">
+  <span className="px-1.5 text-[11px] text-fuchsia-300">按钮玻璃</span>
+  {GLASS_MODES.map((m) => (
+  <button
+  key={m.key}
+  type="button"
+  onClick={() => {
+  setGlassMode(m.key);
+  try {
+  localStorage.setItem('homeGlassMode', m.key);
+  } catch {
+  /* 忽略 */
+  }
+  }}
+  title={m.desc}
+  className={`h-7 w-7 rounded-lg text-xs font-medium transition-all ${
+  glassMode === m.key
+  ? 'bg-fuchsia-600 text-white shadow shadow-fuchsia-500/30'
+  : 'text-white/50 hover:bg-white/10 hover:text-white'
+  }`}
+  >
+  {m.label}
+  </button>
+  ))}
+  {!supportsLiquidGlass() && (
+  <span className="px-1.5 text-[10px] text-amber-300">当前浏览器不支持真折射，B/C 会退化为毛玻璃</span>
+  )}
+  </div>
 
             {/* 意见反馈弹窗 */}
             {isFeedbackModalOpen && (
