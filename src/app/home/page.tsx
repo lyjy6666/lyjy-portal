@@ -4,6 +4,7 @@ import React from 'react';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
+import { applyLiquidGlass, clearLiquidGlass, supportsLiquidGlass } from '@/components/home/liquidGlass';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import HolidayCalendar from '@/components/HolidayCalendar';
@@ -47,6 +48,27 @@ interface Quote {
   text: string;
   author: string;
 }
+
+/**
+ * 功能按钮的玻璃效果对比方案（临时，选定后固化）
+ * A：现状 —— 纯 CSS 毛玻璃
+ * B：液态玻璃（真折射），背景遮罩不变
+ * C：液态玻璃 + 背景遮罩调浅（用来分离「玻璃」和「背景太暗」两个变量）
+ */
+type GlassMode = 'A' | 'B' | 'C';
+
+const GLASS_MODES: { key: GlassMode; label: string; desc: string }[] = [
+  { key: 'A', label: 'A', desc: '毛玻璃（现状）' },
+  { key: 'B', label: 'B', desc: '液态玻璃 · 真折射' },
+  { key: 'C', label: 'C', desc: '液态玻璃 + 背景调亮' },
+];
+
+/** 功能按钮的选择器，供液态玻璃批量应用 */
+const TILE_SELECTOR = '.feature-button';
+
+/** 背景遮罩：C 方案调浅，让折射有东西可弯折 */
+const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
+const OVERLAY_LIGHT = 'bg-gradient-to-b from-black/25 via-black/20 to-black/45';
 
 /** 主页的版本历史（越靠前越新） */
 const HOME_RELEASES: Release[] = [
@@ -130,6 +152,19 @@ export default function HomePage() {
   const [isScreenshotToolOpen, setIsScreenshotToolOpen] = useState(false);
   // 压缩解压工具模态框状态
   const [isCompressionToolOpen, setIsCompressionToolOpen] = useState(false);
+  // 功能按钮玻璃效果方案（临时对比用）
+  const [glassMode, setGlassMode] = useState<GlassMode>('A');
+
+  // 恢复上次选择
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('homeGlassMode');
+      if (saved === 'A' || saved === 'B' || saved === 'C') setGlassMode(saved);
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
+
   // 本地视频播放器模态框状态
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   // 系统清理优化工具模态框状态
@@ -1029,6 +1064,27 @@ export default function HomePage() {
         }
       };
 
+      // 液态玻璃：方案 B/C 时把真折射应用到功能按钮上。
+      // 放在这里是因为依赖 currentPage（它在本组件里声明得比较靠后）。
+      useEffect(() => {
+        if (glassMode === 'A' || !supportsLiquidGlass()) {
+          clearLiquidGlass(TILE_SELECTOR);
+          return;
+        }
+        // 等这一页的按钮挂载完成
+        const raf = requestAnimationFrame(() => applyLiquidGlass(TILE_SELECTOR));
+        const onResize = () => {
+          clearLiquidGlass(TILE_SELECTOR);
+          applyLiquidGlass(TILE_SELECTOR);
+        };
+        window.addEventListener('resize', onResize);
+        return () => {
+          cancelAnimationFrame(raf);
+          window.removeEventListener('resize', onResize);
+          clearLiquidGlass(TILE_SELECTOR);
+        };
+      }, [glassMode, currentPage]);
+
   // 社交媒体数据
 const socialItems: SocialItem[] = [
   { id: 1, icon: 'fa-brands fa-github', url: 'https://github.com/lyjy6666', name: 'GitHub' },
@@ -1103,7 +1159,7 @@ const socialItems: SocialItem[] = [
             className="w-full h-full object-cover"
           />
          {/* 背景渐变覆盖层，增强文字可读性 */}
-         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70"></div>
+         <div className={`absolute inset-0 ${glassMode === 'C' ? OVERLAY_LIGHT : OVERLAY_DARK}`}></div>
        </div>
  
 
@@ -1379,7 +1435,37 @@ const socialItems: SocialItem[] = [
               </div>
               )}
 
-              {/* 更新日志弹窗 */}
+              {/* 临时：功能按钮玻璃效果对比切换器（选定后删除整块） */}
+      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-1 rounded-xl border border-fuchsia-400/40 bg-black/70 p-1 backdrop-blur">
+        <span className="px-1.5 text-[11px] text-fuchsia-300">按钮玻璃</span>
+        {GLASS_MODES.map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => {
+              setGlassMode(m.key);
+              try {
+                localStorage.setItem('homeGlassMode', m.key);
+              } catch {
+                /* 忽略 */
+              }
+            }}
+            title={m.desc}
+            className={`h-7 w-7 rounded-lg text-xs font-medium transition-all ${
+              glassMode === m.key
+                ? 'bg-fuchsia-600 text-white shadow shadow-fuchsia-500/30'
+                : 'text-white/50 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+        {!supportsLiquidGlass() && (
+          <span className="px-1.5 text-[10px] text-amber-300">当前浏览器不支持真折射，B/C 会退化为毛玻璃</span>
+        )}
+      </div>
+
+      {/* 更新日志弹窗 */}
               {isUpdateLogOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   {/* 背景遮罩 */}
