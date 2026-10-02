@@ -33,7 +33,7 @@ export const serviceCategories: ServiceCategory[] = [
   ] },
   { id: 'tools', name: '效率工具', icon: 'fa-screwdriver-wrench', color: 'cyan', services: [
     { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-screwdriver-wrench', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换' },
-    { id: 'homework', name: '作业管理系统', icon: 'fa-graduation-cap', color: 'green', url: '/homework', desc: '语音输入、智能排期、按时间视图、AI 批改', badge: ['V5.0', '巨大更新'] },
+    { id: 'homework', name: '作业管理系统', icon: 'fa-graduation-cap', color: 'green', url: '/homework', desc: '语音输入、智能排期、按时间视图、AI 批改', badge: '重磅更新' },
     { id: 'pomodoro', name: '番茄钟', icon: 'fa-stopwatch', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
     { id: 'tts', name: '语音朗读', icon: 'fa-microphone-lines', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
   ] },

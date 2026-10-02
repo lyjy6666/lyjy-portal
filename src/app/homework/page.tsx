@@ -2522,7 +2522,7 @@ export default function HomeworkPage() {
           onClick={() => setShowUpdateLog(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col"
+            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -2541,7 +2541,7 @@ export default function HomeworkPage() {
             {/* 版本变多后需要滚动，否则小屏看不全 */}
             <div className="-mr-1 min-h-0 flex-1 space-y-0 overflow-y-auto pr-1">
 
-            {/* 最新版本 V5.0 —— 巨大更新 */}
+            {/* 最新版本 V5.0 —— 重磅更新 */}
             <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-4 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20 mb-3">
               <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
                 <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full shadow-lg">
@@ -2552,7 +2552,7 @@ export default function HomeworkPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="text-blue-300 font-bold text-sm">2026.10.2</span>
                   <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V5.0</span>
-                  <span className="px-2 py-0.5 bg-purple-500/25 text-purple-200 text-xs font-bold rounded">巨大更新</span>
+                  <span className="px-2 py-0.5 bg-purple-500/25 text-purple-200 text-xs font-bold rounded">重磅更新</span>
                 </div>
                 <ul className="text-slate-200 text-sm space-y-1.5 font-medium">
                   <li className="flex items-start gap-2">
