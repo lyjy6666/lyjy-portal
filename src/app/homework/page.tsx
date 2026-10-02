@@ -2522,7 +2522,7 @@ export default function HomeworkPage() {
           onClick={() => setShowUpdateLog(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -2538,7 +2538,10 @@ export default function HomeworkPage() {
               </button>
             </div>
 
-            {/* 最新版本 V4.5 */}
+            {/* 版本变多后需要滚动，否则小屏看不全 */}
+            <div className="-mr-1 min-h-0 flex-1 space-y-0 overflow-y-auto pr-1">
+
+            {/* 最新版本 V5.0 —— 巨大更新 */}
             <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-4 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20 mb-3">
               <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
                 <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full shadow-lg">
@@ -2546,17 +2549,45 @@ export default function HomeworkPage() {
                 </span>
               </div>
               <div className="pl-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-blue-300 font-bold text-sm">2026.7.29</span>
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V4.5</span>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-blue-300 font-bold text-sm">2026.10.2</span>
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V5.0</span>
+                  <span className="px-2 py-0.5 bg-purple-500/25 text-purple-200 text-xs font-bold rounded">巨大更新</span>
                 </div>
                 <ul className="text-slate-200 text-sm space-y-1.5 font-medium">
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增 AI 批改作业功能</span>
+                    <span>新增「智能排期」：设定完成天数与每个作业的难度，自动均衡分配到每天；某天没空可单独调小当天的可用时间</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    <span>作业清单新增「按待完成时间」视图：已逾期 / 今天 / 明天 / 3 天内 / 本周内 / 更晚 / 未设截止，轻重缓急一眼看清</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    <span>批量改期支持「只改日期」或「只改时间」，不必把日期时间都重填</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    <span>新增首次使用引导教程：8 步聚光灯逐个介绍各功能，右上角可随时跳过</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span>
+                    <span>修复升级后排期数据读不到的问题，旧数据自动迁移、不会丢失</span>
                   </li>
                 </ul>
               </div>
+            </div>
+
+            {/* 历史版本 V4.5 */}
+            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-slate-400 font-semibold text-sm">2026.7.29</span>
+                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V4.5</span>
+              </div>
+              <ul className="text-slate-400 text-sm space-y-1">
+                <li>• 新增 AI 批改作业功能</li>
+              </ul>
             </div>
 
             {/* 历史版本 V4.0 */}
@@ -2618,6 +2649,7 @@ export default function HomeworkPage() {
               >
                 知道了
               </button>
+            </div>
             </div>
           </div>
         </div>
