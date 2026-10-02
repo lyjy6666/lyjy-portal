@@ -38,3 +38,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# AI 助手工作目录（会话笔记/记忆，不属于项目代码）
+.workbuddy-ai/

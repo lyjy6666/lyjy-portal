@@ -214,6 +214,564 @@ button, a, input, textarea, select {
   animation: shimmer 2s infinite;
 }
 
+/* 银河圆环布局：星点闪烁 + 环上节点 + 悬浮卡片 */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+.portal-ring-page {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 7rem 2rem;
+}
+
+.portal-ring-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: var(--stage-w);
+  --stage-w: min(78vw, 68vh);
+}
+
+.portal-ring-core {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.portal-ring-core > button {
+  pointer-events: auto;
+}
+
+.portal-node {
+  display: flex;
+  height: 3rem;
+  width: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--service-accent, #93c5fd) 45%, transparent);
+  background: color-mix(in srgb, var(--service-accent, #93c5fd) 14%, rgba(2, 6, 23, 0.7));
+  color: var(--service-accent, #93c5fd);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .portal-node {
+    height: 3.5rem;
+    width: 3.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .portal-ring-stage {
+    --stage-w: min(92vw, 60vh);
+  }
+}
+
+.group:hover .portal-node,
+.portal-node:focus-visible {
+  transform: scale(1.1);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--service-accent, #93c5fd) 35%, transparent);
+}
+
+.portal-node-soon .portal-node {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(30, 41, 59, 0.7);
+  color: #94a3b8;
+}
+
+/* 星系背景：星云 + 多层轨道 + 流星 */
+.portal-galaxy {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+}
+
+.portal-nebula {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(24px);
+  animation: portal-drift 26s ease-in-out infinite alternate;
+}
+
+.portal-nebula--a {
+  left: 2%;
+  top: 6%;
+  height: 46%;
+  width: 46%;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.22), transparent 68%);
+}
+
+.portal-nebula--b {
+  bottom: 4%;
+  right: 4%;
+  height: 44%;
+  width: 44%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.2), transparent 68%);
+  animation-delay: -9s;
+}
+
+.portal-nebula--c {
+  left: 26%;
+  top: 34%;
+  height: 44%;
+  width: 44%;
+  background: radial-gradient(circle, rgba(103, 232, 249, 0.12), transparent 70%);
+  animation-delay: -17s;
+}
+
+@keyframes portal-drift {
+  from { transform: translate3d(-3%, 2%, 0) scale(1); }
+  to { transform: translate3d(4%, -3%, 0) scale(1.12); }
+}
+
+.portal-orbit {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.portal-orbit--outer {
+  inset: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  animation: portal-spin 320s linear infinite reverse;
+}
+
+.portal-orbit--inner {
+  inset: 12%;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  animation: portal-spin 180s linear infinite;
+}
+
+.portal-orbit--track {
+  inset: 4%;
+  border: 1px dashed rgba(191, 219, 254, 0.16);
+}
+
+.portal-starfield {
+  position: absolute;
+  inset: 0;
+  animation: portal-spin 260s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes portal-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.portal-meteor {
+  position: absolute;
+  left: -8%;
+  top: 12%;
+  height: 1px;
+  width: 8rem;
+  background: linear-gradient(90deg, rgba(191, 219, 254, 0), rgba(191, 219, 254, 0.9));
+  opacity: 0;
+  animation: portal-meteor 11s linear infinite;
+}
+
+.portal-meteor--late {
+  top: 62%;
+  left: -14%;
+  animation-duration: 17s;
+  animation-delay: -6s;
+}
+
+@keyframes portal-meteor {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(28deg); }
+  6% { opacity: 0.9; }
+  52% { opacity: 0.45; }
+  72%, 100% { opacity: 0; transform: translate3d(58vw, 30vw, 0) rotate(28deg); }
+}
+
+/* 分类弧线：与图例联动高亮 */
+.portal-arcs {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  fill: none;
+  stroke-linecap: round;
+  overflow: visible;
+  transition: stroke-width 0.25s ease, stroke-opacity 0.25s ease;
+  filter: drop-shadow(0 0 6px rgba(148, 197, 253, 0.25));
+}
+
+.portal-arc-label {
+  position: absolute;
+  z-index: 15;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  opacity: 0.42;
+  transition: opacity 0.25s ease, text-shadow 0.25s ease;
+  pointer-events: none;
+}
+
+.portal-arc-label--on {
+  opacity: 1;
+  text-shadow: 0 0 12px currentColor;
+}
+
+/* 节点：与中心的能量连线 + 脉冲光环 */
+.portal-node-beam {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 1px;
+  width: calc(var(--stage-w, 60vh) * 0.46);
+  transform-origin: 0 50%;
+  transform: rotate(var(--beam-angle, 0deg));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--service-accent, #93c5fd) 75%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.group:hover .portal-node-beam,
+.group:focus-within .portal-node-beam {
+  opacity: 0.75;
+}
+
+.portal-node-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 3.5rem;
+  width: 3.5rem;
+  margin: -1.75rem 0 0 -1.75rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--service-accent, #93c5fd) 60%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.group:hover .portal-node-pulse,
+.portal-node-active .portal-node-pulse {
+  animation: portal-pulse 1.9s ease-out infinite;
+}
+
+@keyframes portal-pulse {
+  0% { opacity: 0.55; transform: scale(0.9); }
+  70% { opacity: 0; transform: scale(1.75); }
+  100% { opacity: 0; transform: scale(1.75); }
+}
+
+.portal-node-active .portal-node {
+  box-shadow: 0 0 22px color-mix(in srgb, var(--service-accent, #93c5fd) 45%, transparent);
+}
+
+.portal-tooltip {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(2, 6, 23, 0.95);
+  padding: 0.75rem;
+  text-align: left;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.portal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.portal-badges > span {
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--service-accent, #93c5fd) 40%, transparent);
+  background: color-mix(in srgb, var(--service-accent, #93c5fd) 16%, transparent);
+  padding: 0.1rem 0.4rem;
+  font-size: 10px;
+  color: var(--service-accent, #93c5fd);
+}
+
+.portal-enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--service-accent, #3b82f6) 85%, black);
+  padding: 0.35rem 0.7rem;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.portal-enter:hover {
+  filter: brightness(1.15);
+}
+
+.portal-unavailable {
+  display: inline-block;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.portal-fab {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(2, 6, 23, 0.7);
+  color: #e2e8f0;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transform: translateZ(0);
+  will-change: transform;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.portal-fab:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(147, 197, 253, 0.5);
+  transform: translateZ(0) scale(1.08);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.35);
+}
+
+.portal-fab:active {
+  transform: translateZ(0) scale(0.94);
+  transition-duration: 0.08s;
+}
+
+/* 首次访问引导：left/top 由 usePopupPlacement 的碰撞检测算出，这里只管外观 */
+.portal-guide-pop {
+  position: fixed;
+  bottom: 1rem;
+  right: 4.25rem;
+  z-index: 50;
+  width: 16rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.25);
+}
+
+.portal-nudge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  background: rgba(59, 130, 246, 0.25);
+  padding: 0.35rem 0.9rem;
+  font-size: 12px;
+  color: #e0f2fe;
+  cursor: pointer;
+}
+
+.portal-guide-action {
+  margin-top: 0.75rem;
+  width: 100%;
+  border-radius: 0.6rem;
+  background: #2563eb;
+  padding: 0.45rem 0.75rem;
+  font-size: 12px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.portal-guide-action:hover {
+  background: #1d4ed8;
+}
+
+/* 中心核心：光晕 + 旋转环 + 标题排版 */
+.portal-core-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 48%;
+  width: 48%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), rgba(129, 140, 248, 0.08) 55%, transparent 72%);
+  filter: blur(6px);
+  animation: portal-breathe 6s ease-in-out infinite;
+}
+
+.portal-core-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 34%;
+  width: 34%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  border: 1px dashed rgba(147, 197, 253, 0.28);
+  animation: portal-spin 90s linear infinite;
+}
+
+@keyframes portal-breathe {
+  0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(0.96); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+.portal-core-eyebrow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(186, 230, 253, 0.75);
+}
+
+.portal-core-title {
+  margin-top: 0.25rem;
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
+}
+
+@media (min-width: 768px) {
+  .portal-core-title {
+    font-size: 2.25rem;
+  }
+}
+
+.portal-core-rule {
+  height: 1px;
+  width: 8rem;
+  background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.75), transparent);
+}
+
+.portal-core-desc {
+  max-width: 18rem;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+/* 顶部/底部状态条 */
+.portal-hud {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(2, 6, 23, 0.6);
+  padding: 0.35rem 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #bae6fd;
+  backdrop-filter: blur(10px);
+}
+
+.portal-hud--top {
+  right: 1.5rem;
+  top: 1.5rem;
+}
+
+.portal-hud--bottom {
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: inherit;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.portal-hud-dot {
+  height: 0.4rem;
+  width: 0.4rem;
+  border-radius: 9999px;
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.9);
+  animation: portal-blink 2s ease-in-out infinite;
+}
+
+@keyframes portal-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* 分类图例：悬停联动高亮环上节点 */
+.portal-legend {
+  position: fixed;
+  left: 1.5rem;
+  top: 50%;
+  z-index: 30;
+  display: none;
+  transform: translateY(-50%);
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (min-width: 1024px) {
+  .portal-legend {
+    display: flex;
+  }
+}
+
+.portal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.5);
+  padding: 0.35rem 0.6rem;
+  font-size: 12px;
+  color: #cbd5e1;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.portal-legend-item:hover,
+.portal-legend-item--on {
+  border-color: color-mix(in srgb, var(--service-accent, #93c5fd) 55%, transparent);
+  background: color-mix(in srgb, var(--service-accent, #93c5fd) 14%, rgba(2, 6, 23, 0.6));
+  color: #ffffff;
+}
+
+.portal-legend-icon {
+  display: flex;
+  height: 1.25rem;
+  width: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--service-accent, #93c5fd) 18%, transparent);
+  color: var(--service-accent, #93c5fd);
+}
+
+.portal-legend-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-ring-page *,
+  .portal-ring-page {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
   width: 10px;
@@ -296,4 +854,255 @@ button, a, input, textarea, select {
 
 .headphone-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(34, 197, 94, 0.8), rgba(20, 184, 166, 0.8));
+}
+
+/* ===== 统计弹窗（银河风格，与首页同源） ===== */
+.stats-scrim {
+  background: radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.12), rgba(2, 6, 23, 0.78) 60%);
+  backdrop-filter: blur(6px);
+}
+
+.stats-panel {
+  background: rgba(2, 6, 23, 0.92);
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(125, 211, 252, 0.06),
+    0 30px 80px -20px rgba(2, 6, 23, 0.9),
+    0 0 60px -10px rgba(56, 189, 248, 0.35);
+}
+
+.stats-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.stats-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+
+.stats-bg-glow--a {
+  top: -6rem;
+  right: -6rem;
+  width: 22rem;
+  height: 22rem;
+  background: rgba(56, 189, 248, 0.5);
+}
+
+.stats-bg-glow--b {
+  bottom: -8rem;
+  left: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(168, 85, 247, 0.4);
+}
+
+.stats-bg-orbit {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(148, 197, 233, 0.18) 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 75%);
+  opacity: 0.6;
+}
+
+.stats-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.45);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.25);
+}
+
+.stats-ring-svg {
+  display: block;
+}
+
+.stats-orbit-rotate {
+  animation: stats-orbit-spin 24s linear infinite;
+}
+
+@keyframes stats-orbit-spin {
+  to { transform: rotate(360deg); }
+}
+
+.stats-core-pulse {
+  animation: stats-core-breathe 3.4s ease-in-out infinite;
+  transform-origin: 210px 210px;
+}
+
+@keyframes stats-core-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.08); }
+}
+
+.stats-node {
+  transition: transform 0.2s ease;
+}
+
+.stats-node:hover {
+  transform: scale(1.15);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-orbit-rotate,
+  .stats-core-pulse {
+    animation: none;
+  }
+}
+
+/* ===== 使用教程：聚光灯高亮圈 ===== */
+.tour-ring {
+  border: 2px solid rgba(125, 211, 252, 0.95);
+  animation: tour-ring-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tour-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18), 0 0 24px rgba(56, 189, 248, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(56, 189, 248, 0.1), 0 0 34px rgba(56, 189, 248, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring {
+    animation: none;
+  }
+}
+
+/* ===== 圆环节点：列宽与标签 =====
+   节点尺寸随圆环联动缩放：相邻弦长 ≈ 0.169 × stage，列宽取 0.13 × stage，
+   恒留约 23% 间隙，因此任何窗口下都不会出现标签互相压字。 */
+.portal-ring-stage {
+  --node-col-w: clamp(56px, calc(var(--stage-w) * 0.13), 108px);
+  --node-d: clamp(44px, calc(var(--stage-w) * 0.075), 64px);
+}
+
+.portal-node-col {
+  position: relative;
+  width: var(--node-col-w);
+}
+
+.portal-node-label {
+  max-width: var(--node-col-w);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-ring-stage .portal-node {
+  width: var(--node-d);
+  height: var(--node-d);
+}
+
+/* ===== 中心核心：悬停任意节点时「瞬移」到视口左上角 =====
+   用 fixed 定位：left/top 50% 即视口中心，与 stage 中心重合，
+   停靠时可直接用 vw/vh 把整块搬到左上角，不必测量 stage 位置。
+   注意：不要写成 calc(-1 * (...))，Lightning CSS 会整段丢弃那条规则。 */
+.portal-ring-stage .portal-ring-core {
+  position: fixed;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: max-content;
+  max-width: min(24rem, 88vw);
+  transform: translate(-50%, -50%);
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  z-index: 8;
+}
+
+.portal-ring-stage .portal-ring-core.is-docked {
+  transform: translate(calc(1.5rem - 50vw), calc(1.5rem - 50vh));
+  align-items: flex-start;
+  text-align: left;
+  opacity: 0.95;
+}
+
+/* 停靠后标题放大一档，作为「大标题」存在 */
+.portal-ring-stage .portal-ring-core.is-docked .portal-core-title {
+  font-size: 2.25rem;
+  line-height: 1.15;
+}
+
+.portal-ring-stage .portal-ring-core.is-docked .portal-core-desc {
+  max-width: 20rem;
+  text-align: left;
+}
+
+/* 传送门闪光：每次悬停新节点重新播放一次 */
+.portal-teleport-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7rem;
+  height: 7rem;
+  margin: -3.5rem 0 0 -3.5rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(147, 197, 253, 0.9);
+  box-shadow: 0 0 40px rgba(125, 211, 252, 0.6), inset 0 0 30px rgba(125, 211, 252, 0.35);
+  pointer-events: none;
+  z-index: 5;
+  animation: portal-teleport 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes portal-teleport {
+  0% {
+    transform: scale(0.35) rotate(0deg);
+    opacity: 0.95;
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(2.8) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+/* 中心详情面板：固定位置，只换内容 */
+.portal-center-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(20rem, 56%);
+  transform: translate(-50%, -50%) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 6;
+}
+
+.portal-center-panel.is-on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.portal-tooltip--center {
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.portal-tooltip--center .portal-badges {
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-teleport-flash {
+    animation: none;
+    opacity: 0;
+  }
+  .portal-ring-stage .portal-ring-core {
+    transition: none;
+  }
 }

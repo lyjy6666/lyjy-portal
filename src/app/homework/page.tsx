@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
 import Link from 'next/link';
-import { Mic, MicOff, Check, Trash2, Plus, Sparkles, Clock, AlertTriangle, ChevronUp, Calendar, X, ChevronDown, RefreshCw, Download, Upload, User, LogOut } from 'lucide-react';
+import { Mic, MicOff, Check, Trash2, Plus, Sparkles, Clock, AlertTriangle, ChevronUp, Calendar, X, ChevronDown, RefreshCw, Download, Upload, User, LogOut, BookOpen } from 'lucide-react';
 import * as mammoth from 'mammoth';
 import { ConfettiExplosion } from '@/components/ConfettiExplosion';
 import CalendarDialog from '@/components/CalendarDialog';
 import AIGrader from '@/components/AIGrader';
+import HomeworkPlanner from '@/components/HomeworkPlanner';
+import HomeworkTour, { type TourStep } from '@/components/HomeworkTour';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
 interface Task {
   id: number;
@@ -22,6 +25,48 @@ interface UserInfo {
   username: string;
 }
 
+/** 作业管理系统的版本历史（更新记录弹窗用；越靠前越新） */
+const HOMEWORK_RELEASES: Release[] = [
+  {
+    version: 'V5.0',
+    date: '2026.10.2',
+    tag: '重磅更新',
+    latest: true,
+    items: [
+      '新增「智能排期」：设定完成天数与每个作业的难度，自动均衡分配到每天；某天没空可单独调小当天的可用时间',
+      '作业清单新增「按待完成时间」视图：已逾期 / 今天 / 明天 / 3 天内 / 本周内 / 更晚 / 未设截止，轻重缓急一眼看清',
+      '批量改期支持「只改日期」或「只改时间」，不必把日期时间都重填',
+      '新增首次使用引导教程：8 步聚光灯逐个介绍各功能，右上角可随时跳过',
+      '修复升级后排期数据读不到的问题，旧数据自动迁移、不会丢失',
+    ],
+  },
+  {
+    version: 'V4.5',
+    date: '2026.7.29',
+    items: ['新增 AI 批改作业功能'],
+  },
+  {
+    version: 'V4.0',
+    date: '2026.7.11',
+    items: ['新增导入文档为作业功能', '新增云端储存作业，登录即可多设备同步', '修复了一些已知问题'],
+  },
+  {
+    version: 'V3.1',
+    date: '2026.2.6',
+    items: ['界面、性能与体验进一步优化', '新增导出功能', '优化安全与交互', '修复了一些已知问题'],
+  },
+  {
+    version: 'V3.0',
+    date: '2026.2.5',
+    items: ['优化界面布局：左右两栏设计，左侧输入右侧列表', '新增月历视图，支持按日期查看作业', '新增独立的全选/取消全选功能', '修复时间选择器时区显示问题'],
+  },
+  {
+    version: 'V2.0',
+    date: '2026.1.30',
+    items: ['网站焕新上线了'],
+  },
+];
+
 export default function HomeworkPage() {
   const [taskInput, setTaskInput] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -31,6 +76,8 @@ export default function HomeworkPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [batchDueDate, setBatchDueDate] = useState('');
+  /** 批量改期方式：整条替换 / 只改日期（保留各自时刻）/ 只改时间（保留各自日期） */
+  const [batchDateMode, setBatchDateMode] = useState<'full' | 'dateOnly' | 'timeOnly'>('full');
   const [showUpdateLog, setShowUpdateLog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -38,6 +85,61 @@ export default function HomeworkPage() {
   const [loadingText, setLoadingText] = useState('正在加载历史作业，请稍候');
   const [showHistory, setShowHistory] = useState(false);
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
+  /** 首次使用的引导教程 */
+  const [showTour, setShowTour] = useState(false);
+
+  // 教程步骤：目标用 data-tour 锚点定位；页面里不存在的步骤会被组件自动过滤
+  const TOUR_STEPS: TourStep[] = [
+    {
+      target: '[data-tour="input"]',
+      title: '在这里写作业',
+      desc: '把作业内容打进去就行。一次可以写好几条，系统会自动拆分成一项一项的清单。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="voice"]',
+      title: '懒得打字就说话',
+      desc: '点这个麦克风用语音输入，说完自动转文字并整理成作业清单。',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="io"]',
+      title: '已有文档？直接导入',
+      desc: '「导入文档为作业」支持 txt / doc / docx / md，选中文件就会自动拆成作业条目；「导出作业为文档」可以把当前清单存成文件带走或打印。',
+      placement: 'auto',
+    },
+    {
+      target: '[data-tour="grader"]',
+      title: 'AI 批改作业',
+      desc: '写完的作业想对答案？点这个按钮把内容交给 AI 批改，会给出对错判断和讲解。（需要登录）',
+      placement: 'auto',
+    },
+    {
+      target: '[data-tour="planner"]',
+      title: '作业太多？让它帮你排',
+      desc: '设定完成天数，给每个作业标上难度系数（普通作业填 1，试卷这类填 3），系统会把它们均衡地分到每一天——难题独占一天，轻松的几个凑一天。某天没时间还能单独把那天调小。',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="views"]',
+      title: '清单有两种看法',
+      desc: '「分科目」按学科归类，适合按科目推进；「按待完成时间」按紧迫程度分组（已逾期 / 今天 / 明天 / 3 天内 / 本周内…），适合赶截止日期。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="batch"]',
+      title: '批量选择',
+      desc: '点开后可以勾选多个作业，一次性删除，或统一改截止时间——支持「只改日期」「只改时间」，不必把两者都重填。',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-task-id]',
+      title: '每一项都能单独设置',
+      desc: '左侧圆圈点一下就是完成；下面可以给这项单独设截止时间，越紧急显示越醒目；鼠标移到条目上右侧会出现置顶和删除按钮。',
+      placement: 'top',
+    },
+  ];
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showRightClickWarning, setShowRightClickWarning] = useState(false);
   const [exportButtonFlash, setExportButtonFlash] = useState(false);
@@ -47,8 +149,45 @@ export default function HomeworkPage() {
   const [clickCount, setClickCount] = useState(0);
   const [warningColor, setWarningColor] = useState<'yellow' | 'red'>('yellow');
   const [collapsedSubjects, setCollapsedSubjects] = useState<Set<string>>(new Set());
+  /** 作业清单视图：按科目分组 / 按待完成时间分组 */
+  const [listView, setListView] = useState<'subject' | 'time'>('subject');
+  /** 时间视图里折叠的分组 */
+  const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
+
+  // 恢复上次选择的清单视图
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('homeworkListView');
+      if (saved === 'time' || saved === 'subject') setListView(saved);
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
+
 
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+
+  // 首次使用自动弹出教程（跳过或看完都会记下来，之后不再自动弹）
+  useEffect(() => {
+    if (!currentUser || initialLoading) return;
+    try {
+      if (localStorage.getItem('homeworkTourDone')) return;
+    } catch {
+      return;
+    }
+    const t = window.setTimeout(() => setShowTour(true), 1500);
+    return () => window.clearTimeout(t);
+  }, [currentUser, initialLoading]);
+
+  const closeTour = (completed: boolean) => {
+    setShowTour(false);
+    try {
+      localStorage.setItem('homeworkTourDone', completed ? '1' : '1');
+    } catch {
+      /* 忽略 */
+    }
+  };
+
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showAIGrader, setShowAIGrader] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
@@ -465,6 +604,65 @@ export default function HomeworkPage() {
     });
   };
 
+  // 按「待完成时间」分组：已逾期 / 今天 / 明天 / 3天内 / 本周内 / 更晚 / 未设截止
+  const TIME_BUCKETS = [
+    { key: 'overdue', label: '已逾期', icon: '!', ring: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/30', tone: 'text-red-300' },
+    { key: 'today', label: '今天', icon: '今', ring: 'from-orange-500 to-amber-600', shadow: 'shadow-orange-500/30', tone: 'text-orange-300' },
+    { key: 'tomorrow', label: '明天', icon: '明', ring: 'from-amber-500 to-yellow-600', shadow: 'shadow-amber-500/30', tone: 'text-amber-300' },
+    { key: 'd3', label: '3 天内', icon: '3', ring: 'from-yellow-500 to-lime-600', shadow: 'shadow-yellow-500/30', tone: 'text-yellow-300' },
+    { key: 'week', label: '本周内', icon: '周', ring: 'from-blue-500 to-cyan-600', shadow: 'shadow-blue-500/30', tone: 'text-blue-300' },
+    { key: 'later', label: '更晚', icon: '远', ring: 'from-slate-500 to-slate-600', shadow: 'shadow-slate-500/30', tone: 'text-slate-300' },
+    { key: 'none', label: '未设截止时间', icon: '—', ring: 'from-slate-600 to-slate-700', shadow: 'shadow-slate-600/30', tone: 'text-slate-400' },
+  ] as const;
+
+  const groupTasksByTime = (list: Task[]) => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayDiff = (d: Date) =>
+      Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - startOfToday) / 86400000);
+
+    const buckets: Record<string, Task[]> = {
+      overdue: [], today: [], tomorrow: [], d3: [], week: [], later: [], none: [],
+    };
+
+    list.forEach(task => {
+      const raw = task.dueDate ? (task.dueDate instanceof Date ? task.dueDate : new Date(task.dueDate)) : null;
+      if (!raw || isNaN(raw.getTime())) {
+        buckets.none.push(task);
+        return;
+      }
+      const diff = dayDiff(raw);
+      if (diff < 0) buckets.overdue.push(task);
+      else if (diff === 0) buckets.today.push(task);
+      else if (diff === 1) buckets.tomorrow.push(task);
+      else if (diff <= 3) buckets.d3.push(task);
+      else if (diff <= 7) buckets.week.push(task);
+      else buckets.later.push(task);
+    });
+
+    // 组内：置顶优先，其次按截止时间从近到远
+    const timeOf = (t: Task) => {
+      const d = t.dueDate ? (t.dueDate instanceof Date ? t.dueDate : new Date(t.dueDate)) : null;
+      return d && !isNaN(d.getTime()) ? d.getTime() : Number.POSITIVE_INFINITY;
+    };
+    Object.values(buckets).forEach(arr =>
+      arr.sort((a, b) => Number(b.isPinned ?? false) - Number(a.isPinned ?? false) || timeOf(a) - timeOf(b))
+    );
+
+    return TIME_BUCKETS
+      .map(meta => ({ ...meta, tasks: buckets[meta.key] }))
+      .filter(b => b.tasks.length > 0);
+  };
+
+  const toggleBucketCollapse = (key: string) => {
+    setCollapsedBuckets(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   // 添加任务（打字输入）
   const handleAddTask = async () => {
     if (!taskInput.trim()) return;
@@ -526,6 +724,39 @@ export default function HomeworkPage() {
     }
     
     setIsProcessing(false);
+  };
+
+  // 把智能排期的结果逐条写入作业清单（带对应日期作为截止日）
+  const importPlannerPlan = async (assignments: { text: string; dueDate: string }[]) => {
+    if (!currentUser) {
+      return { ok: false, message: '请先登录后再写入作业清单' };
+    }
+    let success = 0;
+    let failed = 0;
+    for (const item of assignments) {
+      try {
+        const response = await fetch('/api/homework/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ text: item.text, dueDate: item.dueDate }),
+        });
+        if (response.ok) {
+          success++;
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+    if (success > 0) {
+      await loadTasks();
+      return {
+        ok: true,
+        message: failed > 0 ? `已写入 ${success} 条，${failed} 条失败` : `已写入 ${success} 条作业`,
+      };
+    }
+    return { ok: false, message: '写入失败，请确认已登录且后端服务正常' };
   };
 
   // 语音输入
@@ -854,29 +1085,91 @@ export default function HomeworkPage() {
       return;
     }
     if (!batchDueDate) {
-      alert('请选择到期时间');
+      alert('请先选择日期时间');
       return;
     }
-    
+
+    // 按模式解析输入框的值。注意：不能先无条件 new Date(batchDueDate) ——
+    // 'HH:mm'（只改时间）和 'YYYY-MM-DD'（只改日期）都不是合法的完整日期时间，
+    // 只有「整条替换」的 datetime-local 值才需要交给 Date 解析。
+    let pY = 0, pM = 0, pD = 0, pH = 0, pMin = 0;
+    if (batchDateMode === 'timeOnly') {
+      const [h, m] = batchDueDate.split(':').map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) {
+        alert('请选择要改成的时间');
+        return;
+      }
+      pH = h; pMin = m;
+    } else if (batchDateMode === 'dateOnly') {
+      const [y, mo, d] = batchDueDate.split('-').map(Number);
+      if (Number.isNaN(y) || Number.isNaN(mo) || Number.isNaN(d)) {
+        alert('请选择要改成的日期');
+        return;
+      }
+      pY = y; pM = mo - 1; pD = d;
+    } else {
+      const picker = new Date(batchDueDate);
+      if (isNaN(picker.getTime())) {
+        alert('日期时间格式不正确');
+        return;
+      }
+      pY = picker.getFullYear(); pM = picker.getMonth(); pD = picker.getDate();
+      pH = picker.getHours(); pMin = picker.getMinutes();
+    }
+
+    // 按所选方式为每个作业算出新的到期时间
+    const updates: { id: number; dueDate: Date }[] = [];
+    let skipped = 0;
+
+    Array.from(selectedTasks).forEach(id => {
+      const task = tasks.find(t => t.id === id);
+      const existing = task?.dueDate
+        ? (task.dueDate instanceof Date ? task.dueDate : new Date(task.dueDate))
+        : null;
+      const valid = existing && !isNaN(existing.getTime()) ? existing : null;
+
+      let next: Date;
+      if (batchDateMode === 'dateOnly') {
+        // 只改日期：保留每个作业原本的时刻（没有截止时间的按 00:00）
+        next = new Date(pY, pM, pD, valid ? valid.getHours() : 0, valid ? valid.getMinutes() : 0, 0, 0);
+      } else if (batchDateMode === 'timeOnly') {
+        // 只改时间：保留每个作业原本的日期；没有截止时间的无法保留日期，跳过
+        if (!valid) {
+          skipped++;
+          return;
+        }
+        next = new Date(valid.getFullYear(), valid.getMonth(), valid.getDate(), pH, pMin, 0, 0);
+      } else {
+        next = new Date(pY, pM, pD, pH, pMin, 0, 0);
+      }
+      updates.push({ id, dueDate: next });
+    });
+
+    if (updates.length === 0) {
+      alert('所选作业都没有截止日期，无法只改时间。请改用「只改日期」或「整条替换」。');
+      return;
+    }
+
     try {
-      const newDueDate = new Date(batchDueDate);
       await Promise.all(
-        Array.from(selectedTasks).map(id =>
-          fetch(`/api/homework/tasks/${id}`, {
+        updates.map(u =>
+          fetch(`/api/homework/tasks/${u.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({ dueDate: newDueDate }),
+            body: JSON.stringify({ dueDate: u.dueDate }),
           })
         )
       );
+      const map = new Map(updates.map(u => [u.id, u.dueDate]));
       setTasks(prev => prev.map(task =>
-        selectedTasks.has(task.id)
-          ? { ...task, dueDate: newDueDate }
-          : task
+        map.has(task.id) ? { ...task, dueDate: map.get(task.id) } : task
       ));
       setSelectedTasks(new Set());
       setBatchDueDate('');
       setShowBatchOperations(false);
+      if (skipped > 0) {
+        alert(`已更新 ${updates.length} 项；另有 ${skipped} 项原本没有截止日期，无法只改时间，已跳过。`);
+      }
     } catch (error) {
       console.error('Error batch updating due dates:', error);
       alert('批量修改时间失败，请重试');
@@ -1366,6 +1659,108 @@ export default function HomeworkPage() {
     return dateA.getTime() - dateB.getTime();
   });
 
+  // 单条待完成作业的渲染（科目视图与时间视图共用）
+  const renderTaskItem = (task: Task) => {
+    const timeInfo = getTimeUntilDue(task.dueDate);
+
+    return (
+      <div
+        key={task.id}
+        data-task-id={task.id}
+        className={`group flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
+          task.recentlyRestored
+            ? 'bg-amber-950/30 border-2 border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/30 animate-pulse'
+            : timeInfo?.urgent
+            ? 'bg-red-950/30 border border-red-500/50 hover:border-red-500/80 hover:shadow-lg hover:shadow-red-500/30'
+            : 'bg-slate-800/50 border border-slate-700 hover:border-blue-500/80 hover:shadow-lg hover:shadow-blue-500/30'
+        } ${task.isPinned ? 'ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/20' : ''}`}
+      >
+        {/* 批量选择框 */}
+        {showBatchOperations && (
+          <button
+            onClick={() => toggleSelectTask(task.id)}
+            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
+              selectedTasks.has(task.id)
+                ? 'bg-blue-500 border-blue-500 shadow-lg shadow-blue-500/50'
+                : 'border-slate-600 hover:border-blue-500'
+            }`}
+          >
+            {selectedTasks.has(task.id) && <Check className="w-3 h-3 text-white" />}
+          </button>
+        )}
+
+        {/* 完成状态切换 */}
+        <button
+          onClick={() => toggleTask(task.id)}
+          className={`complete-button flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-300 mt-0.5 ${
+            'border-slate-600 hover:border-green-400 hover:bg-green-500/10'
+          }`}
+        >
+          <Check className="w-4 h-4 text-transparent" />
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <span className={`block text-base transition-all duration-300 ${
+            task.recentlyRestored ? 'text-amber-200' : 'text-slate-200'
+          }`}>
+            {task.text}
+            {task.recentlyRestored && (
+              <span className="ml-2 text-xs text-amber-400">✨ 已恢复</span>
+            )}
+          </span>
+
+          {/* 到期时间显示和修改 */}
+          {timeInfo && (
+            <div className={`flex items-center gap-1.5 mt-2 text-xs ${
+              timeInfo.urgent ? 'text-red-400 font-semibold animate-pulse' : 'text-slate-400'
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>{timeInfo.text}</span>
+              {timeInfo.urgent && <AlertTriangle className="w-3.5 h-3.5" />}
+            </div>
+          )}
+
+          {/* 单个任务到期时间选择器 */}
+          <div className="mt-2 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-500" />
+            <input
+              type="datetime-local"
+              value={
+                task.dueDate
+                  ? (task.dueDate instanceof Date
+                      ? formatDateTimeLocal(task.dueDate)
+                      : formatDateTimeLocal(new Date(task.dueDate)))
+                  : ''
+              }
+              onChange={(e) => updateTaskDueDate(task.id, e.target.value)}
+              className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        {/* 置顶按钮（移到右边，悬停显示） */}
+        <button
+          onClick={() => toggleTaskPin(task.id)}
+          className={`flex-shrink-0 w-8 h-8 rounded-lg transition-all flex items-center ${
+            task.isPinned
+              ? 'bg-purple-500 text-white opacity-100 shadow-lg shadow-purple-500/50'
+              : 'bg-slate-700/50 text-slate-400 hover:text-purple-400 hover:bg-purple-500/20 opacity-0 group-hover:opacity-100'
+          }`}
+          title={task.isPinned ? '取消置顶' : '置顶'}
+        >
+          <ChevronUp className="w-6 h-6 pl-3" />
+        </button>
+
+        <button
+          onClick={() => deleteTask(task.id)}
+          className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-700/50 text-slate-400 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 flex items-center"
+        >
+          <Trash2 className="w-6 h-6 pl-3" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* 加载动画 */}
@@ -1515,6 +1910,7 @@ export default function HomeworkPage() {
               <div className="flex flex-col gap-4">
             <div className="relative">
               <textarea
+                data-tour="input"
                 value={taskInput}
                 onChange={(e) => setTaskInput(e.target.value)}
                 placeholder="在此输入您的作业内容..."
@@ -1522,6 +1918,7 @@ export default function HomeworkPage() {
               />
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button
+                  data-tour="voice"
                   onClick={handleVoiceInput}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
                     isRecording
@@ -1577,7 +1974,7 @@ export default function HomeworkPage() {
             </div>
 
             {/* 导入 / 导出作业板块 */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl mt-4">
+            <div data-tour="io" className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl mt-4">
               <h2 className="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-blue-400" />
                 导入 / 导出作业
@@ -1632,12 +2029,26 @@ export default function HomeworkPage() {
                   </>
                 )}
               </button>
+              {/* 智能排期：按天数与难度把作业分配到每一天 */}
+              <div className="mt-3 border-t border-slate-700/50 pt-5">
+                <button
+                  data-tour="planner"
+                  onClick={() => setShowPlanner(true)}
+                  className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 hover:from-fuchsia-700 hover:to-violet-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-500/25 enabled:hover:scale-105"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>智能排期（按天数分配作业）</span>
+                </button>
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  按难度把作业分到每一天，难题可独占一天
+                </p>
+              </div>
             </div>
           </div>
 
           {/* 右侧：作业列表 */}
           <div className="lg:w-2/3 flex-1">
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
+            <div data-tour="list" className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
                   <Check className="w-5 h-5 text-blue-400" />
@@ -1647,12 +2058,20 @@ export default function HomeworkPage() {
                   </span>
             </h2>
             {!isLoading && currentUser && tasks.length > 0 && (
-              <button
-                onClick={loadTasks}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                刷新
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowTour(true)}
+                  className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  使用教程
+                </button>
+                <button
+                  onClick={loadTasks}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  刷新
+                </button>
+              </div>
             )}
           </div>
           
@@ -1673,12 +2092,24 @@ export default function HomeworkPage() {
               {/* 批量操作按钮栏 */}
               <div className="mb-4 flex items-center gap-2 flex-wrap">
                 <button
+                  data-tour="batch"
                   onClick={toggleBatchOperations}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all text-sm"
                 >
                   <Check className="w-4 h-4" />
                   {showBatchOperations ? '取消批量选择' : `批量选择 (${selectedTasks.size})`}
                 </button>
+
+                {/* 全选待完成：紧挨着批量选择，做小一号 */}
+                {showBatchOperations && (
+                  <button
+                    onClick={handleSelectAllActive}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/50 transition-all text-xs"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    全选待完成
+                  </button>
+                )}
 
                 {showBatchOperations && selectedTasks.size > 0 && (
                   <>
@@ -1692,187 +2123,193 @@ export default function HomeworkPage() {
                     </button>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-slate-400" />
+                      {/* 输入框类型随模式变化：只改时间就只让人选时间，不用再填日期 */}
                       <input
-                        type="datetime-local"
+                        key={batchDateMode}
+                        type={batchDateMode === 'timeOnly' ? 'time' : batchDateMode === 'dateOnly' ? 'date' : 'datetime-local'}
                         value={batchDueDate}
                         onChange={(e) => setBatchDueDate(e.target.value)}
                         className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
                       />
+
+                      {/* 改期方式：整条替换 / 只改日期 / 只改时间 */}
+                      <div className="flex items-center gap-0.5 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                        {([
+                          { key: 'full' as const, label: '整条替换', title: '日期和时间都改成所选的值' },
+                          { key: 'dateOnly' as const, label: '只改日期', title: '只改日期，各作业保留自己原本的时刻（只填日期即可）' },
+                          { key: 'timeOnly' as const, label: '只改时间', title: '只改时间，各作业保留自己原本的日期（只填时间即可）' },
+                        ]).map(m => (
+                          <button
+                            key={m.key}
+                            onClick={() => {
+                              setBatchDateMode(m.key);
+                              setBatchDueDate(''); // 格式随模式变化，旧值作废
+                            }}
+                            title={m.title}
+                            className={`rounded-md px-2.5 py-1 text-xs transition-all ${
+                              batchDateMode === m.key
+                                ? 'bg-blue-600 text-white shadow shadow-blue-500/25'
+                                : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+
                       <button
                         onClick={handleBatchUpdateDueDate}
                         className="px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all text-sm"
                       >
-                        设置时间
+                        应用
                       </button>
                     </div>
                   </>
                 )}
+
+                {/* 视图切换：与批量选择同一行，靠右对齐 */}
+                <div data-tour="views" className="ml-auto flex shrink-0 items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                  {([
+                    { key: 'subject' as const, label: '分科目', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                    { key: 'time' as const, label: '按待完成时间', icon: <Clock className="w-3.5 h-3.5" /> },
+                  ]).map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => {
+                        setListView(v.key);
+                        localStorage.setItem('homeworkListView', v.key);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-all ${
+                        listView === v.key
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                      }`}
+                    >
+                      {v.icon}
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* 任务列表 - 按科目分组显示未完成的 */}
+              {/* 任务列表 */}
               <div className="space-y-4">
-                {showBatchOperations && (
-                  <button
-                    onClick={handleSelectAllActive}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/50 transition-all text-sm"
-                  >
-                    <Check className="w-4 h-4" />
-                    全选待完成任务
-                  </button>
-                )}
+                {listView === 'subject' ? (
+                  /* ===== 视图一：按科目分组 ===== */
+                  (() => {
+                    const activeTasks = sortedTasks.filter(t => !t.completed);
+                    const groupedTasks = groupTasksBySubject(activeTasks);
 
-                {/* 按科目分组 */}
-                {(() => {
-                  const activeTasks = sortedTasks.filter(t => !t.completed);
-                  const groupedTasks = groupTasksBySubject(activeTasks);
+                    return Object.entries(groupedTasks).map(([subject, subjectTasks]) => {
+                      const isCollapsed = collapsedSubjects.has(subject);
+                      const shouldCollapse = subjectTasks.length >= 2 && isCollapsed;
 
-                  return Object.entries(groupedTasks).map(([subject, subjectTasks]) => {
-                    const isCollapsed = collapsedSubjects.has(subject);
-                    const shouldCollapse = subjectTasks.length >= 2 && isCollapsed;
-
-                    return (
-                      <div key={subject} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
-                        {/* 科目标题 */}
-                        <button
-                          onClick={() => toggleSubjectCollapse(subject)}
-                          className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
-                            subjectTasks.length >= 2
-                              ? 'hover:bg-slate-800/50 cursor-pointer'
-                              : 'cursor-default'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30">
-                              {subject.charAt(0)}
-                            </div>
-                            <div className="text-left">
-                              <div className="text-lg font-semibold text-slate-200">
-                                {subject}
+                      return (
+                        <div key={subject} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
+                          {/* 科目标题 */}
+                          <button
+                            onClick={() => toggleSubjectCollapse(subject)}
+                            className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
+                              subjectTasks.length >= 2
+                                ? 'hover:bg-slate-800/50 cursor-pointer'
+                                : 'cursor-default'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30">
+                                {subject.charAt(0)}
                               </div>
-                              <div className="text-xs text-slate-500">
-                                {subjectTasks.length} 项作业
-                              </div>
-                            </div>
-                          </div>
-
-                          {subjectTasks.length >= 2 && (
-                            <ChevronDown
-                              className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
-                                shouldCollapse ? 'rotate-180' : ''
-                              }`}
-                            />
-                          )}
-                        </button>
-
-                        {/* 任务列表 */}
-                        {(!shouldCollapse || subjectTasks.length < 2) && (
-                          <div className="px-4 pb-4 space-y-3">
-                            {subjectTasks.map((task) => {
-                              const timeInfo = getTimeUntilDue(task.dueDate);
-
-                              return (
-                                <div
-                                  key={task.id}
-                                  data-task-id={task.id}
-                                  className={`group flex items-start gap-3 p-4 rounded-xl transition-all duration-200 ${
-                                    task.recentlyRestored
-                                      ? 'bg-amber-950/30 border-2 border-amber-500 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/30 animate-pulse'
-                                      : timeInfo?.urgent
-                                      ? 'bg-red-950/30 border border-red-500/50 hover:border-red-500/80 hover:shadow-lg hover:shadow-red-500/30'
-                                      : 'bg-slate-800/50 border border-slate-700 hover:border-blue-500/80 hover:shadow-lg hover:shadow-blue-500/30'
-                                  } ${task.isPinned ? 'ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/20' : ''}`}
-                                >
-                                  {/* 批量选择框 */}
-                                  {showBatchOperations && (
-                                    <button
-                                      onClick={() => toggleSelectTask(task.id)}
-                                      className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
-                                        selectedTasks.has(task.id)
-                                          ? 'bg-blue-500 border-blue-500 shadow-lg shadow-blue-500/50'
-                                          : 'border-slate-600 hover:border-blue-500'
-                                      }`}
-                                    >
-                                      {selectedTasks.has(task.id) && <Check className="w-3 h-3 text-white" />}
-                                    </button>
-                                  )}
-
-                                  {/* 完成状态切换 */}
-                                  <button
-                                    onClick={() => toggleTask(task.id)}
-                                    className={`complete-button flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-300 mt-0.5 ${
-                                      'border-slate-600 hover:border-green-400 hover:bg-green-500/10'
-                                    }`}
-                                  >
-                                    <Check className="w-4 h-4 text-transparent" />
-                                  </button>
-
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`block text-base transition-all duration-300 ${
-                                      task.recentlyRestored ? 'text-amber-200' : 'text-slate-200'
-                                    }`}>
-                                      {task.text}
-                                      {task.recentlyRestored && (
-                                        <span className="ml-2 text-xs text-amber-400">✨ 已恢复</span>
-                                      )}
-                                    </span>
-
-                                    {/* 到期时间显示和修改 */}
-                                    {timeInfo && (
-                                      <div className={`flex items-center gap-1.5 mt-2 text-xs ${
-                                        timeInfo.urgent ? 'text-red-400 font-semibold animate-pulse' : 'text-slate-400'
-                                      }`}>
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span>{timeInfo.text}</span>
-                                        {timeInfo.urgent && <AlertTriangle className="w-3.5 h-3.5" />}
-                                      </div>
-                                    )}
-
-                                    {/* 单个任务到期时间选择器 */}
-                                    <div className="mt-2 flex items-center gap-2">
-                                      <Calendar className="w-4 h-4 text-slate-500" />
-                                      <input
-                                        type="datetime-local"
-                                        value={
-                                          task.dueDate
-                                            ? (task.dueDate instanceof Date
-                                                ? formatDateTimeLocal(task.dueDate)
-                                                : formatDateTimeLocal(new Date(task.dueDate)))
-                                            : ''
-                                        }
-                                        onChange={(e) => updateTaskDueDate(task.id, e.target.value)}
-                                        className="bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* 置顶按钮（移到右边，悬停显示） */}
-                                  <button
-                                    onClick={() => toggleTaskPin(task.id)}
-                                    className={`flex-shrink-0 w-8 h-8 rounded-lg transition-all flex items-center ${
-                                      task.isPinned
-                                        ? 'bg-purple-500 text-white opacity-100 shadow-lg shadow-purple-500/50'
-                                        : 'bg-slate-700/50 text-slate-400 hover:text-purple-400 hover:bg-purple-500/20 opacity-0 group-hover:opacity-100'
-                                    }`}
-                                    title={task.isPinned ? '取消置顶' : '置顶'}
-                                  >
-                                    <ChevronUp className="w-6 h-6 pl-3" />
-                                  </button>
-
-                                  <button
-                                    onClick={() => deleteTask(task.id)}
-                                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-700/50 text-slate-400 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 flex items-center"
-                                  >
-                                    <Trash2 className="w-6 h-6 pl-3" />
-                                  </button>
+                              <div className="text-left">
+                                <div className="text-lg font-semibold text-slate-200">
+                                  {subject}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+                                <div className="text-xs text-slate-500">
+                                  {subjectTasks.length} 项作业
+                                </div>
+                              </div>
+                            </div>
+
+                            {subjectTasks.length >= 2 && (
+                              <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                                  shouldCollapse ? 'rotate-180' : ''
+                                }`}
+                              />
+                            )}
+                          </button>
+
+                          {/* 任务列表 */}
+                          {(!shouldCollapse || subjectTasks.length < 2) && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {subjectTasks.map(renderTaskItem)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()
+                ) : (
+                  /* ===== 视图二：按待完成时间分组 ===== */
+                  (() => {
+                    const activeTasks = sortedTasks.filter(t => !t.completed);
+                    const buckets = groupTasksByTime(activeTasks);
+
+                    if (buckets.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500 text-sm">
+                          暂无待完成的作业
+                        </div>
+                      );
+                    }
+
+                    return buckets.map(bucket => {
+                      const isCollapsed = collapsedBuckets.has(bucket.key);
+                      const shouldCollapse = bucket.tasks.length >= 2 && isCollapsed;
+
+                      return (
+                        <div key={bucket.key} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
+                          {/* 时间分组标题 */}
+                          <button
+                            onClick={() => toggleBucketCollapse(bucket.key)}
+                            className={`w-full flex items-center justify-between p-4 border-b border-slate-700/50 transition-all ${
+                              bucket.tasks.length >= 2
+                                ? 'hover:bg-slate-800/50 cursor-pointer'
+                                : 'cursor-default'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${bucket.ring} flex items-center justify-center text-white font-bold text-sm shadow-lg ${bucket.shadow}`}>
+                                {bucket.icon}
+                              </div>
+                              <div className="text-left">
+                                <div className={`text-lg font-semibold ${bucket.tone}`}>
+                                  {bucket.label}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {bucket.tasks.length} 项作业
+                                </div>
+                              </div>
+                            </div>
+
+                            {bucket.tasks.length >= 2 && (
+                              <ChevronDown
+                                className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                                  shouldCollapse ? 'rotate-180' : ''
+                                }`}
+                              />
+                            )}
+                          </button>
+
+                          {(!shouldCollapse || bucket.tasks.length < 2) && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {bucket.tasks.map(renderTaskItem)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()
+                )}
               </div>
 
               {/* 历史记录区域 */}
@@ -1982,6 +2419,7 @@ export default function HomeworkPage() {
 
         {/* AI 批改作业按钮 */}
         <button
+          data-tour="grader"
           onClick={() => setShowAIGrader(true)}
           className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/50 hover:scale-110 transition-all flex items-center justify-center group"
           title="AI 批改作业"
@@ -2127,102 +2565,43 @@ export default function HomeworkPage() {
           onClick={() => setShowUpdateLog(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            className="relative bg-slate-900/95 border border-white/10 rounded-2xl p-6 max-w-xl w-full shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col backdrop-blur-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-400" />
-                更新记录
-              </h3>
+            {/* 顶部高光条 */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+                  <Sparkles className="h-4.5 w-4.5 text-sky-400" />
+                  更新记录
+                </h3>
+                <p className="mt-1 text-[11px] tracking-wide text-slate-500">
+                  作业管理系统 · 版本历史
+                </p>
+              </div>
               <button
                 onClick={() => setShowUpdateLog(false)}
-                className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-white/[0.06] hover:text-slate-200"
+                aria-label="关闭"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* 最新版本 V4.5 */}
-            <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-4 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20 mb-3">
-              <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
-                <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full shadow-lg">
-                  NEW
-                </span>
-              </div>
-              <div className="pl-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-blue-300 font-bold text-sm">2026.7.29</span>
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V4.5</span>
-                </div>
-                <ul className="text-slate-200 text-sm space-y-1.5 font-medium">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增 AI 批改作业功能</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            {/* 版本历史：时间轴样式，版本多了也不会显得杂乱 */}
+            <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-2">
+              <UpdateTimeline releases={HOMEWORK_RELEASES} />
 
-            {/* 历史版本 V4.0 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.7.11</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V4.0</span>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowUpdateLog(false)}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-5 py-2 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                >
+                  知道了
+                </button>
               </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 新增导入文档为作业功能</li>
-                <li>• 新增云端储存作业，登录即可多设备同步</li>
-                <li>• 修复了一些已知问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V3.1 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.2.6</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V3.1</span>
-              </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 界面、性能与体验进一步优化</li>
-                <li>• 新增导出功能</li>
-                <li>• 优化安全与交互</li>
-                <li>• 修复了一些已知问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V3.0 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.2.5</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V3.0</span>
-              </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 优化界面布局：左右两栏设计，左侧输入右侧列表</li>
-                <li>• 新增月历视图，支持按日期查看作业</li>
-                <li>• 新增独立的全选/取消全选功能</li>
-                <li>• 修复时间选择器时区显示问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V2.0 */}
-            <div className="bg-slate-800/20 rounded-xl p-4 border border-slate-700/30">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-500 font-semibold text-sm">2026.1.30</span>
-                <span className="px-2 py-0.5 bg-slate-700/30 text-slate-500 text-xs font-medium rounded">V2.0</span>
-              </div>
-              <p className="text-slate-500 text-sm">
-                网站焕新上线了
-              </p>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setShowUpdateLog(false)}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all font-medium"
-              >
-                知道了
-              </button>
             </div>
           </div>
         </div>
@@ -2379,6 +2758,17 @@ export default function HomeworkPage() {
         isOpen={showAIGrader}
         onClose={() => setShowAIGrader(false)}
       />
+
+      {/* 智能排期弹窗 */}
+      <HomeworkPlanner
+        isOpen={showPlanner}
+        onClose={() => setShowPlanner(false)}
+        existingTaskNames={tasks.filter((t) => !t.completed).map((t) => t.text)}
+        onImport={importPlannerPlan}
+      />
+
+      {/* 首次使用引导教程 */}
+      <HomeworkTour isOpen={showTour} steps={TOUR_STEPS} onClose={closeTour} />
       </div>
     )}
     </>

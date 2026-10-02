@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
+import { applyLiquidGlass, clearLiquidGlass, supportsLiquidGlass } from '@/components/home/liquidGlass';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import HolidayCalendar from '@/components/HolidayCalendar';
@@ -46,6 +48,50 @@ interface Quote {
   text: string;
   author: string;
 }
+
+/** 功能按钮的选择器，供液态玻璃批量应用 */
+const TILE_SELECTOR = '.feature-button';
+
+/** 背景遮罩（保持原样；液态玻璃只作用于按钮，不动背景） */
+const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
+
+/**
+ * 主页的版本历史（越靠前越新）。
+ * 「液态玻璃效果」做成链接，点击弹出使用条件说明 —— 所以需要注入回调，
+ * 不能写成模块级常量。
+ */
+const buildHomeReleases = (onOpenGlassInfo: () => void): Release[] => [
+  {
+    version: 'V4.1',
+    date: '2026.10.3',
+    latest: true,
+    items: [
+      <>
+        新增
+        <button
+          type="button"
+          onClick={onOpenGlassInfo}
+          className="text-blue-400 underline underline-offset-2 transition-colors hover:text-blue-300"
+        >
+          液态玻璃效果
+        </button>
+        ：功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光
+      </>,
+      '右下角新增水滴按钮，可随时开关液态玻璃效果，选择会被记住',
+    ],
+  },
+  { version: 'v4.0', date: '2026.7.9', items: ['AI 工具等信息更新', '留言板功能完善（Beta 测试版）', '集成进一个网页'] },
+  { version: 'v3.4', date: '2026.4.1', items: ['新增番茄钟功能', '新增随机决策器功能', '新增留言板功能（Beta 测试版）', '修复了一些已知问题'] },
+  { version: 'v3.3', date: '2026.3.23', items: ['新增了彩蛋 2 —— 贪吃蛇，不过怎么开启请自行发掘', '新增了今日热榜功能'] },
+  { version: 'v3.2', date: '2026.3.21', items: ['实用工具换新', '修复了一些已知问题'] },
+  { version: 'v3.1', date: '2026.3.19', items: ['增加天梯图', '新增了一个彩蛋，等待你发现哦~'] },
+  { version: 'v3.0', date: '2026.3.14', items: ['AI 工具焕新', '名人名言优化', '修复了一些已知问题'] },
+  { version: 'v2.4', date: '2026.1.29', items: ['增加了假期日历', '修复了一些已知问题'] },
+  { version: 'v2.2', date: '2025.8.27', items: ['新增了一些内容', '修复了一些已知问题'] },
+  { version: 'v2.1', date: '2025.8.11', items: ['AI 功能 UI 界面大调整', '页面更加美观', '修复了一些已知问题，提升体验感'] },
+  { version: 'v2.0', date: '2025.8.6', items: ['新增传送门等功能', '我的搜索页也上线啦，新增跳转搜索页按钮', '修复了一些已知问题'] },
+  { version: 'v1.0', date: '2025.8.4', items: ['网站上线啦'] },
+];
 
 export default function HomePage() {
   // 状态管理
@@ -114,6 +160,36 @@ export default function HomePage() {
   const [isScreenshotToolOpen, setIsScreenshotToolOpen] = useState(false);
   // 压缩解压工具模态框状态
   const [isCompressionToolOpen, setIsCompressionToolOpen] = useState(false);
+  // 功能按钮的液态玻璃开关（默认开）
+  const [liquidGlass, setLiquidGlass] = useState(true);
+  // 浏览器能力检测只能在客户端做，否则 SSR/水合不一致
+  const [glassSupported, setGlassSupported] = useState(false);
+
+  useEffect(() => {
+    setGlassSupported(supportsLiquidGlass());
+    try {
+      if (localStorage.getItem('homeLiquidGlass') === '0') setLiquidGlass(false);
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
+
+  // 液态玻璃说明弹窗（水滴按钮与更新记录里的链接都会打开它）
+  const [showGlassInfo, setShowGlassInfo] = useState(false);
+  const homeReleases = useMemo(() => buildHomeReleases(() => setShowGlassInfo(true)), []);
+
+  const toggleLiquidGlass = () => {
+    setLiquidGlass((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('homeLiquidGlass', next ? '1' : '0');
+      } catch {
+        /* 忽略 */
+      }
+      return next;
+    });
+  };
+
   // 本地视频播放器模态框状态
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   // 系统清理优化工具模态框状态
@@ -923,7 +999,15 @@ export default function HomePage() {
        document.removeEventListener('contextmenu', handleContextMenu);
      };
    }, []);
-   // 传送门导航处理函数
+   // 音乐播放器与留言板：站主还在考虑是否保留，先置灰并拦截点击
+  const showPendingNotice = (name: string) => {
+    toast(`站主正在考虑「${name}」是否要删除，暂时无法使用`, {
+      position: 'bottom-right',
+      className: 'bg-black/80 text-white border-none',
+    });
+  };
+
+  // 传送门导航处理函数
     const cancelPortalNavigation = () => {
       setIsPortalWarningOpen(false);
       setPortalCountdown(10); // 重置倒计时
@@ -1005,6 +1089,27 @@ export default function HomePage() {
         }
       };
 
+      // 液态玻璃：开关打开且浏览器支持时，把真折射应用到功能按钮上。
+      // 放在这里是因为依赖 currentPage（它在本组件里声明得比较靠后）。
+      useEffect(() => {
+        if (!liquidGlass || !glassSupported) {
+          clearLiquidGlass(TILE_SELECTOR);
+          return;
+        }
+        // 等这一页的按钮挂载完成
+        const raf = requestAnimationFrame(() => applyLiquidGlass(TILE_SELECTOR));
+        const onResize = () => {
+          clearLiquidGlass(TILE_SELECTOR);
+          applyLiquidGlass(TILE_SELECTOR);
+        };
+        window.addEventListener('resize', onResize);
+        return () => {
+          cancelAnimationFrame(raf);
+          window.removeEventListener('resize', onResize);
+          clearLiquidGlass(TILE_SELECTOR);
+        };
+      }, [liquidGlass, glassSupported, currentPage]);
+
   // 社交媒体数据
 const socialItems: SocialItem[] = [
   { id: 1, icon: 'fa-brands fa-github', url: 'https://github.com/lyjy6666', name: 'GitHub' },
@@ -1079,7 +1184,7 @@ const socialItems: SocialItem[] = [
             className="w-full h-full object-cover"
           />
          {/* 背景渐变覆盖层，增强文字可读性 */}
-         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70"></div>
+         <div className={`absolute inset-0 ${OVERLAY_DARK}`}></div>
        </div>
  
 
@@ -1178,8 +1283,15 @@ const socialItems: SocialItem[] = [
                     <p className="text-white/70 text-sm mb-1">{currentDate}</p>
                     <p className="text-white text-3xl font-mono font-light">{formatTime(currentTime)}</p>
                   </div>
-                  <div className="music-player">
+                  {/* 音乐播放器：站主还在考虑是否保留，先置灰 */}
+                  <div className="music-player relative opacity-40 grayscale">
                     <MusicPlayer />
+                    <button
+                      type="button"
+                      aria-label="音乐播放器（暂不可用）"
+                      onClick={() => showPendingNotice('音乐播放器')}
+                      className="absolute inset-0 z-20 cursor-not-allowed rounded-full"
+                    />
                   </div>
                 </div>
               </div>
@@ -1197,10 +1309,15 @@ const socialItems: SocialItem[] = [
                   <a 
                     key={link.id}
                     href={link.url}
-                     className={`feature-button group bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/15 hover:bg-white/20 transition-all duration-300 flex flex-col items-center justify-center shadow-md hover:shadow-xl hover:scale-[1.02]`}
+                     className={`feature-button group bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/15 hover:bg-white/20 transition-all duration-300 flex flex-col items-center justify-center shadow-md hover:shadow-xl hover:scale-[1.02] ${link.id === 16 ? 'opacity-45 grayscale cursor-not-allowed hover:scale-100 hover:bg-white/10' : ''}`}
                       aria-label={link.title}
                         onClick={(e) => {
                           e.preventDefault();
+                          // 留言板：站主还在考虑是否保留，只给提示不打开
+                          if (link.id === 16) {
+                            showPendingNotice('留言板');
+                            return;
+                          }
                           if (link.id === 1 || link.id === 3) {
                             // 天气和音乐按钮在新标签页打开
                             window.open(link.url, '_blank');
@@ -1343,7 +1460,7 @@ const socialItems: SocialItem[] = [
               </div>
               )}
 
-              {/* 更新日志弹窗 */}
+      {/* 更新日志弹窗 */}
               {isUpdateLogOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   {/* 背景遮罩 */}
@@ -1356,7 +1473,10 @@ const socialItems: SocialItem[] = [
                   <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/15 p-6 w-full max-w-md mx-auto shadow-2xl">
                     {/* 标题栏 */}
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-white text-xl font-semibold">更新日志</h3>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">更新记录</h3>
+                        <p className="mt-1 text-[11px] tracking-wide text-white/40">LYJY 主页 · 版本历史</p>
+                      </div>
                       <button
                         onClick={() => setIsUpdateLogOpen(false)}
                         className="text-white/60 hover:text-white transition-colors"
@@ -1367,213 +1487,8 @@ const socialItems: SocialItem[] = [
                     </div>
                     
                     {/* 内容区域 */}
-                    <div className="max-h-[60vh] overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      <style>{`
-                        div[style*="scrollbar-width"]::-webkit-scrollbar {
-                          display: none;
-                        }
-                      `}</style>
-                      {/* 最新更新 */}
-                        <div className="mb-8">
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-green-500 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.7.9 更新 v4.0</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>AI工具等信息更新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>留言板功能完善（Beta测试版）</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>集成进一个网页</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.4.1 更新 v3.4</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增番茄钟功能</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增随机决策器功能</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增留言板功能（Beta测试版）</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.23 更新 v3.3</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了彩蛋2--贪吃蛇，不过怎么开启请自行发掘</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了今日热榜功能</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.21 更新 v3.2</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>实用工具换新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.19 更新 v3.1</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>增加天梯图</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了一个彩蛋，等待你发现哦~</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.14 更新 v3.0</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>AI工具焕新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>名人名言优化</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.1.29 更新 v2.4</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>增加了假期日历</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                            <div className="flex items-center mb-3">
-                              <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                              <h4 className="text-lg font-semibold text-white">2025.8.27 更新 v2.2</h4>
-                            </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了一些内容</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2025.8.11 更新 v2.1</h4>
-                          </div>
-                          <ul className="ml-7 space-y-2 text-white/70">
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>ai功能ui界面大调整</span>
-                            </li>
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>页面更加美观</span>
-                            </li>
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>修复了一些已知问题，提升体验感</span>
-                            </li>
-                          </ul>
-                        </div>
-                      
-                      {/* 历史更新 */}
-                      <div className="mb-8">  
-                        <div className="flex items-center mb-3">
-                          <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                          <h4 className="text-lg font-semibold text-white">2025.8.6 更新 v2.0</h4>
-                        </div>
-                        <ul className="ml-7 space-y-2 text-white/70">
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>新增传送门等功能</span>
-                          </li>
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>我的搜索页也上线啦，新增跳转搜索页按钮</span>
-                          </li>
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>修复了一些已知问题</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* 初始版本 */}
-                      <div>  
-                        <div className="flex items-center mb-3">
-                          <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                          <h4 className="text-lg font-semibold text-white">2025.8.4 发布 v1.0</h4>
-                        </div>
-                        <ul className="ml-7 space-y-2 text-white/70">
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>网站上线啦</span>
-                          </li>
-                        </ul>
-                      </div>
+                    <div className="max-h-[60vh] overflow-y-auto pr-1">
+                      <UpdateTimeline releases={homeReleases} />
                     </div>
                     
                     {/* 底部按钮 */}
@@ -1621,12 +1536,22 @@ const socialItems: SocialItem[] = [
                         <p className="text-white/90 mb-2">个人空间网：</p>
                         <a href="http://gerenzhuye.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">gerenzhuye.com</a>
                       </div>
-                      
+
                       <div>
-                        <p className="text-white/90 mb-2">Trae Solo：</p>
-                        <a href="https://solo.trae.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://solo.trae.cn/</a>
+                        <p className="text-white/90 mb-2">Trae：</p>
+                        <a href="https://trae.ai/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://trae.ai/</a>
                       </div>
-                      
+
+                      <div>
+                        <p className="text-white/90 mb-2">WorkBuddy AI：</p>
+                        <a href="https://www.workbuddy.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://www.workbuddy.cn/</a>
+                      </div>
+
+                      <div>
+                        <p className="text-white/90 mb-2">Codex：</p>
+                        <a href="https://chatgpt.com/codex" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://chatgpt.com/codex</a>
+                      </div>
+
                       <div>
                         <p className="text-white/90 mb-2">imsyy：</p>
                         <div className="flex flex-col space-y-1">
@@ -2212,8 +2137,103 @@ const socialItems: SocialItem[] = [
        textShadow: '0 0 20px rgba(251, 146, 60, 0.5)',
      }}
    >
-     V4.0
+     V4.1
    </div>
+
+  {/* 液态玻璃说明入口（右下角，位于「返回首页」「更新日志」之上） */}
+  <button
+    type="button"
+    onClick={() => setShowGlassInfo(true)}
+    title="液态玻璃效果：查看说明与开关"
+    aria-haspopup="dialog"
+    className={`fixed bottom-36 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 ${
+      liquidGlass && glassSupported
+        ? 'bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-sky-500/30'
+        : 'bg-black/55 text-white/45 border border-white/20'
+    } ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+  >
+    <i className={`fa-solid fa-droplet ${liquidGlass && glassSupported ? '' : 'opacity-60'}`}></i>
+  </button>
+
+  {/* 液态玻璃说明弹窗：水滴按钮与更新记录里的链接都会打开它 */}
+  {showGlassInfo && (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+      onClick={() => setShowGlassInfo(false)}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      <div
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/15 bg-slate-900/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="液态玻璃效果说明"
+      >
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+              <i className="fa-solid fa-droplet text-sky-400"></i>
+              液态玻璃效果
+            </h3>
+            <p className="mt-1 text-[11px] tracking-wide text-white/40">关于这个效果的说明</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGlassInfo(false)}
+            aria-label="关闭"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/40 transition-all hover:bg-white/10 hover:text-white"
+          >
+            <i className="fa-solid fa-times"></i>
+          </button>
+        </div>
+
+
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-white/50">使用条件</p>
+          <ul className="space-y-2">
+            {[
+              '需要 Chrome / Edge 等支持「backdrop-filter 引用 SVG 滤镜」的浏览器',
+              'Safari 与 Firefox 暂不支持，会自动退化为普通毛玻璃',
+              '折射效果依赖背景内容，纯色背景下基本看不出来',
+            ].map((t) => (
+              <li key={t} className="flex gap-2 text-xs leading-relaxed text-white/60">
+                <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-sky-400/70" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+          <div>
+            <p className="text-sm text-white/90">开启液态玻璃</p>
+            <p className="mt-0.5 text-[11px] text-white/40">
+              {glassSupported ? '关闭后按钮会变回普通毛玻璃' : '当前浏览器不支持真折射，无法开启'}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={liquidGlass && glassSupported}
+            disabled={!glassSupported}
+            onClick={toggleLiquidGlass}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ${
+              liquidGlass && glassSupported ? 'bg-sky-500' : 'bg-white/15'
+            } ${glassSupported ? '' : 'cursor-not-allowed opacity-50'}`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300 ${
+                liquidGlass && glassSupported ? 'left-6' : 'left-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
             {/* 意见反馈弹窗 */}
             {isFeedbackModalOpen && (
