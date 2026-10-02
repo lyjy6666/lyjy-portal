@@ -76,7 +76,7 @@ function ServiceNode({
           </button>
         </div>
 
-        <div className="portal-node-label mt-2 truncate text-center text-[9px] text-slate-300 transition-colors duration-200 group-hover:text-white sm:text-[10px] md:text-[11px]">
+        <div className="portal-node-label mt-2 truncate text-center text-[11px] text-slate-300 transition-colors duration-200 group-hover:text-white sm:text-[12px] md:text-[13px]">
           {service.shortName ?? service.name}
         </div>
       </div>

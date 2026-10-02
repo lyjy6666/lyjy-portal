@@ -9,6 +9,7 @@ import CalendarDialog from '@/components/CalendarDialog';
 import AIGrader from '@/components/AIGrader';
 import HomeworkPlanner from '@/components/HomeworkPlanner';
 import HomeworkTour, { type TourStep } from '@/components/HomeworkTour';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
 interface Task {
   id: number;
@@ -25,15 +26,7 @@ interface UserInfo {
 }
 
 /** 作业管理系统的版本历史（更新记录弹窗用；越靠前越新） */
-const HOMEWORK_RELEASES: {
-  version: string;
-  date: string;
-  /** 版本标签，如「重磅更新」 */
-  tag?: string;
-  /** 是否为最新版本（高亮显示） */
-  latest?: boolean;
-  items: string[];
-}[] = [
+const HOMEWORK_RELEASES: Release[] = [
   {
     version: 'V5.0',
     date: '2026.10.2',
@@ -2599,60 +2592,7 @@ export default function HomeworkPage() {
 
             {/* 版本历史：时间轴样式，版本多了也不会显得杂乱 */}
             <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-2">
-              <ol className="relative ml-1 space-y-3 border-l border-white/10 pl-5">
-                {HOMEWORK_RELEASES.map((release) => (
-                  <li key={release.version} className="relative">
-                    {/* 时间轴圆点 */}
-                    <span
-                      className={`absolute -left-[26px] top-[18px] h-2.5 w-2.5 rounded-full ring-4 ${
-                        release.latest
-                          ? 'bg-sky-400 ring-sky-500/20 shadow-[0_0_12px_rgba(56,189,248,0.85)]'
-                          : 'bg-slate-600 ring-slate-800/60'
-                      }`}
-                    />
-
-                    <div
-                      className={`rounded-xl border px-4 py-3 ${
-                        release.latest
-                          ? 'border-sky-400/30 bg-gradient-to-br from-sky-500/[0.10] to-purple-500/[0.05] shadow-[0_0_28px_-10px_rgba(56,189,248,0.65)]'
-                          : 'border-white/[0.06] bg-white/[0.02]'
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-sm font-semibold ${release.latest ? 'text-white' : 'text-slate-300'}`}>
-                          {release.version}
-                        </span>
-                        {release.latest && (
-                          <span className="rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
-                            最新
-                          </span>
-                        )}
-                        {release.tag && (
-                          <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-200">
-                            {release.tag}
-                          </span>
-                        )}
-                        <span className="ml-auto font-mono text-[11px] tracking-wide text-slate-500">
-                          {release.date}
-                        </span>
-                      </div>
-
-                      <ul className="mt-2 space-y-1.5">
-                        {release.items.map((item) => (
-                          <li key={item} className="flex gap-2 text-xs leading-relaxed text-slate-400">
-                            <span
-                              className={`mt-[6px] h-1 w-1 shrink-0 rounded-full ${
-                                release.latest ? 'bg-sky-400/80' : 'bg-slate-600'
-                              }`}
-                            />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              <UpdateTimeline releases={HOMEWORK_RELEASES} />
 
               <div className="mt-4 flex justify-end">
                 <button

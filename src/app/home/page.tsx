@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import HolidayCalendar from '@/components/HolidayCalendar';
@@ -46,6 +47,21 @@ interface Quote {
   text: string;
   author: string;
 }
+
+/** 主页的版本历史（越靠前越新） */
+const HOME_RELEASES: Release[] = [
+  { version: 'v4.0', date: '2026.7.9', latest: true, items: ['AI 工具等信息更新', '留言板功能完善（Beta 测试版）', '集成进一个网页'] },
+  { version: 'v3.4', date: '2026.4.1', items: ['新增番茄钟功能', '新增随机决策器功能', '新增留言板功能（Beta 测试版）', '修复了一些已知问题'] },
+  { version: 'v3.3', date: '2026.3.23', items: ['新增了彩蛋 2 —— 贪吃蛇，不过怎么开启请自行发掘', '新增了今日热榜功能'] },
+  { version: 'v3.2', date: '2026.3.21', items: ['实用工具换新', '修复了一些已知问题'] },
+  { version: 'v3.1', date: '2026.3.19', items: ['增加天梯图', '新增了一个彩蛋，等待你发现哦~'] },
+  { version: 'v3.0', date: '2026.3.14', items: ['AI 工具焕新', '名人名言优化', '修复了一些已知问题'] },
+  { version: 'v2.4', date: '2026.1.29', items: ['增加了假期日历', '修复了一些已知问题'] },
+  { version: 'v2.2', date: '2025.8.27', items: ['新增了一些内容', '修复了一些已知问题'] },
+  { version: 'v2.1', date: '2025.8.11', items: ['AI 功能 UI 界面大调整', '页面更加美观', '修复了一些已知问题，提升体验感'] },
+  { version: 'v2.0', date: '2025.8.6', items: ['新增传送门等功能', '我的搜索页也上线啦，新增跳转搜索页按钮', '修复了一些已知问题'] },
+  { version: 'v1.0', date: '2025.8.4', items: ['网站上线啦'] },
+];
 
 export default function HomePage() {
   // 状态管理
@@ -1356,7 +1372,10 @@ const socialItems: SocialItem[] = [
                   <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/15 p-6 w-full max-w-md mx-auto shadow-2xl">
                     {/* 标题栏 */}
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-white text-xl font-semibold">更新日志</h3>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">更新记录</h3>
+                        <p className="mt-1 text-[11px] tracking-wide text-white/40">LYJY 主页 · 版本历史</p>
+                      </div>
                       <button
                         onClick={() => setIsUpdateLogOpen(false)}
                         className="text-white/60 hover:text-white transition-colors"
@@ -1367,213 +1386,8 @@ const socialItems: SocialItem[] = [
                     </div>
                     
                     {/* 内容区域 */}
-                    <div className="max-h-[60vh] overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      <style>{`
-                        div[style*="scrollbar-width"]::-webkit-scrollbar {
-                          display: none;
-                        }
-                      `}</style>
-                      {/* 最新更新 */}
-                        <div className="mb-8">
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-green-500 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.7.9 更新 v4.0</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>AI工具等信息更新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>留言板功能完善（Beta测试版）</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>集成进一个网页</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.4.1 更新 v3.4</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增番茄钟功能</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增随机决策器功能</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增留言板功能（Beta测试版）</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.23 更新 v3.3</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了彩蛋2--贪吃蛇，不过怎么开启请自行发掘</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了今日热榜功能</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.21 更新 v3.2</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>实用工具换新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.19 更新 v3.1</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>增加天梯图</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了一个彩蛋，等待你发现哦~</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.3.14 更新 v3.0</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>AI工具焕新</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>名人名言优化</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2026.1.29 更新 v2.4</h4>
-                           </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>增加了假期日历</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                         <div className="mb-8">  
-                            <div className="flex items-center mb-3">
-                              <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                              <h4 className="text-lg font-semibold text-white">2025.8.27 更新 v2.2</h4>
-                            </div>
-                           <ul className="ml-7 space-y-2 text-white/70">
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>新增了一些内容</span>
-                             </li>
-                             <li className="flex items-start">
-                               <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                               <span>修复了一些已知问题</span>
-                             </li>
-                           </ul>
-                         </div>
-                        <div className="mb-8">  
-                           <div className="flex items-center mb-3">
-                             <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                             <h4 className="text-lg font-semibold text-white">2025.8.11 更新 v2.1</h4>
-                          </div>
-                          <ul className="ml-7 space-y-2 text-white/70">
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>ai功能ui界面大调整</span>
-                            </li>
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>页面更加美观</span>
-                            </li>
-                            <li className="flex items-start">
-                              <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                              <span>修复了一些已知问题，提升体验感</span>
-                            </li>
-                          </ul>
-                        </div>
-                      
-                      {/* 历史更新 */}
-                      <div className="mb-8">  
-                        <div className="flex items-center mb-3">
-                          <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                          <h4 className="text-lg font-semibold text-white">2025.8.6 更新 v2.0</h4>
-                        </div>
-                        <ul className="ml-7 space-y-2 text-white/70">
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>新增传送门等功能</span>
-                          </li>
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>我的搜索页也上线啦，新增跳转搜索页按钮</span>
-                          </li>
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>修复了一些已知问题</span>
-                          </li>
-                        </ul>
-                      </div>
-                      
-                      {/* 初始版本 */}
-                      <div>  
-                        <div className="flex items-center mb-3">
-                          <div className="w-3 h-10 bg-gray-400 rounded-l mr-4"></div>
-                          <h4 className="text-lg font-semibold text-white">2025.8.4 发布 v1.0</h4>
-                        </div>
-                        <ul className="ml-7 space-y-2 text-white/70">
-                          <li className="flex items-start">
-                            <i className="fa-solid fa-circle text-xs mt-1.5 mr-2 text-white/50"></i>
-                            <span>网站上线啦</span>
-                          </li>
-                        </ul>
-                      </div>
+                    <div className="max-h-[60vh] overflow-y-auto pr-1">
+                      <UpdateTimeline releases={HOME_RELEASES} />
                     </div>
                     
                     {/* 底部按钮 */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Background from '@/components/Background';
@@ -571,6 +572,11 @@ function CustomVideoPlayer({
 }
 
 // ============ 主组件 ============
+/** 影视资源站的版本历史（越靠前越新） */
+const MOVIE_RELEASES: Release[] = [
+  { version: 'V1.0', date: '2026-07-22', latest: true, items: ['网站上线了'] },
+];
+
 export default function MoviePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<number>(0);
@@ -1666,18 +1672,7 @@ export default function MoviePage() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-                <div className="bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/30 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">V 1.0</span>
-                    <span className="text-xs text-white/50">2026-07-22</span>
-                    <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded">最新</span>
-                  </div>
-                  <ul className="text-sm text-white/80 space-y-1.5 pl-1">
-                    <li className="flex gap-2"><i className="fa-solid fa-circle text-[6px] text-amber-400 mt-1.5"></i><span>网站上线了</span></li>
-                  </ul>
-                </div>
-              </div>
+              <UpdateTimeline releases={MOVIE_RELEASES} />
 
               <button
                 onClick={() => setShowUpdateLog(false)}
