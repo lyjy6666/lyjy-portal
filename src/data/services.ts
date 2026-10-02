@@ -28,7 +28,7 @@ export type ServiceCategory = {
 
 export const serviceCategories: ServiceCategory[] = [
   { id: 'core', name: '核心入口', icon: 'fa-compass', color: 'blue', services: [
-    { id: 'home', name: '主页', icon: 'fa-house-signal', color: 'blue', url: '/home', desc: '每日名言、音乐播放器、功能入口' },
+    { id: 'home', name: '主页', icon: 'fa-house-signal', color: 'blue', url: '/home', desc: '每日名言、音乐播放器、功能入口、液态玻璃按钮', badge: '近期更新' },
     { id: 'search', name: '搜索页', icon: 'fa-magnifying-glass-chart', color: 'purple', url: '/search', desc: '聚合 26+ 搜索引擎' },
   ] },
   { id: 'tools', name: '效率工具', icon: 'fa-screwdriver-wrench', color: 'cyan', services: [

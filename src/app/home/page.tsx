@@ -2190,9 +2190,6 @@ const socialItems: SocialItem[] = [
           </button>
         </div>
 
-        <p className="text-xs leading-relaxed text-white/70">
-          功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光。
-        </p>
 
         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
           <p className="mb-2 text-[11px] font-medium tracking-wide text-white/50">使用条件</p>
