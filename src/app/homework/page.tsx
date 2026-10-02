@@ -2522,7 +2522,7 @@ export default function HomeworkPage() {
           onClick={() => setShowUpdateLog(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] flex flex-col"
+            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-xl w-full shadow-2xl max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
