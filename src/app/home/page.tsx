@@ -49,30 +49,26 @@ interface Quote {
   author: string;
 }
 
-/**
- * 功能按钮的玻璃效果对比方案（临时，选定后固化）
- * A：现状 —— 纯 CSS 毛玻璃
- * B：液态玻璃（真折射），背景遮罩不变
- * C：液态玻璃 + 背景遮罩调浅（用来分离「玻璃」和「背景太暗」两个变量）
- */
-type GlassMode = 'A' | 'B' | 'C';
-
-const GLASS_MODES: { key: GlassMode; label: string; desc: string }[] = [
-  { key: 'A', label: 'A', desc: '毛玻璃（现状）' },
-  { key: 'B', label: 'B', desc: '液态玻璃 · 真折射' },
-  { key: 'C', label: 'C', desc: '液态玻璃 + 背景调亮' },
-];
-
 /** 功能按钮的选择器，供液态玻璃批量应用 */
 const TILE_SELECTOR = '.feature-button';
 
-/** 背景遮罩：C 方案调浅，让折射有东西可弯折 */
+/** 背景遮罩（保持原样；液态玻璃只作用于按钮，不动背景） */
 const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
-const OVERLAY_LIGHT = 'bg-gradient-to-b from-black/25 via-black/20 to-black/45';
 
 /** 主页的版本历史（越靠前越新） */
 const HOME_RELEASES: Release[] = [
-  { version: 'v4.0', date: '2026.7.9', latest: true, items: ['AI 工具等信息更新', '留言板功能完善（Beta 测试版）', '集成进一个网页'] },
+  {
+    version: 'V4.1',
+    date: '2026.10.3',
+    latest: true,
+    items: [
+      '新增液态玻璃效果：功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光',
+      '右下角新增水滴按钮，可随时开关液态玻璃效果，选择会被记住',
+      '使用条件：需要 Chrome / Edge 等支持「backdrop-filter 引用 SVG 滤镜」的浏览器；Safari 与 Firefox 暂不支持，会自动退化为普通毛玻璃',
+      '折射效果依赖背景内容，纯色背景下基本看不出来',
+    ],
+  },
+  { version: 'v4.0', date: '2026.7.9', items: ['AI 工具等信息更新', '留言板功能完善（Beta 测试版）', '集成进一个网页'] },
   { version: 'v3.4', date: '2026.4.1', items: ['新增番茄钟功能', '新增随机决策器功能', '新增留言板功能（Beta 测试版）', '修复了一些已知问题'] },
   { version: 'v3.3', date: '2026.3.23', items: ['新增了彩蛋 2 —— 贪吃蛇，不过怎么开启请自行发掘', '新增了今日热榜功能'] },
   { version: 'v3.2', date: '2026.3.21', items: ['实用工具换新', '修复了一些已知问题'] },
@@ -152,18 +148,31 @@ export default function HomePage() {
   const [isScreenshotToolOpen, setIsScreenshotToolOpen] = useState(false);
   // 压缩解压工具模态框状态
   const [isCompressionToolOpen, setIsCompressionToolOpen] = useState(false);
-  // 功能按钮玻璃效果方案（临时对比用）
-  const [glassMode, setGlassMode] = useState<GlassMode>('A');
+  // 功能按钮的液态玻璃开关（默认开）
+  const [liquidGlass, setLiquidGlass] = useState(true);
+  // 浏览器能力检测只能在客户端做，否则 SSR/水合不一致
+  const [glassSupported, setGlassSupported] = useState(false);
 
-  // 恢复上次选择
   useEffect(() => {
+    setGlassSupported(supportsLiquidGlass());
     try {
-      const saved = localStorage.getItem('homeGlassMode');
-      if (saved === 'A' || saved === 'B' || saved === 'C') setGlassMode(saved);
+      if (localStorage.getItem('homeLiquidGlass') === '0') setLiquidGlass(false);
     } catch {
       /* 忽略 */
     }
   }, []);
+
+  const toggleLiquidGlass = () => {
+    setLiquidGlass((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('homeLiquidGlass', next ? '1' : '0');
+      } catch {
+        /* 忽略 */
+      }
+      return next;
+    });
+  };
 
   // 本地视频播放器模态框状态
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
@@ -1064,10 +1073,10 @@ export default function HomePage() {
         }
       };
 
-      // 液态玻璃：方案 B/C 时把真折射应用到功能按钮上。
+      // 液态玻璃：开关打开且浏览器支持时，把真折射应用到功能按钮上。
       // 放在这里是因为依赖 currentPage（它在本组件里声明得比较靠后）。
       useEffect(() => {
-        if (glassMode === 'A' || !supportsLiquidGlass()) {
+        if (!liquidGlass || !glassSupported) {
           clearLiquidGlass(TILE_SELECTOR);
           return;
         }
@@ -1083,7 +1092,7 @@ export default function HomePage() {
           window.removeEventListener('resize', onResize);
           clearLiquidGlass(TILE_SELECTOR);
         };
-      }, [glassMode, currentPage]);
+      }, [liquidGlass, glassSupported, currentPage]);
 
   // 社交媒体数据
 const socialItems: SocialItem[] = [
@@ -1159,7 +1168,7 @@ const socialItems: SocialItem[] = [
             className="w-full h-full object-cover"
           />
          {/* 背景渐变覆盖层，增强文字可读性 */}
-         <div className={`absolute inset-0 ${glassMode === 'C' ? OVERLAY_LIGHT : OVERLAY_DARK}`}></div>
+         <div className={`absolute inset-0 ${OVERLAY_DARK}`}></div>
        </div>
  
 
@@ -2115,35 +2124,26 @@ const socialItems: SocialItem[] = [
      V4.0
    </div>
 
-  {/* 临时：功能按钮玻璃效果对比切换器（选定后删除整块） */}
-  <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-1 rounded-xl border border-fuchsia-400/40 bg-black/70 p-1 backdrop-blur">
-  <span className="px-1.5 text-[11px] text-fuchsia-300">按钮玻璃</span>
-  {GLASS_MODES.map((m) => (
-  <button
-  key={m.key}
-  type="button"
-  onClick={() => {
-  setGlassMode(m.key);
-  try {
-  localStorage.setItem('homeGlassMode', m.key);
-  } catch {
-  /* 忽略 */
-  }
-  }}
-  title={m.desc}
-  className={`h-7 w-7 rounded-lg text-xs font-medium transition-all ${
-  glassMode === m.key
-  ? 'bg-fuchsia-600 text-white shadow shadow-fuchsia-500/30'
-  : 'text-white/50 hover:bg-white/10 hover:text-white'
-  }`}
-  >
-  {m.label}
-  </button>
-  ))}
-  {!supportsLiquidGlass() && (
-  <span className="px-1.5 text-[10px] text-amber-300">当前浏览器不支持真折射，B/C 会退化为毛玻璃</span>
+  {/* 液态玻璃开关（右下角，位于「返回首页」「更新日志」之上） */}
+  {glassSupported && (
+    <button
+      type="button"
+      onClick={toggleLiquidGlass}
+      aria-pressed={liquidGlass}
+      title={
+        liquidGlass
+          ? '液态玻璃效果：已开启，点击关闭'
+          : '液态玻璃效果：已关闭，点击开启'
+      }
+      className={`fixed bottom-36 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 ${
+        liquidGlass
+          ? 'bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-sky-500/30'
+          : 'bg-black/55 text-white/45 border border-white/20'
+      } ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+    >
+      <i className={`fa-solid fa-droplet ${liquidGlass ? '' : 'opacity-60'}`}></i>
+    </button>
   )}
-  </div>
 
             {/* 意见反馈弹窗 */}
             {isFeedbackModalOpen && (
