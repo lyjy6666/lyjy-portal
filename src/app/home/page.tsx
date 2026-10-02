@@ -939,7 +939,15 @@ export default function HomePage() {
        document.removeEventListener('contextmenu', handleContextMenu);
      };
    }, []);
-   // 传送门导航处理函数
+   // 音乐播放器与留言板：站主还在考虑是否保留，先置灰并拦截点击
+  const showPendingNotice = (name: string) => {
+    toast(`站主正在考虑「${name}」是否要删除，暂时无法使用`, {
+      position: 'bottom-right',
+      className: 'bg-black/80 text-white border-none',
+    });
+  };
+
+  // 传送门导航处理函数
     const cancelPortalNavigation = () => {
       setIsPortalWarningOpen(false);
       setPortalCountdown(10); // 重置倒计时
@@ -1194,8 +1202,15 @@ const socialItems: SocialItem[] = [
                     <p className="text-white/70 text-sm mb-1">{currentDate}</p>
                     <p className="text-white text-3xl font-mono font-light">{formatTime(currentTime)}</p>
                   </div>
-                  <div className="music-player">
+                  {/* 音乐播放器：站主还在考虑是否保留，先置灰 */}
+                  <div className="music-player relative opacity-40 grayscale">
                     <MusicPlayer />
+                    <button
+                      type="button"
+                      aria-label="音乐播放器（暂不可用）"
+                      onClick={() => showPendingNotice('音乐播放器')}
+                      className="absolute inset-0 z-20 cursor-not-allowed rounded-full"
+                    />
                   </div>
                 </div>
               </div>
@@ -1213,10 +1228,15 @@ const socialItems: SocialItem[] = [
                   <a 
                     key={link.id}
                     href={link.url}
-                     className={`feature-button group bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/15 hover:bg-white/20 transition-all duration-300 flex flex-col items-center justify-center shadow-md hover:shadow-xl hover:scale-[1.02]`}
+                     className={`feature-button group bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/15 hover:bg-white/20 transition-all duration-300 flex flex-col items-center justify-center shadow-md hover:shadow-xl hover:scale-[1.02] ${link.id === 16 ? 'opacity-45 grayscale cursor-not-allowed hover:scale-100 hover:bg-white/10' : ''}`}
                       aria-label={link.title}
                         onClick={(e) => {
                           e.preventDefault();
+                          // 留言板：站主还在考虑是否保留，只给提示不打开
+                          if (link.id === 16) {
+                            showPendingNotice('留言板');
+                            return;
+                          }
                           if (link.id === 1 || link.id === 3) {
                             // 天气和音乐按钮在新标签页打开
                             window.open(link.url, '_blank');
@@ -1435,12 +1455,22 @@ const socialItems: SocialItem[] = [
                         <p className="text-white/90 mb-2">个人空间网：</p>
                         <a href="http://gerenzhuye.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">gerenzhuye.com</a>
                       </div>
-                      
+
                       <div>
-                        <p className="text-white/90 mb-2">Trae Solo：</p>
-                        <a href="https://solo.trae.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://solo.trae.cn/</a>
+                        <p className="text-white/90 mb-2">Trae：</p>
+                        <a href="https://trae.ai/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://trae.ai/</a>
                       </div>
-                      
+
+                      <div>
+                        <p className="text-white/90 mb-2">WorkBuddy AI：</p>
+                        <a href="https://www.workbuddy.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://www.workbuddy.cn/</a>
+                      </div>
+
+                      <div>
+                        <p className="text-white/90 mb-2">Codex：</p>
+                        <a href="https://chatgpt.com/codex" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">https://chatgpt.com/codex</a>
+                      </div>
+
                       <div>
                         <p className="text-white/90 mb-2">imsyy：</p>
                         <div className="flex flex-col space-y-1">
