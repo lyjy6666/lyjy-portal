@@ -2121,7 +2121,7 @@ const socialItems: SocialItem[] = [
        textShadow: '0 0 20px rgba(251, 146, 60, 0.5)',
      }}
    >
-     V4.0
+     V4.1
    </div>
 
   {/* 液态玻璃开关（右下角，位于「返回首页」「更新日志」之上） */}
