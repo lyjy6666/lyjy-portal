@@ -24,6 +24,56 @@ interface UserInfo {
   username: string;
 }
 
+/** 作业管理系统的版本历史（更新记录弹窗用；越靠前越新） */
+const HOMEWORK_RELEASES: {
+  version: string;
+  date: string;
+  /** 版本标签，如「重磅更新」 */
+  tag?: string;
+  /** 是否为最新版本（高亮显示） */
+  latest?: boolean;
+  items: string[];
+}[] = [
+  {
+    version: 'V5.0',
+    date: '2026.10.2',
+    tag: '重磅更新',
+    latest: true,
+    items: [
+      '新增「智能排期」：设定完成天数与每个作业的难度，自动均衡分配到每天；某天没空可单独调小当天的可用时间',
+      '作业清单新增「按待完成时间」视图：已逾期 / 今天 / 明天 / 3 天内 / 本周内 / 更晚 / 未设截止，轻重缓急一眼看清',
+      '批量改期支持「只改日期」或「只改时间」，不必把日期时间都重填',
+      '新增首次使用引导教程：8 步聚光灯逐个介绍各功能，右上角可随时跳过',
+      '修复升级后排期数据读不到的问题，旧数据自动迁移、不会丢失',
+    ],
+  },
+  {
+    version: 'V4.5',
+    date: '2026.7.29',
+    items: ['新增 AI 批改作业功能'],
+  },
+  {
+    version: 'V4.0',
+    date: '2026.7.11',
+    items: ['新增导入文档为作业功能', '新增云端储存作业，登录即可多设备同步', '修复了一些已知问题'],
+  },
+  {
+    version: 'V3.1',
+    date: '2026.2.6',
+    items: ['界面、性能与体验进一步优化', '新增导出功能', '优化安全与交互', '修复了一些已知问题'],
+  },
+  {
+    version: 'V3.0',
+    date: '2026.2.5',
+    items: ['优化界面布局：左右两栏设计，左侧输入右侧列表', '新增月历视图，支持按日期查看作业', '新增独立的全选/取消全选功能', '修复时间选择器时区显示问题'],
+  },
+  {
+    version: 'V2.0',
+    date: '2026.1.30',
+    items: ['网站焕新上线了'],
+  },
+];
+
 export default function HomeworkPage() {
   const [taskInput, setTaskInput] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -2522,134 +2572,96 @@ export default function HomeworkPage() {
           onClick={() => setShowUpdateLog(false)}
         >
           <div 
-            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-xl w-full shadow-2xl max-h-[90vh] flex flex-col"
+            className="relative bg-slate-900/95 border border-white/10 rounded-2xl p-6 max-w-xl w-full shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col backdrop-blur-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-400" />
-                更新记录
-              </h3>
+            {/* 顶部高光条 */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+                  <Sparkles className="h-4.5 w-4.5 text-sky-400" />
+                  更新记录
+                </h3>
+                <p className="mt-1 text-[11px] tracking-wide text-slate-500">
+                  作业管理系统 · 版本历史
+                </p>
+              </div>
               <button
                 onClick={() => setShowUpdateLog(false)}
-                className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-all hover:bg-white/[0.06] hover:text-slate-200"
+                aria-label="关闭"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* 版本变多后需要滚动，否则小屏看不全 */}
-            <div className="-mr-1 min-h-0 flex-1 space-y-0 overflow-y-auto pr-1">
+            {/* 版本历史：时间轴样式，版本多了也不会显得杂乱 */}
+            <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-2">
+              <ol className="relative ml-1 space-y-3 border-l border-white/10 pl-5">
+                {HOMEWORK_RELEASES.map((release) => (
+                  <li key={release.version} className="relative">
+                    {/* 时间轴圆点 */}
+                    <span
+                      className={`absolute -left-[26px] top-[18px] h-2.5 w-2.5 rounded-full ring-4 ${
+                        release.latest
+                          ? 'bg-sky-400 ring-sky-500/20 shadow-[0_0_12px_rgba(56,189,248,0.85)]'
+                          : 'bg-slate-600 ring-slate-800/60'
+                      }`}
+                    />
 
-            {/* 最新版本 V5.0 —— 重磅更新 */}
-            <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl p-4 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20 mb-3">
-              <div className="absolute -left-3 top-1/2 transform -translate-y-1/2">
-                <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full shadow-lg">
-                  NEW
-                </span>
-              </div>
-              <div className="pl-6">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-blue-300 font-bold text-sm">2026.10.2</span>
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">V5.0</span>
-                  <span className="px-2 py-0.5 bg-purple-500/25 text-purple-200 text-xs font-bold rounded">重磅更新</span>
-                </div>
-                <ul className="text-slate-200 text-sm space-y-1.5 font-medium">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增「智能排期」：设定完成天数与每个作业的难度，自动均衡分配到每天；某天没空可单独调小当天的可用时间</span>
+                    <div
+                      className={`rounded-xl border px-4 py-3 ${
+                        release.latest
+                          ? 'border-sky-400/30 bg-gradient-to-br from-sky-500/[0.10] to-purple-500/[0.05] shadow-[0_0_28px_-10px_rgba(56,189,248,0.65)]'
+                          : 'border-white/[0.06] bg-white/[0.02]'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-sm font-semibold ${release.latest ? 'text-white' : 'text-slate-300'}`}>
+                          {release.version}
+                        </span>
+                        {release.latest && (
+                          <span className="rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                            最新
+                          </span>
+                        )}
+                        {release.tag && (
+                          <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-200">
+                            {release.tag}
+                          </span>
+                        )}
+                        <span className="ml-auto font-mono text-[11px] tracking-wide text-slate-500">
+                          {release.date}
+                        </span>
+                      </div>
+
+                      <ul className="mt-2 space-y-1.5">
+                        {release.items.map((item) => (
+                          <li key={item} className="flex gap-2 text-xs leading-relaxed text-slate-400">
+                            <span
+                              className={`mt-[6px] h-1 w-1 shrink-0 rounded-full ${
+                                release.latest ? 'bg-sky-400/80' : 'bg-slate-600'
+                              }`}
+                            />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>作业清单新增「按待完成时间」视图：已逾期 / 今天 / 明天 / 3 天内 / 本周内 / 更晚 / 未设截止，轻重缓急一眼看清</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>批量改期支持「只改日期」或「只改时间」，不必把日期时间都重填</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>新增首次使用引导教程：8 步聚光灯逐个介绍各功能，右上角可随时跳过</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>修复升级后排期数据读不到的问题，旧数据自动迁移、不会丢失</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
+                ))}
+              </ol>
 
-            {/* 历史版本 V4.5 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.7.29</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V4.5</span>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowUpdateLog(false)}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-5 py-2 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                >
+                  知道了
+                </button>
               </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 新增 AI 批改作业功能</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V4.0 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.7.11</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V4.0</span>
-              </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 新增导入文档为作业功能</li>
-                <li>• 新增云端储存作业，登录即可多设备同步</li>
-                <li>• 修复了一些已知问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V3.1 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.2.6</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V3.1</span>
-              </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 界面、性能与体验进一步优化</li>
-                <li>• 新增导出功能</li>
-                <li>• 优化安全与交互</li>
-                <li>• 修复了一些已知问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V3.0 */}
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-400 font-semibold text-sm">2026.2.5</span>
-                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-400 text-xs font-medium rounded">V3.0</span>
-              </div>
-              <ul className="text-slate-400 text-sm space-y-1">
-                <li>• 优化界面布局：左右两栏设计，左侧输入右侧列表</li>
-                <li>• 新增月历视图，支持按日期查看作业</li>
-                <li>• 新增独立的全选/取消全选功能</li>
-                <li>• 修复时间选择器时区显示问题</li>
-              </ul>
-            </div>
-
-            {/* 历史版本 V2.0 */}
-            <div className="bg-slate-800/20 rounded-xl p-4 border border-slate-700/30">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-slate-500 font-semibold text-sm">2026.1.30</span>
-                <span className="px-2 py-0.5 bg-slate-700/30 text-slate-500 text-xs font-medium rounded">V2.0</span>
-              </div>
-              <p className="text-slate-500 text-sm">
-                网站焕新上线了
-              </p>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setShowUpdateLog(false)}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all font-medium"
-              >
-                知道了
-              </button>
-            </div>
             </div>
           </div>
         </div>
