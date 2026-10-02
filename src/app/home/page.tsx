@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { applyLiquidGlass, clearLiquidGlass, supportsLiquidGlass } from '@/components/home/liquidGlass';
@@ -55,17 +55,29 @@ const TILE_SELECTOR = '.feature-button';
 /** 背景遮罩（保持原样；液态玻璃只作用于按钮，不动背景） */
 const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
 
-/** 主页的版本历史（越靠前越新） */
-const HOME_RELEASES: Release[] = [
+/**
+ * 主页的版本历史（越靠前越新）。
+ * 「液态玻璃效果」做成链接，点击弹出使用条件说明 —— 所以需要注入回调，
+ * 不能写成模块级常量。
+ */
+const buildHomeReleases = (onOpenGlassInfo: () => void): Release[] => [
   {
     version: 'V4.1',
     date: '2026.10.3',
     latest: true,
     items: [
-      '新增液态玻璃效果：功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光',
+      <>
+        新增
+        <button
+          type="button"
+          onClick={onOpenGlassInfo}
+          className="text-blue-400 underline underline-offset-2 transition-colors hover:text-blue-300"
+        >
+          液态玻璃效果
+        </button>
+        ：功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光
+      </>,
       '右下角新增水滴按钮，可随时开关液态玻璃效果，选择会被记住',
-      '使用条件：需要 Chrome / Edge 等支持「backdrop-filter 引用 SVG 滤镜」的浏览器；Safari 与 Firefox 暂不支持，会自动退化为普通毛玻璃',
-      '折射效果依赖背景内容，纯色背景下基本看不出来',
     ],
   },
   { version: 'v4.0', date: '2026.7.9', items: ['AI 工具等信息更新', '留言板功能完善（Beta 测试版）', '集成进一个网页'] },
@@ -161,6 +173,10 @@ export default function HomePage() {
       /* 忽略 */
     }
   }, []);
+
+  // 液态玻璃说明弹窗（水滴按钮与更新记录里的链接都会打开它）
+  const [showGlassInfo, setShowGlassInfo] = useState(false);
+  const homeReleases = useMemo(() => buildHomeReleases(() => setShowGlassInfo(true)), []);
 
   const toggleLiquidGlass = () => {
     setLiquidGlass((prev) => {
@@ -1472,7 +1488,7 @@ const socialItems: SocialItem[] = [
                     
                     {/* 内容区域 */}
                     <div className="max-h-[60vh] overflow-y-auto pr-1">
-                      <UpdateTimeline releases={HOME_RELEASES} />
+                      <UpdateTimeline releases={homeReleases} />
                     </div>
                     
                     {/* 底部按钮 */}
@@ -2124,25 +2140,102 @@ const socialItems: SocialItem[] = [
      V4.1
    </div>
 
-  {/* 液态玻璃开关（右下角，位于「返回首页」「更新日志」之上） */}
-  {glassSupported && (
-    <button
-      type="button"
-      onClick={toggleLiquidGlass}
-      aria-pressed={liquidGlass}
-      title={
-        liquidGlass
-          ? '液态玻璃效果：已开启，点击关闭'
-          : '液态玻璃效果：已关闭，点击开启'
-      }
-      className={`fixed bottom-36 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 ${
-        liquidGlass
-          ? 'bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-sky-500/30'
-          : 'bg-black/55 text-white/45 border border-white/20'
-      } ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+  {/* 液态玻璃说明入口（右下角，位于「返回首页」「更新日志」之上） */}
+  <button
+    type="button"
+    onClick={() => setShowGlassInfo(true)}
+    title="液态玻璃效果：查看说明与开关"
+    aria-haspopup="dialog"
+    className={`fixed bottom-36 right-6 z-[60] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 ${
+      liquidGlass && glassSupported
+        ? 'bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-sky-500/30'
+        : 'bg-black/55 text-white/45 border border-white/20'
+    } ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+  >
+    <i className={`fa-solid fa-droplet ${liquidGlass && glassSupported ? '' : 'opacity-60'}`}></i>
+  </button>
+
+  {/* 液态玻璃说明弹窗：水滴按钮与更新记录里的链接都会打开它 */}
+  {showGlassInfo && (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+      onClick={() => setShowGlassInfo(false)}
     >
-      <i className={`fa-solid fa-droplet ${liquidGlass ? '' : 'opacity-60'}`}></i>
-    </button>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      <div
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/15 bg-slate-900/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="液态玻璃效果说明"
+      >
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+              <i className="fa-solid fa-droplet text-sky-400"></i>
+              液态玻璃效果
+            </h3>
+            <p className="mt-1 text-[11px] tracking-wide text-white/40">关于这个效果的说明</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGlassInfo(false)}
+            aria-label="关闭"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/40 transition-all hover:bg-white/10 hover:text-white"
+          >
+            <i className="fa-solid fa-times"></i>
+          </button>
+        </div>
+
+        <p className="text-xs leading-relaxed text-white/70">
+          功能按钮会真实折射背后的画面（不是简单模糊），边缘有一圈可见的弯曲，并带上缘镜面高光。
+        </p>
+
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+          <p className="mb-2 text-[11px] font-medium tracking-wide text-white/50">使用条件</p>
+          <ul className="space-y-2">
+            {[
+              '需要 Chrome / Edge 等支持「backdrop-filter 引用 SVG 滤镜」的浏览器',
+              'Safari 与 Firefox 暂不支持，会自动退化为普通毛玻璃',
+              '折射效果依赖背景内容，纯色背景下基本看不出来',
+            ].map((t) => (
+              <li key={t} className="flex gap-2 text-xs leading-relaxed text-white/60">
+                <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-sky-400/70" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+          <div>
+            <p className="text-sm text-white/90">开启液态玻璃</p>
+            <p className="mt-0.5 text-[11px] text-white/40">
+              {glassSupported ? '关闭后按钮会变回普通毛玻璃' : '当前浏览器不支持真折射，无法开启'}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={liquidGlass && glassSupported}
+            disabled={!glassSupported}
+            onClick={toggleLiquidGlass}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ${
+              liquidGlass && glassSupported ? 'bg-sky-500' : 'bg-white/15'
+            } ${glassSupported ? '' : 'cursor-not-allowed opacity-50'}`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300 ${
+                liquidGlass && glassSupported ? 'left-6' : 'left-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+    </div>
   )}
 
             {/* 意见反馈弹窗 */}

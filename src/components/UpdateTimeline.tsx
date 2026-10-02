@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 /**
  * 全站统一的「版本历史」时间轴。
  *
@@ -14,7 +16,8 @@ export type Release = {
   tag?: string;
   /** 是否为最新版本（高亮显示） */
   latest?: boolean;
-  items: string[];
+  /** 条目内容。纯文本或 ReactNode（需要内嵌链接/按钮时用） */
+  items: ReactNode[];
 };
 
 type Tone = 'dark' | 'light';
@@ -110,8 +113,8 @@ export default function UpdateTimeline({
             </div>
 
             <ul className="mt-2 space-y-1.5">
-              {release.items.map((item) => (
-                <li key={item} className={`flex gap-2 text-xs leading-relaxed ${p.itemText}`}>
+              {release.items.map((item, i) => (
+                <li key={i} className={`flex gap-2 text-xs leading-relaxed ${p.itemText}`}>
                   <span
                     className={`mt-[6px] h-1 w-1 shrink-0 rounded-full ${
                       release.latest ? p.itemDotLatest : p.itemDotNormal
