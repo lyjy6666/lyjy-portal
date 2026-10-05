@@ -3,10 +3,29 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import ChatMarkdown from '@/components/ChatMarkdown';
+import {
+  CS_AGENTS,
+  DEFAULT_AGENT_ID,
+  getAgent,
+  type CsAgentId,
+} from '@/data/csAgents';
+
+/** 后端在正文末尾追加的「建议转接」标记，前端解析后转成按钮 */
+const SUGGEST_RE = /<<<CS_SUGGEST:([a-z]+)>>>/;
+/** 流式过程中可能出现半截标记，先抹掉 */
+const stripSuggest = (t: string) => t.replace(SUGGEST_RE, '').replace(/<<<CS_SUGGEST:[a-z]*$/, '');
+
+/** 人机验证状态存在本地：验证过一次就长期有效 */
+const VERIFIED_KEY = 'cs_verified';
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'notice';
   content: string;
+  /** 回复这条消息的专员（仅 assistant 有） */
+  agentId?: CsAgentId;
+  /** 专员建议切换到谁（仅 assistant 有） */
+  suggest?: CsAgentId;
 }
 
 // 滑块验证组件
@@ -123,7 +142,7 @@ function SliderCaptcha({ onSuccess, onClose }: { onSuccess: () => void; onClose:
         </div>
 
         <p className="text-slate-400 text-xs mb-4">
-          请拖动滑块完成验证，以继续使用智能客服
+          请拖动滑块完成验证。验证通过后长期有效，无需重复验证
         </p>
 
         {/* 滑块轨道 */}
@@ -176,7 +195,7 @@ function SliderCaptcha({ onSuccess, onClose }: { onSuccess: () => void; onClose:
         </div>
 
         <p className="text-slate-600 text-[11px] text-center mt-3">
-          验证后可继续发送 3 条消息
+          验证通过后不再需要重复验证
         </p>
       </motion.div>
     </motion.div>
@@ -184,20 +203,34 @@ function SliderCaptcha({ onSuccess, onClose }: { onSuccess: () => void; onClose:
 }
 
 export default function CustomerServicePage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: '你好！我是LYJY导航系统的智能客服助手 🤖\n\n你可以问我关于本网站的任何问题，比如：\n• 网站有哪些功能？\n• 作业管理系统怎么用？\n• 搜索页支持哪些搜索引擎？\n• 强力锁是什么？\n\n请问有什么可以帮你的吗？',
-    },
-  ]);
+  const [agentId, setAgentId] = useState<CsAgentId>(DEFAULT_AGENT_ID);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const agent = getAgent(agentId);
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [userMsgCount, setUserMsgCount] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  /** 是否已通过人机验证（通过后长期有效，除非检测到敏感提问） */
+  const [verified, setVerified] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 初始化：URL 上的 ?agent= 参数优先，用于从子站直接带专员进来
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('agent');
+    const initial = getAgent(fromUrl);
+    setAgentId(initial.id);
+    setMessages([{ role: 'assistant', content: initial.greeting, agentId: initial.id }]);
+    try {
+      if (localStorage.getItem(VERIFIED_KEY) === '1') setVerified(true);
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -244,11 +277,24 @@ export default function CustomerServicePage() {
     return `${Math.floor(seconds / 60)}分${seconds % 60}秒`;
   };
 
+  /** 切换专员：插一条分隔提示 + 新专员的自我介绍 */
+  const switchAgent = (next: CsAgentId) => {
+    const target = getAgent(next);
+    setAgentId(target.id);
+    setShowSwitcher(false);
+    if (target.id === agentId) return;
+    setMessages(prev => [
+      ...prev,
+      { role: 'notice', content: `已切换到「${target.name}」` },
+      { role: 'assistant', content: target.greeting, agentId: target.id },
+    ]);
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
-    // 检查是否需要验证
-    if (userMsgCount >= 3) {
+    // 已通过验证的长期放行；没通过的话，前 3 条免费，之后要求验证
+    if (!verified && userMsgCount >= 3) {
       setShowCaptcha(true);
       return;
     }
@@ -267,7 +313,10 @@ export default function CustomerServicePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          agentId,
+          messages: newMessages
+            .filter(m => m.role !== 'notice')
+            .map(m => ({ role: m.role, content: m.content })),
         }),
       });
 
@@ -275,16 +324,21 @@ export default function CustomerServicePage() {
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: '抱歉，AI服务暂时不可用，请稍后再试。',
+          agentId,
         }]);
         setLoading(false);
         return;
       }
+
+      // 检测到敏感提问 → 撤销验证，下次提问前重新验证
+      const sensitive = res.headers.get('X-Cs-Sensitive') === '1';
 
       const reader = res.body?.getReader();
       if (!reader) {
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: '抱歉，响应读取失败，请稍后再试。',
+          agentId,
         }]);
         setLoading(false);
         return;
@@ -299,22 +353,43 @@ export default function CustomerServicePage() {
 
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
-        setStreamingContent(accumulated);
+        setStreamingContent(stripSuggest(accumulated));
       }
 
-      if (accumulated.trim()) {
-        setMessages(prev => [...prev, { role: 'assistant', content: accumulated.trim() }]);
+      // 正文末尾可能带「建议转接」标记，拆出来单独展示
+      const marker = accumulated.match(SUGGEST_RE);
+      const suggest = marker && marker[1] !== agentId ? (marker[1] as CsAgentId) : undefined;
+      const content = stripSuggest(accumulated).trim();
+
+      if (content) {
+        setMessages(prev => [...prev, { role: 'assistant', content, agentId, suggest }]);
       } else {
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: '抱歉，我没有理解你的问题，请换一种方式提问。',
+          agentId,
         }]);
       }
       setStreamingContent('');
+
+      if (sensitive) {
+        setVerified(false);
+        setUserMsgCount(0);
+        try {
+          localStorage.removeItem(VERIFIED_KEY);
+        } catch {
+          /* 忽略 */
+        }
+        setMessages(prev => [...prev, {
+          role: 'notice',
+          content: '检测到敏感提问，下次提问需要重新完成验证',
+        }]);
+      }
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '网络异常，请检查网络连接后重试。',
+        agentId,
       }]);
       setStreamingContent('');
     } finally {
@@ -339,14 +414,20 @@ export default function CustomerServicePage() {
       : '⚠️ 人工服务时间为 09:00-18:00，当前已下班，请在工作时间内联系。\n\n您也可以继续向AI客服提问，我会尽力为您解答！';
     setMessages(prev => [...prev, { role: 'user', content: '转人工客服' }]);
     setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content }]);
+      setMessages(prev => [...prev, { role: 'assistant', content, agentId }]);
     }, 500);
   };
 
   // 验证成功
   const handleCaptchaSuccess = () => {
+    setVerified(true);
     setUserMsgCount(0);
     setShowCaptcha(false);
+    try {
+      localStorage.setItem(VERIFIED_KEY, '1');
+    } catch {
+      /* 忽略 */
+    }
   };
 
   const remaining = estimatedRemaining();
@@ -356,23 +437,33 @@ export default function CustomerServicePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex flex-col">
       {/* 顶部导航栏 */}
       <header className="flex-shrink-0 border-b border-white/10 bg-black/30 backdrop-blur-lg">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <i className="fa-solid fa-robot text-white"></i>
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${agent.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
+              <i className={`fa-solid ${agent.icon} text-white`}></i>
             </div>
-            <div>
-              <h1 className="text-white font-bold text-lg">智能客服</h1>
-              <p className="text-slate-400 text-xs">LYJY导航系统 · 随时为你解答</p>
+            <div className="min-w-0">
+              <h1 className="text-white font-bold text-lg truncate">{agent.name}</h1>
+              <p className="text-slate-400 text-xs truncate">LYJY导航系统 · {agent.shortName}</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 flex items-center justify-center text-white"
-            title="返回首页"
-          >
-            <i className="fa-solid fa-house"></i>
-          </Link>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowSwitcher(true)}
+              className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 text-white text-sm"
+              title="切换专员"
+            >
+              <i className="fa-solid fa-users-gear text-xs"></i>
+              <span className="hidden sm:inline">切换专员</span>
+            </button>
+            <Link
+              href="/"
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 flex items-center justify-center text-white flex-shrink-0"
+              title="返回首页"
+            >
+              <i className="fa-solid fa-house"></i>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -380,34 +471,81 @@ export default function CustomerServicePage() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-4">
           <AnimatePresence>
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex gap-3 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  {/* 头像 */}
-                  <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-md ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-br from-blue-600 to-blue-700'
-                      : 'bg-gradient-to-br from-purple-500 to-pink-500'
-                  }`}>
-                    <i className={`fa-solid ${msg.role === 'user' ? 'fa-user' : 'fa-robot'} text-white text-sm`}></i>
+            {messages.map((msg, i) => {
+              // 切换专员的系统提示
+              if (msg.role === 'notice') {
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-3 py-1"
+                  >
+                    <span className="h-px flex-1 bg-white/10" />
+                    <span className="text-slate-500 text-xs whitespace-nowrap">{msg.content}</span>
+                    <span className="h-px flex-1 bg-white/10" />
+                  </motion.div>
+                );
+              }
+
+              const msgAgent = msg.role === 'assistant' ? getAgent(msg.agentId) : null;
+              const suggestAgent_ = msg.suggest ? getAgent(msg.suggest) : null;
+
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-3 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    {/* 头像 */}
+                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center shadow-md ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-br from-blue-600 to-blue-700'
+                        : `bg-gradient-to-br ${msgAgent?.gradient || 'from-purple-500 to-pink-500'}`
+                    }`}>
+                      <i className={`fa-solid ${msg.role === 'user' ? 'fa-user' : (msgAgent?.icon || 'fa-robot')} text-white text-sm`}></i>
+                    </div>
+                    <div className="min-w-0">
+                      {/* 专员名 */}
+                      {msgAgent && (
+                        <p className="text-slate-500 text-[11px] mb-1 ml-1">{msgAgent.name}</p>
+                      )}
+                      {/* 消息气泡 */}
+                      <div className={`rounded-2xl px-4 py-3 shadow-lg ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm'
+                          : 'bg-white/10 backdrop-blur-lg text-slate-100 border border-white/10 rounded-tl-sm'
+                      }`}>
+                        <ChatMarkdown text={msg.content} />
+                      </div>
+
+                      {/* 系统推荐切换专员 */}
+                      {suggestAgent_ && (
+                        <button
+                          onClick={() => switchAgent(suggestAgent_.id)}
+                          className="mt-2 w-full flex items-center gap-3 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-left transition-all hover:border-sky-400/60 hover:bg-sky-500/20"
+                        >
+                          <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${suggestAgent_.gradient} flex items-center justify-center flex-shrink-0`}>
+                            <i className={`fa-solid ${suggestAgent_.icon} text-white text-xs`}></i>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sky-200 text-xs font-medium">建议转接给「{suggestAgent_.name}」</p>
+                            <p className="text-slate-400 text-[11px] truncate">{suggestAgent_.desc}</p>
+                          </div>
+                          <span className="text-sky-300 text-xs whitespace-nowrap flex items-center gap-1 rounded-full border border-sky-400/40 px-2.5 py-1">
+                            转接客服
+                            <i className="fa-solid fa-arrow-right text-[10px]"></i>
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {/* 消息气泡 */}
-                  <div className={`rounded-2xl px-4 py-3 shadow-lg ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm'
-                      : 'bg-white/10 backdrop-blur-lg text-slate-100 border border-white/10 rounded-tl-sm'
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
 
           {/* 流式输出中的消息 */}
@@ -418,16 +556,14 @@ export default function CustomerServicePage() {
               className="flex justify-start"
             >
               <div className="flex gap-3 max-w-[80%]">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md flex-shrink-0">
-                  <i className="fa-solid fa-robot text-white text-sm"></i>
+                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${agent.gradient} flex items-center justify-center shadow-md flex-shrink-0`}>
+                  <i className={`fa-solid ${agent.icon} text-white text-sm`}></i>
                 </div>
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl rounded-tl-sm px-4 py-3 shadow-lg border border-white/10 min-w-[80px]">
                   {streamingContent ? (
                     <>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                        {streamingContent}
-                        <span className="inline-block w-0.5 h-4 bg-purple-400 ml-0.5 animate-pulse align-middle"></span>
-                      </p>
+                      <ChatMarkdown text={streamingContent} />
+                      <span className="inline-block w-0.5 h-4 bg-purple-400 ml-0.5 animate-pulse align-middle"></span>
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
                         <span className="text-slate-500 text-xs flex items-center gap-1">
                           <i className="fa-solid fa-clock text-[10px]"></i>
@@ -471,7 +607,7 @@ export default function CustomerServicePage() {
                 <i className="fa-solid fa-circle-info text-[10px]"></i>
                 AI回答仅供参考
               </p>
-              {remainingMsgs > 0 && remainingMsgs <= 2 && !loading && (
+              {!verified && remainingMsgs > 0 && remainingMsgs <= 2 && !loading && (
                 <span className="text-slate-600 text-xs flex items-center gap-1">
                   <i className="fa-solid fa-shield-halved text-[10px]"></i>
                   剩余 {remainingMsgs} 条
@@ -497,7 +633,7 @@ export default function CustomerServicePage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={remainingMsgs <= 0 ? "请先完成安全验证..." : "输入你的问题..."}
+                placeholder={!verified && remainingMsgs <= 0 ? "请先完成安全验证..." : `向「${agent.shortName}」提问...`}
                 rows={1}
                 className="w-full bg-white/10 backdrop-blur-lg text-white placeholder-slate-400 rounded-2xl px-4 py-3 pr-4 resize-none outline-none border border-white/10 focus:border-blue-500/50 transition-colors text-sm max-h-32"
                 style={{ minHeight: '48px' }}
@@ -523,6 +659,78 @@ export default function CustomerServicePage() {
           </p>
         </div>
       </div>
+
+      {/* 专员切换面板 */}
+      <AnimatePresence>
+        {showSwitcher && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowSwitcher(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full sm:max-w-lg max-h-[80vh] flex flex-col rounded-t-2xl sm:rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
+                <div>
+                  <h3 className="text-white font-bold text-base flex items-center gap-2">
+                    <i className="fa-solid fa-users-gear text-blue-400"></i>
+                    选择专属客服
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-1">每位专员只精通自己的子站，答得更准</p>
+                </div>
+                <button
+                  onClick={() => setShowSwitcher(false)}
+                  className="w-8 h-8 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center flex-shrink-0"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <div className="overflow-y-auto p-3 space-y-1.5">
+                {CS_AGENTS.map(a => {
+                  const active = a.id === agentId;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => switchAgent(a.id)}
+                      className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                        active
+                          ? 'bg-blue-500/15 border border-blue-400/40'
+                          : 'border border-transparent hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${a.gradient} flex items-center justify-center flex-shrink-0`}>
+                        <i className={`fa-solid ${a.icon} text-white text-sm`}></i>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-medium truncate ${active ? 'text-white' : 'text-slate-200'}`}>
+                          {a.name}
+                        </p>
+                        <p className="text-slate-500 text-[11px] truncate">{a.desc}</p>
+                      </div>
+                      {active ? (
+                        <span className="text-blue-300 text-[11px] whitespace-nowrap flex items-center gap-1">
+                          <i className="fa-solid fa-circle-check"></i>
+                          当前
+                        </span>
+                      ) : (
+                        <i className="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 人机验证弹窗 */}
       <AnimatePresence>
