@@ -48,7 +48,8 @@ type Block =
   | { kind: 'p'; text: string }
   | { kind: 'heading'; text: string }
   | { kind: 'ul'; items: string[] }
-  | { kind: 'ol'; items: string[] };
+  | { kind: 'ol'; items: string[] }
+  | { kind: 'code'; lang: string; code: string };
 
 function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
@@ -61,8 +62,25 @@ function parseBlocks(text: string): Block[] {
     }
   };
 
-  for (const raw of text.split('\n')) {
-    const line = raw.replace(/\s+$/, '');
+  const lines = text.split('\n');
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx].replace(/\s+$/, '');
+
+    // 围栏代码块：``` 开头，到下一个 ``` 结束
+    const fence = line.match(/^\s*```\s*([\w+-]*)\s*$/);
+    if (fence) {
+      flush();
+      const lang = fence[1] || '';
+      const body: string[] = [];
+      idx++;
+      while (idx < lines.length && !/^\s*```\s*$/.test(lines[idx])) {
+        body.push(lines[idx]);
+        idx++;
+      }
+      blocks.push({ kind: 'code', lang, code: body.join('\n') });
+      continue;
+    }
 
     const heading = line.match(/^\s*#{1,6}\s+(.*)$/);
     if (heading) {
@@ -139,6 +157,16 @@ export default function ChatMarkdown({ text }: { text: string }) {
                 </li>
               ))}
             </ol>
+          );
+        }
+        if (b.kind === 'code') {
+          return (
+            <pre
+              key={i}
+              className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-3 text-[12px] leading-relaxed"
+            >
+              <code className="font-mono text-slate-200">{b.code}</code>
+            </pre>
           );
         }
         return <p key={i}>{renderInline(b.text, `p${i}`)}</p>;

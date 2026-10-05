@@ -19,6 +19,11 @@ const stripSuggest = (t: string) => t.replace(SUGGEST_RE, '').replace(/<<<CS_SUG
 /** 人机验证状态存在本地：验证过一次就长期有效 */
 const VERIFIED_KEY = 'cs_verified';
 
+/** 隐藏通道：连点专员头像 5 次后输入密码解锁 */
+const DEV_KEY_STORAGE = 'cs_dev_key';
+const DEV_CLICKS_NEEDED = 5;
+const DEV_CLICK_WINDOW = 2500;
+
 interface Message {
   role: 'user' | 'assistant' | 'notice';
   content: string;
@@ -216,6 +221,13 @@ export default function CustomerServicePage() {
   const [showCaptcha, setShowCaptcha] = useState(false);
   /** 是否已通过人机验证（通过后长期有效，除非检测到敏感提问） */
   const [verified, setVerified] = useState(false);
+
+  // 隐藏通道（开发者模式）
+  const [devKey, setDevKey] = useState('');
+  const [showDevPrompt, setShowDevPrompt] = useState(false);
+  const [devInput, setDevInput] = useState('');
+  const [devError, setDevError] = useState('');
+  const devClicks = useRef<number[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -227,10 +239,59 @@ export default function CustomerServicePage() {
     setMessages([{ role: 'assistant', content: initial.greeting, agentId: initial.id }]);
     try {
       if (localStorage.getItem(VERIFIED_KEY) === '1') setVerified(true);
+      const savedDev = localStorage.getItem(DEV_KEY_STORAGE);
+      if (savedDev) setDevKey(savedDev);
     } catch {
       /* 忽略 */
     }
   }, []);
+
+  /** 连点头像 5 次（2.5 秒内）打开密码框 */
+  const handleAvatarClick = () => {
+    const now = Date.now();
+    devClicks.current = [...devClicks.current, now].filter(t => now - t < DEV_CLICK_WINDOW);
+    if (devClicks.current.length >= DEV_CLICKS_NEEDED) {
+      devClicks.current = [];
+      setDevInput('');
+      setDevError('');
+      setShowDevPrompt(true);
+    }
+  };
+
+  /** 密码交给服务端校验，校验通过才记住 */
+  const handleDevSubmit = async () => {
+    const pwd = devInput.trim();
+    if (!pwd) return;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Cs-Dev-Key': pwd },
+        body: JSON.stringify({ agentId: 'portal', messages: [{ role: 'user', content: 'ping' }] }),
+      });
+      if (res.headers.get('X-Cs-Dev') === '1') {
+        setDevKey(pwd);
+        setShowDevPrompt(false);
+        try {
+          localStorage.setItem(DEV_KEY_STORAGE, pwd);
+        } catch {
+          /* 忽略 */
+        }
+        setMessages(prev => [
+          ...prev,
+          { role: 'notice', content: '已进入开发者模式' },
+          {
+            role: 'assistant',
+            agentId: 'portal',
+            content: '开发者模式已开启 🔓\n\n现在没有子站范围限制，可以问任何问题，也能让我写代码、做技术方案。\n\n想退出的话，点右上角的「开发者模式」标签即可。',
+          },
+        ]);
+      } else {
+        setDevError('密码不对');
+      }
+    } catch {
+      setDevError('校验失败，请重试');
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -293,8 +354,8 @@ export default function CustomerServicePage() {
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
-    // 已通过验证的长期放行；没通过的话，前 3 条免费，之后要求验证
-    if (!verified && userMsgCount >= 3) {
+    // 开发者模式不受人机验证限制
+    if (!devKey && !verified && userMsgCount >= 3) {
       setShowCaptcha(true);
       return;
     }
@@ -311,7 +372,10 @@ export default function CustomerServicePage() {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(devKey ? { 'X-Cs-Dev-Key': devKey } : {}),
+        },
         body: JSON.stringify({
           agentId,
           messages: newMessages
@@ -439,12 +503,39 @@ export default function CustomerServicePage() {
       <header className="flex-shrink-0 border-b border-white/10 bg-black/30 backdrop-blur-lg">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${agent.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
-              <i className={`fa-solid ${agent.icon} text-white`}></i>
+            <div
+              onClick={handleAvatarClick}
+              title={devKey ? '开发者模式已开启' : undefined}
+              className={`w-10 h-10 rounded-full bg-gradient-to-br ${
+                devKey ? 'from-amber-400 to-orange-500 ring-2 ring-amber-400/50' : agent.gradient
+              } flex items-center justify-center shadow-lg flex-shrink-0 cursor-pointer select-none active:scale-95 transition-transform`}
+            >
+              <i className={`fa-solid ${devKey ? 'fa-unlock' : agent.icon} text-white`}></i>
             </div>
             <div className="min-w-0">
-              <h1 className="text-white font-bold text-lg truncate">{agent.name}</h1>
-              <p className="text-slate-400 text-xs truncate">LYJY导航系统 · {agent.shortName}</p>
+              <h1 className="text-white font-bold text-lg truncate flex items-center gap-2">
+                {devKey ? '开发者模式' : agent.name}
+                {devKey && (
+                  <button
+                    onClick={() => {
+                      setDevKey('');
+                      try {
+                        localStorage.removeItem(DEV_KEY_STORAGE);
+                      } catch {
+                        /* 忽略 */
+                      }
+                      setMessages(prev => [...prev, { role: 'notice', content: '已退出开发者模式' }]);
+                    }}
+                    className="text-[10px] font-normal rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-amber-300 hover:bg-amber-400/20 transition-all"
+                    title="点击退出开发者模式"
+                  >
+                    退出
+                  </button>
+                )}
+              </h1>
+              <p className="text-slate-400 text-xs truncate">
+                {devKey ? 'LYJY导航系统 · 无限制通道' : `LYJY导航系统 · ${agent.shortName}`}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -607,7 +698,7 @@ export default function CustomerServicePage() {
                 <i className="fa-solid fa-circle-info text-[10px]"></i>
                 AI回答仅供参考
               </p>
-              {!verified && remainingMsgs > 0 && remainingMsgs <= 2 && !loading && (
+              {!devKey && !verified && remainingMsgs > 0 && remainingMsgs <= 2 && !loading && (
                 <span className="text-slate-600 text-xs flex items-center gap-1">
                   <i className="fa-solid fa-shield-halved text-[10px]"></i>
                   剩余 {remainingMsgs} 条
@@ -633,7 +724,13 @@ export default function CustomerServicePage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={!verified && remainingMsgs <= 0 ? "请先完成安全验证..." : `向「${agent.shortName}」提问...`}
+                placeholder={
+                  !devKey && !verified && remainingMsgs <= 0
+                    ? '请先完成安全验证...'
+                    : devKey
+                    ? '开发者模式 · 想聊什么都可以...'
+                    : `向「${agent.shortName}」提问...`
+                }
                 rows={1}
                 className="w-full bg-white/10 backdrop-blur-lg text-white placeholder-slate-400 rounded-2xl px-4 py-3 pr-4 resize-none outline-none border border-white/10 focus:border-blue-500/50 transition-colors text-sm max-h-32"
                 style={{ minHeight: '48px' }}
@@ -726,6 +823,67 @@ export default function CustomerServicePage() {
                     </button>
                   );
                 })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 隐藏通道密码框 */}
+      <AnimatePresence>
+        {showDevPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowDevPrompt(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-xs rounded-2xl border border-amber-400/30 bg-slate-900 p-5 shadow-2xl"
+            >
+              <h3 className="text-white font-bold text-base flex items-center gap-2 mb-1">
+                <i className="fa-solid fa-unlock text-amber-400"></i>
+                隐藏通道
+              </h3>
+              <p className="text-slate-500 text-xs mb-4">输入密码以解锁无限制通道</p>
+              <input
+                type="password"
+                value={devInput}
+                autoFocus
+                onChange={e => {
+                  setDevInput(e.target.value);
+                  setDevError('');
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleDevSubmit();
+                }}
+                placeholder="密码"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400/50 transition-colors"
+              />
+              {devError && <p className="mt-2 text-xs text-red-400">{devError}</p>}
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => setShowDevPrompt(false)}
+                  className="flex-1 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-400 hover:bg-white/5 transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDevSubmit}
+                  disabled={!devInput.trim()}
+                  className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                    devInput.trim()
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                      : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  解锁
+                </button>
               </div>
             </motion.div>
           </motion.div>

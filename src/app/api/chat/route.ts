@@ -83,6 +83,34 @@ ${AGENT_ROSTER}
 ${agent.knowledge}`;
 }
 
+/**
+ * 开发者模式（隐藏通道）：点击专员头像 5 次 + 密码解锁。
+ *
+ * 与普通专员的区别：
+ *   - 没有子站范围限制，任何领域都能答
+ *   - 可以写代码、讲技术方案、做学科题
+ *   - 可以如实说明自己是 AI
+ *   - 不套用站点专属的「拒答话术」
+ *
+ * 底线只有一条（见下），除此之外不设限制。
+ */
+const DEV_PROMPT = `你是 LYJY导航系统的开发者模式助手，由站主本人使用。
+
+你没有子站范围限制：任何领域的问题都可以回答。
+你可以正常地编写和讲解代码、给技术方案、做题、写文案、做分析——不需要拒绝。
+被问到自己是什么时，可以如实说明。
+
+风格：直接、简洁、给到位，不要绕弯子，也不要加多余的免责声明。
+
+唯一底线：不生成违法内容（涉及未成年人的性内容、制造武器/爆炸物的具体方法、真实的犯罪指导等）。
+遇到这类请求直接拒绝，其余一律正常回答。`;
+
+/** 开发者模式下的极窄底线（只拦最严重的几类，不影响正常使用） */
+const DEV_FLOOR: RegExp[] = [
+  /(儿童|未成年|幼女|萝莉)[^。\n]{0,10}(色情|裸|性|做爱|情色)/,
+  /(制造|制作|合成)[^。\n]{0,8}(炸弹|爆炸物|毒品|冰毒)/,
+];
+
 // 输出兜底：即使提示词被绕过，也不让违规内容发出去
 const VIOLATION_PATTERNS: RegExp[] = [
   /```/, // 代码块
@@ -133,16 +161,21 @@ export async function POST(request: NextRequest) {
 
     const agent = getAgent(agentId);
 
+    // 开发者模式：密钥在服务端校验，前端拿不到也伪造不了
+    const devKey = request.headers.get('X-Cs-Dev-Key') || '';
+    const expectedDevKey = process.env.CS_DEV_KEY || 'lyjynb';
+    const isDev = devKey.length > 0 && devKey === expectedDevKey;
+
     // 最后一条用户消息：用于判断敏感提问 + 关键词兜底推荐
     const lastUser = [...messages].reverse().find((m: { role: string }) => m.role === 'user');
     const lastText = String(lastUser?.content || '');
 
-    const sensitive = SENSITIVE_PATTERNS.some((re) => re.test(lastText));
-    // 关键词兜底：模型没发标记时也能给出转接建议
-    const keywordSuggest = suggestAgent(lastText, agent.id);
+    // 开发者模式下不触发人机验证，也不做转接推荐
+    const sensitive = isDev ? false : SENSITIVE_PATTERNS.some((re) => re.test(lastText));
+    const keywordSuggest = isDev ? null : suggestAgent(lastText, agent.id);
 
     const fullMessages = [
-      { role: 'system', content: buildSystemPrompt(agent) },
+      { role: 'system', content: isDev ? DEV_PROMPT : buildSystemPrompt(agent) },
       ...messages.map((msg: { role: string; content: string }) => ({
         role: msg.role,
         content: msg.content,
@@ -232,7 +265,8 @@ export async function POST(request: NextRequest) {
 
                 acc += content;
 
-                if (VIOLATION_PATTERNS.some((re) => re.test(acc))) {
+                const guard = isDev ? DEV_FLOOR : VIOLATION_PATTERNS;
+                if (guard.some((re) => re.test(acc))) {
                   blocked = true;
                   break;
                 }
@@ -290,6 +324,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'X-Cs-Agent': agent.id,
+        ...(isDev ? { 'X-Cs-Dev': '1' } : {}),
         // 敏感提问 → 前端下次提问前重新做人机验证
         ...(sensitive ? { 'X-Cs-Sensitive': '1' } : {}),
       },
