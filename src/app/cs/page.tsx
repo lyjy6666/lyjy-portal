@@ -13,8 +13,11 @@ import {
 
 /** 后端在正文末尾追加的「建议转接」标记，前端解析后转成按钮 */
 const SUGGEST_RE = /<<<CS_SUGGEST:([a-z]+)>>>/;
+/** 后端撞到 max_tokens 时追加的标记，前端转成「继续生成」按钮 */
+const TRUNCATED_RE = /<<<CS_TRUNCATED>>>/;
 /** 流式过程中可能出现半截标记，先抹掉 */
-const stripSuggest = (t: string) => t.replace(SUGGEST_RE, '').replace(/<<<CS_SUGGEST:[a-z]*$/, '');
+const stripSuggest = (t: string) =>
+  t.replace(SUGGEST_RE, '').replace(TRUNCATED_RE, '').replace(/<<<CS_[A-Z_]*$/, '');
 
 /** 人机验证状态存在本地：验证过一次就长期有效 */
 const VERIFIED_KEY = 'cs_verified';
@@ -31,6 +34,8 @@ interface Message {
   agentId?: CsAgentId;
   /** 专员建议切换到谁（仅 assistant 有） */
   suggest?: CsAgentId;
+  /** 这条回复是否被输出长度截断（可点「继续生成」） */
+  truncated?: boolean;
 }
 
 // 滑块验证组件
@@ -326,7 +331,8 @@ export default function CustomerServicePage() {
   const estimatedRemaining = useCallback(() => {
     if (!loading) return 0;
     if (streamingContent.length === 0) return -1;
-    const estimatedTotal = 300;
+    // 上限提到 4096 token 后回答会长很多，估算基数也跟着调大，否则剩余时间会一直显示 0
+    const estimatedTotal = 1200;
     const progress = Math.min(streamingContent.length / estimatedTotal, 0.9);
     if (progress <= 0 || elapsedSeconds === 0) return 0;
     const totalEstimated = elapsedSeconds / progress;
@@ -423,10 +429,11 @@ export default function CustomerServicePage() {
       // 正文末尾可能带「建议转接」标记，拆出来单独展示
       const marker = accumulated.match(SUGGEST_RE);
       const suggest = marker && marker[1] !== agentId ? (marker[1] as CsAgentId) : undefined;
+      const truncated = TRUNCATED_RE.test(accumulated);
       const content = stripSuggest(accumulated).trim();
 
       if (content) {
-        setMessages(prev => [...prev, { role: 'assistant', content, agentId, suggest }]);
+        setMessages(prev => [...prev, { role: 'assistant', content, agentId, suggest, truncated }]);
       } else {
         setMessages(prev => [...prev, {
           role: 'assistant',
@@ -457,6 +464,61 @@ export default function CustomerServicePage() {
       }]);
       setStreamingContent('');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  /** 被截断后接着写：把该条消息之前的历史 + 一句「继续」发过去，结果追加到同一条 */
+  const handleContinue = async (msgIndex: number) => {
+    if (loading) return;
+    const history = messages.slice(0, msgIndex + 1).filter(m => m.role !== 'notice');
+    const payload = [
+      ...history.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: '继续（接着上面断掉的地方往下写，不要重复已写过的内容）' },
+    ];
+
+    setLoading(true);
+    setStreamingContent('');
+    setElapsedSeconds(0);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(devKey ? { 'X-Cs-Dev-Key': devKey } : {}),
+        },
+        body: JSON.stringify({ agentId, messages: payload }),
+      });
+      if (!res.ok) return;
+
+      const reader = res.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let accumulated = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setStreamingContent(stripSuggest(accumulated));
+      }
+
+      const more = stripSuggest(accumulated).trim();
+      const stillTruncated = TRUNCATED_RE.test(accumulated);
+      if (more) {
+        setMessages(prev =>
+          prev.map((m, i) =>
+            i === msgIndex ? { ...m, content: `${m.content}\n${more}`, truncated: stillTruncated } : m
+          )
+        );
+      } else {
+        setMessages(prev => prev.map((m, i) => (i === msgIndex ? { ...m, truncated: false } : m)));
+      }
+    } catch {
+      /* 忽略，保持原样 */
+    } finally {
+      setStreamingContent('');
       setLoading(false);
     }
   };
@@ -612,6 +674,17 @@ export default function CustomerServicePage() {
                       }`}>
                         <ChatMarkdown text={msg.content} />
                       </div>
+
+                      {/* 输出被截断 → 继续生成 */}
+                      {msg.truncated && !loading && (
+                        <button
+                          onClick={() => handleContinue(i)}
+                          className="mt-2 flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 transition-all hover:border-amber-400/60 hover:bg-amber-500/20"
+                        >
+                          <i className="fa-solid fa-arrow-down-long text-[10px]"></i>
+                          回答被长度限制截断，点此继续生成
+                        </button>
+                      )}
 
                       {/* 系统推荐切换专员 */}
                       {suggestAgent_ && (

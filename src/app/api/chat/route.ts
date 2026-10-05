@@ -5,6 +5,12 @@ const API_KEY = 'sk-5sA83DFAASHDScmmvQuFxawtCkesKcQomSZlmCgxNloVuIVS';
 const BASE_URL = 'https://apihub.agnes-ai.com/v1';
 // 模型名可用环境变量覆盖，避免服务商升级模型时还要改代码
 const MODEL = process.env.AGNES_MODEL || 'agnes-3.0-flash';
+/**
+ * 单次回复的最大 token 数。
+ * 原来写死 1024，中文大概 3000 字符就被硬截断（上游返回 finish_reason=length）。
+ * 实测 4096 时常见长回答都能自然收尾，这里再放宽一档并允许用环境变量调。
+ */
+const MAX_TOKENS = Number(process.env.CS_MAX_TOKENS) || 4096;
 
 /** 专员清单，写进提示词让它知道能转给谁 */
 const AGENT_ROSTER = CS_AGENTS.map((a) => `- ${a.id}：${a.name}（${a.desc}）`).join('\n');
@@ -144,6 +150,8 @@ const SENSITIVE_PATTERNS: RegExp[] = [
 const MARKER_RE = /\[\[\s*转接\s*[:：]\s*([a-z]+)\s*\]\]/g;
 /** 前端用它把「建议转接」从正文里分离出来 */
 const SUGGEST_SENTINEL = '<<<CS_SUGGEST:';
+/** 被 max_tokens 截断时追加，前端据此显示「继续生成」 */
+const TRUNCATED_SENTINEL = '<<<CS_TRUNCATED>>>';
 
 // 开头先攒这么多字再开始下发，避免"我是 xxx 模型"这类开头已经发出去了才发现
 const GATE_CHARS = 60;
@@ -192,7 +200,7 @@ export async function POST(request: NextRequest) {
         model: MODEL,
         messages: fullMessages,
         temperature: 0.3,
-        max_tokens: 1024,
+        max_tokens: MAX_TOKENS,
         stream: true,
       }),
     });
@@ -225,6 +233,7 @@ export async function POST(request: NextRequest) {
         let gateOpen = false;
         let blocked = false;
         let finished = false;
+        let finishReason = '';
 
         /** 计算可以安全下发的截止位置：遇到转接标记就停下，否则扣住尾部 */
         const safeCut = () => {
@@ -260,6 +269,10 @@ export async function POST(request: NextRequest) {
 
               try {
                 const parsed = JSON.parse(data);
+                // 上游在最后一帧给出结束原因，length 表示撞到了 max_tokens
+                if (parsed.choices?.[0]?.finish_reason) {
+                  finishReason = parsed.choices[0].finish_reason;
+                }
                 const content = parsed.choices?.[0]?.delta?.content;
                 if (!content) continue;
 
@@ -309,6 +322,9 @@ export async function POST(request: NextRequest) {
 
           if (suggest) {
             controller.enqueue(encoder.encode(`\n\n${SUGGEST_SENTINEL}${suggest}>>>`));
+          }
+          if (finishReason === 'length') {
+            controller.enqueue(encoder.encode(`\n${TRUNCATED_SENTINEL}`));
           }
           controller.close();
         } catch (error) {
