@@ -4,9 +4,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { SkinProvider, useSkin, SKIN_META, SKIN_ORDER, type SkinId } from './skins/skin';
 import { fontClassNames } from './skins/fonts';
-import ImageTool from './ui/ImageTool';
-import DataTool from './ui/DataTool';
-import CodeTool from './ui/CodeTool';
+import dynamic from 'next/dynamic';
+
+/**
+ * 各工具按需加载 —— 音视频/文档/开发工具都依赖 MB 级组件
+ * （FFmpeg、tesseract、jsPDF、@zxing），不能进首屏。
+ */
+const ImageTool = dynamic(() => import('./ui/ImageTool'), { ssr: false });
+const DataTool = dynamic(() => import('./ui/DataTool'), { ssr: false });
+const CodeTool = dynamic(() => import('./ui/CodeTool'), { ssr: false });
+const CompressTool = dynamic(() => import('./ui/CompressTool'), { ssr: false });
+const WatermarkTool = dynamic(() => import('./ui/WatermarkTool'), { ssr: false });
+const DocumentTool = dynamic(() => import('./ui/DocumentTool'), { ssr: false });
+const MediaTool = dynamic(() => import('./ui/MediaTool'), { ssr: false });
+const DevTool = dynamic(() => import('./ui/DevTool'), { ssr: false });
+const AboutTool = dynamic(() => import('./ui/AboutTool'), { ssr: false });
 
 export type ToolTab = {
   id: string;
@@ -128,23 +140,28 @@ function SkinPicker() {
 /* ============================ 标签内容（P2~P6 分批接入） ============================ */
 
 function TabContent({ tab }: { tab: string }) {
-  if (tab === 'image') return <ImageTool />;
-  if (tab === 'data') return <DataTool />;
-  if (tab === 'code') return <CodeTool />;
-
-  const meta = TABS.find((t) => t.id === tab);
-  return (
-    <div className="tb-panel flex flex-col items-center justify-center py-16 text-center">
-      <i
-        className={`fa-solid ${meta?.icon ?? 'fa-cube'} mb-4 text-3xl`}
-        style={{ color: 'var(--primary)' }}
-      />
-      <p className="tb-title text-base">{meta?.name} · 施工中</p>
-      <p className="mt-1.5 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-        {meta?.desc}
-      </p>
-    </div>
-  );
+  switch (tab) {
+    case 'image':
+      return <ImageTool />;
+    case 'document':
+      return <DocumentTool />;
+    case 'data':
+      return <DataTool />;
+    case 'code':
+      return <CodeTool />;
+    case 'media':
+      return <MediaTool />;
+    case 'compress':
+      return <CompressTool />;
+    case 'watermark':
+      return <WatermarkTool />;
+    case 'dev':
+      return <DevTool />;
+    case 'about':
+      return <AboutTool />;
+    default:
+      return null;
+  }
 }
 
 /* ============================ 外壳 ============================ */
