@@ -107,10 +107,11 @@ export function tokenize(src: string): Token[] {
     const ch = src[i];
     const mode = modeStack[modeStack.length - 1];
 
-    /* ---------- 模板串内部：只有反引号和 ${ 有特殊含义 ---------- */
+    /* ---------- 模板串内部：只有反引号和插值起始有特殊含义 ---------- */
     if (mode === 'template') {
       let j = i;
       let value = '';
+      let closed = false;
       while (j < n) {
         if (src[j] === '\\') {
           value += src[j] + (src[j + 1] ?? '');
@@ -120,6 +121,7 @@ export function tokenize(src: string): Token[] {
         if (src[j] === '`') {
           value += '`';
           j++;
+          closed = true;
           break;
         }
         if (src[j] === '$' && src[j + 1] === '{') {
@@ -136,6 +138,8 @@ export function tokenize(src: string): Token[] {
         j++;
       }
       if (value) push('template', value);
+      // 模板串闭合后必须弹回 code 模式，否则后面的代码会被当成模板内容吞掉
+      if (closed) modeStack.pop();
       i = j;
       continue;
     }
@@ -205,8 +209,10 @@ export function tokenize(src: string): Token[] {
       continue;
     }
 
-    // 模板串起始
+    // 模板串起始：反引号本身也要作为 token 发出去
+    // （之前漏发了，导致格式化/压缩后输出缺少开头反引号 → 语法错误）
     if (ch === '`') {
+      push('template', '`');
       modeStack.push('template');
       i++;
       continue;
@@ -307,14 +313,14 @@ export function tokenize(src: string): Token[] {
     }
 
     if (ch === '}') {
-      // 若这是模板串 ${} 的收尾，则弹回 template 模式
+      // 若这是模板串插值段的收尾，则弹回 template 模式。
+      // 注意：进入插值段时**不会**增加 braceDepth，所以判据是「深度回到进入时的值」，
+      // 而不是 tplDepth + 1 —— 之前写成 +1 导致条件永不成立，整个模板串被误解析。
       const tplDepth = templateBraceDepth[templateBraceDepth.length - 1];
-      if (tplDepth !== undefined && braceDepth === tplDepth + 1) {
+      if (tplDepth !== undefined && braceDepth === tplDepth) {
         templateBraceDepth.pop();
         modeStack.pop(); // 回到 template
         push('template', '}');
-        braceDepth--;
-        braceKinds.pop();
         i++;
         continue;
       }

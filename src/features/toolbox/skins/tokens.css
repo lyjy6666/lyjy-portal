@@ -47,46 +47,6 @@
 }
 
 /* ============================================================
-   C · 星舰控制台（早期版本，保留对照）
-   ============================================================ */
-[data-skin='c'] {
-  --radius: 0.25rem;
-  --background: #03060d;
-  --foreground: #d8f3ff;
-  --card: #081120;
-  --card-foreground: #d8f3ff;
-  --popover: #0c1728;
-  --popover-foreground: #d8f3ff;
-  --primary: #00e5ff;
-  --primary-foreground: #001318;
-  --secondary: #0e1d33;
-  --secondary-foreground: #a5d8ee;
-  --muted: #0b1727;
-  --muted-foreground: #6c8ba8;
-  --accent: #12253d;
-  --accent-foreground: #d8f3ff;
-  --destructive: #ff2d55;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 229, 255, 0.35);
-  --input: rgba(0, 229, 255, 0.25);
-  --ring: #00e5ff;
-
-  --tb-accent-2: #ff2d95;
-  --tb-font-display: var(--font-archivo), system-ui, sans-serif;
-  --tb-font-body: var(--font-archivo), system-ui, sans-serif;
-  --tb-tracking: 0.08em;
-  --tb-border-w: 1px;
-  --tb-shadow: none;
-  --tb-glow: 0 0 28px rgba(0, 229, 255, 0.45);
-  --tb-panel-bg: rgba(8, 17, 32, 0.78);
-  --tb-panel-radius: 0.25rem;
-  --tb-clip: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  --tb-rule: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.35) 20%, rgba(0, 229, 255, 0.35) 80%, transparent);
-  --tb-texture: repeating-linear-gradient(to bottom, rgba(0, 229, 255, 0.03) 0 1px, transparent 1px 3px);
-  --tb-texture-opacity: 1;
-}
-
-/* ============================================================
    皮肤 A 组 · 渐变家族（贴合本站原有语言）
    ============================================================ */
 
@@ -279,70 +239,6 @@
    皮肤 C 组 · 学习自用户提供的三份设计提示词
    ============================================================ */
 
-/* ---------- N · 柔和马赛克（学自「产品功能拼贴」那份）----------
-   要点：浅灰底 #f0f0f0、大圆角、**无边框**、极淡的柔和阴影、
-   每张卡一个柔和的粉彩色域、Plus Jakarta Sans、字重对比明显。
-   ------------------------------------------------------------ */
-[data-skin='n'] {
-  --radius: 1.375rem;
-  --background: #f0f0f0;
-  --foreground: #141414;
-  --card: #ffffff;
-  --card-foreground: #141414;
-  --popover: #ffffff;
-  --popover-foreground: #141414;
-  --primary: #3f6b3a;
-  --primary-foreground: #ffffff;
-  --secondary: #f2f4f6;
-  --secondary-foreground: #141414;
-  --muted: #f4f5f6;
-  --muted-foreground: #6b6b6b;
-  --accent: #eef1f3;
-  --accent-foreground: #141414;
-  --destructive: #c0392b;
-  --destructive-foreground: #ffffff;
-  --border: rgba(20, 20, 20, 0.07); /* 几乎看不见的描边，主要靠阴影分层 */
-  --input: rgba(20, 20, 20, 0.1);
-  --ring: #3f6b3a;
-
-  --tb-accent-2: #d97a4a;
-  --tb-font-display: var(--font-jakarta), 'PingFang SC', system-ui, sans-serif;
-  --tb-font-body: var(--font-jakarta), 'PingFang SC', system-ui, sans-serif;
-  --tb-tracking: -0.028em;
-  --tb-border-w: 0px; /* 无边框 */
-  --tb-shadow: 0 2px 16px rgba(24, 30, 45, 0.045);
-  --tb-panel-radius: 1.375rem;
-  --tb-clip: none;
-  --tb-panel-bg: #ffffff;
-  --tb-panel-blur: 0px;
-  --tb-rule: 1px solid rgba(20, 20, 20, 0.07);
-  --tb-panel-pad: 1.75rem;
-  /* 底色是纯灰，卡片自身带粉彩色域 */
-  --tb-bg-gradient: linear-gradient(180deg, #f2f2f2 0%, #ededed 100%);
-  --tb-title-gradient: linear-gradient(92deg, #2f5233 0%, #4a7c43 100%);
-}
-
-
-/* N 的关键：参考设计的每张卡片各有**自己的粉彩色域**，这是它的灵魂。
-   只做「灰底 + 白卡」会变得很平，所以这里按顺序给卡片轮换粉彩底色。 */
-[data-skin='n'] .tb-panel:nth-of-type(4n + 1) {
-  background: linear-gradient(180deg, #fdeef6 0%, #fbe6f1 100%); /* 粉 */
-}
-[data-skin='n'] .tb-panel:nth-of-type(4n + 2) {
-  background: linear-gradient(180deg, #eef5e6 0%, #e6f0dc 100%); /* 黄绿 */
-}
-[data-skin='n'] .tb-panel:nth-of-type(4n + 3) {
-  background: linear-gradient(180deg, #fdf1e4 0%, #fbe9d8 100%); /* 蜜桃 */
-}
-[data-skin='n'] .tb-panel:nth-of-type(4n + 4) {
-  background: linear-gradient(180deg, #eeecf9 0%, #e7e4f6 100%); /* 薰衣草 */
-}
-/* 卡片内的输入控件要退回白底，否则会跟卡片糊在一起 */
-[data-skin='n'] .tb-panel input,
-[data-skin='n'] .tb-panel .tb-btn {
-  background: rgba(255, 255, 255, 0.72);
-}
-
 /* ---------- O · 液态玻璃（学自「天气仪表盘」那份）----------
    要点：全幅背景图（这里用多层深色渐变模拟大气）、
    磨砂玻璃面板（半透明白 + backdrop-blur + 饱和提升）、
@@ -506,9 +402,3 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* 没有渐变定义的皮肤退回实色，避免出现透明字 */
-[data-skin='c'] .tb-hero-title {
-  background-image: none;
-  color: var(--foreground);
-  -webkit-text-fill-color: currentColor;
-}

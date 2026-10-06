@@ -234,51 +234,63 @@ export function formatJsLike(src: string): string {
  * 原则：宁可不压，不可压错。压不干净没关系，压坏语义是事故。
  */
 export function minifyJsLike(src: string): string {
-  const tokens = tokenize(src).filter((t) => t.type !== 'line-comment' && t.type !== 'block-comment');
-  let out = '';
+  const toks = tokenize(src);
+  const out: string[] = [];
+  let prev: Token | null = null;
+  let pendingNewline = false;
 
-  const lastChar = () => (out.length ? out[out.length - 1] : '');
-  const lastTok = (): Token | null => {
-    for (let k = tokens.length - 1; k >= 0; k--) {
-      /* 占位，真正逻辑在下面 */
-    }
-    return null;
-  };
-  void lastTok;
-
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-
-    if (t.type === 'ws' || t.type === 'newline') continue;
-
-    // 换行可能承载 ASI 语义，保守起见遇到换行就补一个空格（而不是删掉）
-    const needNewline = i > 0 && tokens[i - 1]?.type === 'newline';
-
-    if (needNewline && out) {
-      const prevT = tokens[i - 1 - 1];
-      // 只有可能触发 ASI 的位置才保留分隔
-      if (prevT && ![';', '{', '}', ',', '(', '['].includes(prevT.value)) {
-        if (!out.endsWith(' ')) out += ' ';
-      }
+  for (const t of toks) {
+    if (t.type === 'ws') continue;
+    if (t.type === 'newline') {
+      pendingNewline = true;
       continue;
     }
+    if (t.type === 'line-comment' || t.type === 'block-comment') continue;
 
-    // 判断两个 token 拼接是否需要空格分隔，避免粘成别的词
-    const prev = (() => {
-      for (let k = i - 1; k >= 0; k--) {
-        if (tokens[k].type !== 'ws' && tokens[k].type !== 'newline') return tokens[k];
+    if (prev) {
+      if (pendingNewline && newlineMatters(prev, t)) {
+        // 换行有语义，必须保留 —— 否则会改变代码含义
+        out.push('\n');
+      } else if (needsSeparator(prev, t)) {
+        out.push(' ');
       }
-      return null;
-    })();
-
-    if (prev && needsSeparator(prev, t)) {
-      if (lastChar() !== ' ') out += ' ';
     }
 
-    out += t.value;
+    out.push(t.value);
+    prev = t;
+    pendingNewline = false;
   }
 
-  return out.trim();
+  return out.join('').trim();
+}
+
+/**
+ * 这个换行能不能删？
+ *
+ * 删换行可能触发 ASI（自动分号插入）导致语义变化，两种典型情况：
+ *   1. 受限产生式：`return\nx` 与 `return x` 含义不同（后者返回 x，前者返回 undefined）
+ *   2. 上一 token 能结束表达式、下一 token 能继续表达式：
+ *      `a = b\n(c)` 与 `a = b(c)` 完全不同
+ * 遇到这两种情况一律保留换行 —— 压缩率低点没关系，压坏语义是事故。
+ */
+function newlineMatters(prev: Token, next: Token): boolean {
+  if (prev.type === 'name' && ['return', 'throw', 'break', 'continue', 'yield'].includes(prev.value)) {
+    return true;
+  }
+
+  const prevEndsExpr =
+    prev.type === 'name' ||
+    prev.type === 'number' ||
+    prev.type === 'string' ||
+    prev.type === 'template' ||
+    prev.type === 'regex' ||
+    (prev.type === 'punct' && [')', ']', '}', '++', '--'].includes(prev.value));
+
+  const nextStartsExpr =
+    next.type === 'template' ||
+    (next.type === 'punct' && ['(', '[', '+', '-', '/', '++', '--'].includes(next.value));
+
+  return prevEndsExpr && nextStartsExpr;
 }
 
 /** 两个相邻 token 直接拼接是否会改变分词 */

@@ -178,10 +178,6 @@ function Shell() {
 
         <div className="flex items-center gap-2">
           <SkinPicker />
-          <Link href="/toolbox" className="tb-btn" title="回到旧版工具箱对照">
-            <i className="fa-solid fa-clock-rotate-left text-[11px]" />
-            <span className="hidden sm:inline">旧版</span>
-          </Link>
           <Link
             href="/"
             className="tb-btn"
