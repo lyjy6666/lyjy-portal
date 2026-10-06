@@ -5,39 +5,90 @@ import { createContext, useContext, useCallback, useEffect, useState, type React
 /**
  * 皮肤上下文。
  *
- * 只承载 CSS 变量表达不了的东西（当前皮肤 id、装饰层开关、动效强度）。
- * 颜色/圆角/阴影/辉光全部走 skins/tokens.css 里的 CSS 变量 ——
+ * 只承载 CSS 变量表达不了的东西（当前皮肤 id、动效强度）。
+ * 颜色/字体/边框/阴影/圆角全部走 skins/tokens.css 里的 CSS 变量 ——
  * 组件树只有一份，换肤不产生第二套 UI。
+ *
+ * 每个皮肤是一套**不同的设计语言**（字体、形态、空间节奏都不同），
+ * 不只是换颜色。
  */
 
-export type SkinId = 'b' | 'c';
+export type SkinId = 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h';
 
-export const SKIN_META: Record<SkinId, { name: string; short: string; desc: string; icon: string }> = {
+export type SkinMeta = {
+  name: string;
+  short: string;
+  desc: string;
+  /** 预览用：三个代表色 */
+  swatch: [string, string, string];
+  /** 明暗，用于列表分组 */
+  tone: 'dark' | 'light';
+};
+
+export const SKIN_META: Record<SkinId, SkinMeta> = {
   b: {
     name: 'HUD 控制台',
-    short: '中度科幻',
-    desc: '深空底色、青紫霓虹描边、玻璃面板与柔光晕，克制耐看',
-    icon: 'fa-satellite-dish',
+    short: '深色科幻',
+    desc: '深空底 + 青色霓虹 + 玻璃面板。早期版本，保留对照',
+    swatch: ['#060a12', '#22d3ee', '#8b5cf6'],
+    tone: 'dark',
   },
   c: {
     name: '星舰控制台',
     short: '重度科幻',
-    desc: '在 HUD 基础上加动态网格、扫描线、切角面板与更强辉光',
-    icon: 'fa-rocket',
+    desc: '在 HUD 基础上加网格背景、扫描线、切角面板。早期版本',
+    swatch: ['#03060d', '#00e5ff', '#ff2d95'],
+    tone: 'dark',
+  },
+  d: {
+    name: '瑞士精密',
+    short: '瑞士精密',
+    desc: '冷白纸面、严格网格、发丝分隔线、零阴影，全界面只用一种信号红',
+    swatch: ['#f7f7f5', '#141414', '#e5352b'],
+    tone: 'light',
+  },
+  e: {
+    name: '编辑部',
+    short: '编辑排版',
+    desc: '奶油纸底、大号衬线标题、首字下沉、发丝分隔，像一本印刷物',
+    swatch: ['#fbf8f1', '#1a1714', '#b3341a'],
+    tone: 'light',
+  },
+  f: {
+    name: '新粗野',
+    short: '新粗野主义',
+    desc: '3px 纯黑描边、硬偏移阴影、酸性黄配电蓝，按键按下去会真的位移',
+    swatch: ['#fffdf5', '#0037ff', '#ffe600'],
+    tone: 'light',
+  },
+  g: {
+    name: '有机纸感',
+    short: '有机自然',
+    desc: '暖纸底、纸纹噪点、四角不等的圆角、陶土橙与鼠尾草绿',
+    swatch: ['#f3ede3', '#b5623a', '#7d8f69'],
+    tone: 'light',
+  },
+  h: {
+    name: '工程蓝图',
+    short: '技术制图',
+    desc: '图纸深蓝、制图网格、虚线标注、编号角标，像一张机械图纸',
+    swatch: ['#0b2545', '#ffd166', '#8fd3ff'],
+    tone: 'dark',
   },
 };
+
+export const SKIN_ORDER: SkinId[] = ['d', 'e', 'f', 'g', 'h', 'b', 'c'];
 
 const STORAGE_KEY = 'toolbox_skin';
 
 type SkinContextValue = {
   skin: SkinId;
   setSkin: (s: SkinId) => void;
-  /** 是否开启动效（尊重系统「减少动态效果」偏好） */
   motion: boolean;
 };
 
 const SkinContext = createContext<SkinContextValue>({
-  skin: 'b',
+  skin: 'd',
   setSkin: () => {},
   motion: true,
 });
@@ -48,7 +99,7 @@ export function useSkin() {
 
 export function SkinProvider({
   children,
-  initial = 'b',
+  initial = 'd',
 }: {
   children: ReactNode;
   initial?: SkinId;
@@ -56,11 +107,10 @@ export function SkinProvider({
   const [skin, setSkinState] = useState<SkinId>(initial);
   const [motion, setMotion] = useState(true);
 
-  // 记忆上次选择 + 读取系统的减少动效偏好
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === 'b' || saved === 'c') setSkinState(saved);
+      if (saved && saved in SKIN_META) setSkinState(saved as SkinId);
     } catch {
       /* 忽略 */
     }
@@ -87,7 +137,6 @@ export function SkinProvider({
         className="relative min-h-screen overflow-x-hidden"
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
-        {/* 内容要压在装饰层之上（C 的网格/扫描线是 fixed 伪元素，z-index 0/1） */}
         <div className="relative z-[2]">{children}</div>
       </div>
     </SkinContext.Provider>

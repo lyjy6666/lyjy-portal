@@ -1,28 +1,60 @@
 /* ============================================================
-   格式转换工具箱 · 科幻皮肤
+   格式转换工具箱 · 皮肤系统
    ------------------------------------------------------------
-   只作用于 [data-skin] 子树，绝不写全局 :root —— globals.css 是全站共享的，
-   越界会污染旧版工具箱和其它页面。
+   只作用于 [data-skin] 子树，绝不写全局 :root —— globals.css 是全站共享的。
 
-   B = 中度：HUD 控制台风（深空底 + 青紫霓虹描边 + 玻璃面板 + 柔光晕）
-   C = 重度：星舰控制台（在 B 基础上加网格背景、扫描线、切角面板、更强辉光）
+   ⚠️ 设计约束（来自 impeccable 技能）：
+   每个皮肤必须是**不同的设计语言**，而不只是换颜色。
+   所以 token 里包含字体、边框粗细、阴影、圆角、间距节奏、纹理 ——
+   组件读这些 token，因此同一份组件树能呈现完全不同的气质。
 
-   组件树只有一份，换肤靠这里的变量覆盖 —— shadcn 组件写的是 bg-card /
-   text-foreground 这类 token 类名，覆盖同名变量后它们会自动跟着变。
+   刻意避开的「AI 味」：青色+深色、紫蓝渐变、霓虹点缀、默认深色发光、
+   纯黑 #000 / 纯白 #fff、毛玻璃滥用、把等宽当「技术感」。
+
+   B / C 是早期版本（深色科幻），保留作对照；
+   D~H 是重新设计的 5 个方向。
    ============================================================ */
 
-/* ---------- B：中度 HUD 控制台 ---------- */
+/* ---------- 基础：所有皮肤共用的排版与重置 ---------- */
+[data-skin] {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-family: var(--tb-font-body);
+  font-feature-settings: 'tnum' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-skin] h1,
+[data-skin] h2,
+[data-skin] h3,
+[data-skin] h4 {
+  font-family: var(--tb-font-display);
+  letter-spacing: var(--tb-tracking, -0.01em);
+}
+
+/* 纹理层：G 用细噪点纸感，H 用制图网格 */
+[data-skin]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--tb-texture, none);
+  background-size: var(--tb-texture-size, auto);
+  opacity: var(--tb-texture-opacity, 0);
+}
+
+/* ============================================================
+   B · HUD 控制台（早期版本，保留对照）
+   ============================================================ */
 [data-skin='b'] {
   --radius: 0.75rem;
-
   --background: #060a12;
   --foreground: #e2e8f0;
-
   --card: #0d1524;
   --card-foreground: #e2e8f0;
   --popover: #111c2e;
   --popover-foreground: #e2e8f0;
-
   --primary: #22d3ee;
   --primary-foreground: #04121a;
   --secondary: #16233a;
@@ -33,35 +65,34 @@
   --accent-foreground: #e2e8f0;
   --destructive: #f43f5e;
   --destructive-foreground: #ffffff;
-
   --border: rgba(56, 189, 248, 0.22);
   --input: rgba(56, 189, 248, 0.18);
   --ring: #22d3ee;
 
-  /* 工具箱自定义 token */
   --tb-accent-2: #8b5cf6;
-  --tb-panel: rgba(13, 21, 36, 0.72);
-  --tb-panel-solid: #0d1524;
+  --tb-font-display: var(--font-archivo), system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), system-ui, sans-serif;
+  --tb-tracking: 0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: none;
   --tb-glow: 0 0 20px rgba(34, 211, 238, 0.25);
-  --tb-glow-strong: 0 0 32px rgba(34, 211, 238, 0.4);
-  --tb-line: rgba(56, 189, 248, 0.14);
-  --tb-grid: rgba(56, 189, 248, 0.055);
+  --tb-panel-bg: rgba(13, 21, 36, 0.72);
+  --tb-panel-radius: 0.75rem;
   --tb-clip: none;
-  --tb-scan: 0;
+  --tb-rule: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.25) 20%, rgba(56, 189, 248, 0.25) 80%, transparent);
 }
 
-/* ---------- C：重度 星舰控制台 ---------- */
+/* ============================================================
+   C · 星舰控制台（早期版本，保留对照）
+   ============================================================ */
 [data-skin='c'] {
   --radius: 0.25rem;
-
   --background: #03060d;
   --foreground: #d8f3ff;
-
   --card: #081120;
   --card-foreground: #d8f3ff;
   --popover: #0c1728;
   --popover-foreground: #d8f3ff;
-
   --primary: #00e5ff;
   --primary-foreground: #001318;
   --secondary: #0e1d33;
@@ -72,103 +103,377 @@
   --accent-foreground: #d8f3ff;
   --destructive: #ff2d55;
   --destructive-foreground: #ffffff;
-
   --border: rgba(0, 229, 255, 0.35);
   --input: rgba(0, 229, 255, 0.25);
   --ring: #00e5ff;
 
   --tb-accent-2: #ff2d95;
-  --tb-panel: rgba(8, 17, 32, 0.78);
-  --tb-panel-solid: #081120;
+  --tb-font-display: var(--font-archivo), system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), system-ui, sans-serif;
+  --tb-tracking: 0.08em;
+  --tb-border-w: 1px;
+  --tb-shadow: none;
   --tb-glow: 0 0 28px rgba(0, 229, 255, 0.45);
-  --tb-glow-strong: 0 0 44px rgba(0, 229, 255, 0.6);
-  --tb-line: rgba(0, 229, 255, 0.22);
-  --tb-grid: rgba(0, 229, 255, 0.09);
-  /* 切角：星舰面板的招牌造型 */
+  --tb-panel-bg: rgba(8, 17, 32, 0.78);
+  --tb-panel-radius: 0.25rem;
   --tb-clip: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  --tb-scan: 1;
+  --tb-rule: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.35) 20%, rgba(0, 229, 255, 0.35) 80%, transparent);
+  --tb-texture: repeating-linear-gradient(to bottom, rgba(0, 229, 255, 0.03) 0 1px, transparent 1px 3px);
+  --tb-texture-opacity: 1;
 }
 
-/* ---------- 共用：背景与字体 ---------- */
-[data-skin] {
-  color: var(--foreground);
-  background-color: var(--background);
-  font-feature-settings: 'tnum' 1;
+/* ============================================================
+   D · 瑞士精密
+   冷白纸面 · 直角 · 发丝线 · 零阴影 · 单一信号红
+   参考：瑞士国际主义、精密仪器面板、技术手册
+   ============================================================ */
+[data-skin='d'] {
+  --radius: 0px;
+  --background: #f7f7f5;
+  --foreground: #141414;
+  --card: #ffffff;
+  --card-foreground: #141414;
+  --popover: #ffffff;
+  --popover-foreground: #141414;
+  --primary: #e5352b; /* 信号红：整个界面唯一的强调色 */
+  --primary-foreground: #ffffff;
+  --secondary: #eeeeea;
+  --secondary-foreground: #141414;
+  --muted: #f0f0ec;
+  --muted-foreground: #6b6b66;
+  --accent: #ebebe6;
+  --accent-foreground: #141414;
+  --destructive: #c0392b;
+  --destructive-foreground: #ffffff;
+  --border: #d8d8d2;
+  --input: #d8d8d2;
+  --ring: #141414;
+
+  --tb-accent-2: #141414;
+  --tb-font-display: var(--font-archivo), 'Helvetica Neue', sans-serif;
+  --tb-font-body: var(--font-archivo), 'Helvetica Neue', sans-serif;
+  --tb-tracking: -0.015em;
+  --tb-border-w: 1px;
+  --tb-shadow: none; /* 不用阴影，靠边框与留白分层 */
+  --tb-glow: none;
+  --tb-panel-bg: #ffffff;
+  --tb-panel-radius: 0px;
+  --tb-clip: none;
+  --tb-rule: 1px solid #d8d8d2;
+  --tb-panel-pad: 1.75rem;
 }
 
-/* C 的网格背景（用伪元素，避免额外 DOM） */
-[data-skin='c']::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--tb-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--tb-grid) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 35%, transparent 100%);
+/* ============================================================
+   E · 编辑部
+   奶油纸 · 大衬线标题 · 编辑红 · 发丝分隔 · 印刷感
+   参考：报刊排版、书籍扉页
+   ============================================================ */
+[data-skin='e'] {
+  --radius: 0px;
+  --background: #fbf8f1;
+  --foreground: #1a1714;
+  --card: #fdfbf6;
+  --card-foreground: #1a1714;
+  --popover: #fdfbf6;
+  --popover-foreground: #1a1714;
+  --primary: #b3341a; /* 编辑红，比信号红更沉 */
+  --primary-foreground: #fdfbf6;
+  --secondary: #f2ebdd;
+  --secondary-foreground: #1a1714;
+  --muted: #f4eee2;
+  --muted-foreground: #6f6558;
+  --accent: #efe6d5;
+  --accent-foreground: #1a1714;
+  --destructive: #a32c1a;
+  --destructive-foreground: #fdfbf6;
+  --border: #e0d9cc;
+  --input: #ddd4c4;
+  --ring: #b3341a;
+
+  --tb-accent-2: #2c4a3e; /* 墨绿，用于次级标注 */
+  --tb-font-display: var(--font-fraunces), Georgia, 'Songti SC', serif;
+  --tb-font-body: var(--font-fraunces), Georgia, 'Songti SC', serif;
+  --tb-tracking: -0.022em;
+  --tb-border-w: 1px;
+  --tb-shadow: none;
+  --tb-glow: none;
+  --tb-panel-bg: #fdfbf6;
+  --tb-panel-radius: 0px;
+  --tb-clip: none;
+  --tb-rule: 1px solid #e0d9cc;
+  --tb-panel-pad: 2rem;
 }
 
-/* C 的扫描线 */
-[data-skin='c']::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 229, 255, 0.035) 0px,
-    rgba(0, 229, 255, 0.035) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  animation: tb-scan-drift 8s linear infinite;
+/* ============================================================
+   F · 新粗野
+   亮白底 · 3px 黑边 · 硬偏移阴影 · 酸性黄 + 电蓝
+   参考：Neo-Brutalism、risograph 印刷
+   ============================================================ */
+[data-skin='f'] {
+  --radius: 0px;
+  --background: #fffdf5;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0037ff; /* 电蓝：主要动作 */
+  --primary-foreground: #ffffff;
+  --secondary: #ffe600; /* 酸性黄：次要标记 */
+  --secondary-foreground: #0a0a0a;
+  --muted: #f2f0e6;
+  --muted-foreground: #4a4a44;
+  --accent: #ffe600;
+  --accent-foreground: #0a0a0a;
+  --destructive: #ff2d2d;
+  --destructive-foreground: #ffffff;
+  --border: #0a0a0a;
+  --input: #0a0a0a;
+  --ring: #0037ff;
+
+  --tb-accent-2: #ffe600;
+  --tb-font-display: var(--font-archivo-black), var(--font-archivo), sans-serif;
+  --tb-font-body: var(--font-archivo), system-ui, sans-serif;
+  --tb-tracking: -0.03em;
+  --tb-border-w: 3px;
+  /* 硬阴影：无模糊、纯黑偏移，是这一风格的招牌 */
+  --tb-shadow: 6px 6px 0 #0a0a0a;
+  --tb-glow: none;
+  --tb-panel-bg: #ffffff;
+  --tb-panel-radius: 0px;
+  --tb-clip: none;
+  --tb-rule: 3px solid #0a0a0a;
+  --tb-panel-pad: 1.5rem;
 }
 
-@keyframes tb-scan-drift {
-  from {
-    background-position-y: 0;
-  }
-  to {
-    background-position-y: 44px;
-  }
+/* ============================================================
+   G · 有机纸感
+   暖纸底 · 不规则圆角 · 纸纹 · 陶土橙与鼠尾草绿
+   参考：手工纸、自然材料、陶瓷
+   ============================================================ */
+[data-skin='g'] {
+  --radius: 1.25rem;
+  --background: #f3ede3;
+  --foreground: #3a3229;
+  --card: #faf6ee;
+  --card-foreground: #3a3229;
+  --popover: #faf6ee;
+  --popover-foreground: #3a3229;
+  --primary: #b5623a; /* 陶土橙 */
+  --primary-foreground: #fdfaf4;
+  --secondary: #e6ded0;
+  --secondary-foreground: #3a3229;
+  --muted: #ece4d8;
+  --muted-foreground: #7d7263;
+  --accent: #e3dccd;
+  --accent-foreground: #3a3229;
+  --destructive: #a8472f;
+  --destructive-foreground: #fdfaf4;
+  --border: #ded3c1;
+  --input: #d9cdb9;
+  --ring: #b5623a;
+
+  --tb-accent-2: #7d8f69; /* 鼠尾草绿 */
+  --tb-font-display: var(--font-fraunces), Georgia, 'Songti SC', serif;
+  --tb-font-body: var(--font-karla), system-ui, 'PingFang SC', sans-serif;
+  --tb-tracking: -0.005em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 2px 10px rgba(90, 70, 50, 0.07);
+  --tb-glow: none;
+  --tb-panel-bg: #faf6ee;
+  /* 不规则圆角：四个角不同，避免「统一的圆角+通用阴影」 */
+  --tb-panel-radius: 1.5rem 0.75rem 1.5rem 0.75rem;
+  --tb-clip: none;
+  --tb-rule: 1px solid #ded3c1;
+  --tb-panel-pad: 1.75rem;
+  /* 细噪点模拟纸纹 */
+  --tb-texture: radial-gradient(rgba(120, 100, 75, 0.055) 1px, transparent 1px);
+  --tb-texture-size: 3px 3px;
+  --tb-texture-opacity: 1;
 }
 
-/* ---------- 工具类：面板 / 切角 / 辉光 ---------- */
+/* ============================================================
+   H · 工程蓝图
+   图纸深蓝 · 制图网格 · 标注线 · 编号角标
+   参考：机械制图、建筑蓝图、技术图纸
+   ============================================================ */
+[data-skin='h'] {
+  --radius: 0px;
+  --background: #0b2545;
+  --foreground: #eaf2ff;
+  --card: #12335c;
+  --card-foreground: #eaf2ff;
+  --popover: #12335c;
+  --popover-foreground: #eaf2ff;
+  --primary: #ffd166; /* 图纸标注黄：像铅笔标注，而不是霓虹 */
+  --primary-foreground: #0b2545;
+  --secondary: #1a4272;
+  --secondary-foreground: #cfe0f5;
+  --muted: #103056;
+  --muted-foreground: #93b0d4;
+  --accent: #1a4272;
+  --accent-foreground: #eaf2ff;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #0b2545;
+  --border: rgba(234, 242, 255, 0.28);
+  --input: rgba(234, 242, 255, 0.22);
+  --ring: #ffd166;
+
+  --tb-accent-2: #8fd3ff;
+  --tb-font-display: var(--font-plex-mono), ui-monospace, monospace;
+  --tb-font-body: var(--font-plex-sans), system-ui, sans-serif;
+  --tb-tracking: 0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: none;
+  --tb-glow: none;
+  --tb-panel-bg: rgba(18, 51, 92, 0.55);
+  --tb-panel-radius: 0px;
+  --tb-clip: none;
+  --tb-rule: 1px dashed rgba(234, 242, 255, 0.32);
+  --tb-panel-pad: 1.5rem;
+  /* 制图网格：小格 + 大格 */
+  --tb-texture:
+    linear-gradient(rgba(234, 242, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(234, 242, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(234, 242, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(234, 242, 255, 0.12) 1px, transparent 1px);
+  --tb-texture-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+  --tb-texture-opacity: 1;
+}
+
+/* ============================================================
+   组件读取的设计语言 token
+   ============================================================ */
+
 .tb-panel {
-  background: var(--tb-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--tb-panel-bg);
+  border: var(--tb-border-w) solid var(--border);
+  border-radius: var(--tb-panel-radius);
   clip-path: var(--tb-clip);
-  backdrop-filter: blur(12px);
-}
-
-.tb-panel-glow {
-  box-shadow: var(--tb-glow);
+  box-shadow: var(--tb-shadow);
+  padding: var(--tb-panel-pad, 1.25rem);
+  backdrop-filter: none; /* 明确不用毛玻璃：那是 AI 味的重灾区 */
 }
 
 .tb-title {
-  letter-spacing: 0.08em;
+  font-family: var(--tb-font-display);
+  letter-spacing: var(--tb-tracking, -0.01em);
+  font-weight: 700;
+}
+
+.tb-label {
+  font-family: var(--tb-font-display);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
 }
 
-/* C 的标题加一道品红辉光 */
-[data-skin='c'] .tb-title {
-  text-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
-}
-
-/* 横向发光线 */
 .tb-hr {
-  height: 1px;
+  height: 0;
   border: 0;
-  background: linear-gradient(90deg, transparent, var(--tb-line) 18%, var(--tb-line) 82%, transparent);
+  border-top: var(--tb-rule);
 }
 
-/* 尊重「减少动态效果」偏好 */
+/* 按钮：各皮肤形态差异很大，统一在这里定义 */
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: var(--tb-border-w) solid var(--border);
+  border-radius: var(--tb-panel-radius);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8125rem;
+  font-family: var(--tb-font-body);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+
+.tb-btn:hover {
+  background: var(--accent);
+}
+
+/* F 的招牌：悬停位移 + 按下压平 */
+[data-skin='f'] .tb-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 #0a0a0a;
+}
+[data-skin='f'] .tb-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 2px 2px 0 #0a0a0a;
+}
+
+.tb-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+[data-skin='f'] .tb-btn-primary {
+  border-color: #0a0a0a;
+  box-shadow: 6px 6px 0 #0a0a0a;
+}
+
+/* 标签页 */
+.tb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8125rem;
+  font-family: var(--tb-font-body);
+  border: var(--tb-border-w) solid transparent;
+  border-radius: var(--tb-panel-radius);
+  color: var(--muted-foreground);
+  transition: all 0.15s ease;
+}
+
+.tb-tab:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.tb-tab-active {
+  color: var(--foreground);
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--tb-shadow);
+}
+
+/* D 的标签：下划线而不是色块 */
+[data-skin='d'] .tb-tab {
+  border-radius: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+}
+[data-skin='d'] .tb-tab-active {
+  border-bottom-color: var(--primary);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* E 的标签：小字母 + 发丝线 */
+[data-skin='e'] .tb-tab {
+  border-radius: 0;
+  border: 0;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+[data-skin='e'] .tb-tab-active {
+  border-bottom: 1px solid var(--foreground);
+  background: transparent;
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  [data-skin='c']::after {
-    animation: none;
+  .tb-btn,
+  .tb-tab {
+    transition: none;
+  }
+  [data-skin='f'] .tb-btn:hover,
+  [data-skin='f'] .tb-btn:active {
+    transform: none;
   }
 }
