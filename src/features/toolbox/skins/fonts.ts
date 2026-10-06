@@ -1,4 +1,13 @@
-import { Archivo, Archivo_Black, Fraunces, Karla, IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
+import {
+  Archivo,
+  Archivo_Black,
+  Fraunces,
+  Karla,
+  IBM_Plex_Mono,
+  IBM_Plex_Sans,
+  Plus_Jakarta_Sans,
+  Inter,
+} from 'next/font/google';
 
 /**
  * 工具箱用到的展示字体。
@@ -51,6 +60,20 @@ export const plexSans = IBM_Plex_Sans({
   display: 'swap',
 });
 
+export const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+});
+
+export const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
 /** 把这些 class 挂到应用根节点，字体变量才会生效 */
 export const fontClassNames = [
   archivo.variable,
@@ -59,4 +82,6 @@ export const fontClassNames = [
   karla.variable,
   plexMono.variable,
   plexSans.variable,
+  jakarta.variable,
+  inter.variable,
 ].join(' ');
