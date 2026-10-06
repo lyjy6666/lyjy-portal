@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { SkinProvider, useSkin, SKIN_META, SKIN_ORDER, type SkinId } from './skins/skin';
 import { fontClassNames } from './skins/fonts';
 import ImageTool from './ui/ImageTool';
+import DataTool from './ui/DataTool';
+import CodeTool from './ui/CodeTool';
 
 export type ToolTab = {
   id: string;
@@ -127,6 +129,8 @@ function SkinPicker() {
 
 function TabContent({ tab }: { tab: string }) {
   if (tab === 'image') return <ImageTool />;
+  if (tab === 'data') return <DataTool />;
+  if (tab === 'code') return <CodeTool />;
 
   const meta = TABS.find((t) => t.id === tab);
   return (
