@@ -1,0 +1,174 @@
+/* ============================================================
+   格式转换工具箱 · 科幻皮肤
+   ------------------------------------------------------------
+   只作用于 [data-skin] 子树，绝不写全局 :root —— globals.css 是全站共享的，
+   越界会污染旧版工具箱和其它页面。
+
+   B = 中度：HUD 控制台风（深空底 + 青紫霓虹描边 + 玻璃面板 + 柔光晕）
+   C = 重度：星舰控制台（在 B 基础上加网格背景、扫描线、切角面板、更强辉光）
+
+   组件树只有一份，换肤靠这里的变量覆盖 —— shadcn 组件写的是 bg-card /
+   text-foreground 这类 token 类名，覆盖同名变量后它们会自动跟着变。
+   ============================================================ */
+
+/* ---------- B：中度 HUD 控制台 ---------- */
+[data-skin='b'] {
+  --radius: 0.75rem;
+
+  --background: #060a12;
+  --foreground: #e2e8f0;
+
+  --card: #0d1524;
+  --card-foreground: #e2e8f0;
+  --popover: #111c2e;
+  --popover-foreground: #e2e8f0;
+
+  --primary: #22d3ee;
+  --primary-foreground: #04121a;
+  --secondary: #16233a;
+  --secondary-foreground: #cbd5e1;
+  --muted: #132033;
+  --muted-foreground: #7c93ad;
+  --accent: #1b2b45;
+  --accent-foreground: #e2e8f0;
+  --destructive: #f43f5e;
+  --destructive-foreground: #ffffff;
+
+  --border: rgba(56, 189, 248, 0.22);
+  --input: rgba(56, 189, 248, 0.18);
+  --ring: #22d3ee;
+
+  /* 工具箱自定义 token */
+  --tb-accent-2: #8b5cf6;
+  --tb-panel: rgba(13, 21, 36, 0.72);
+  --tb-panel-solid: #0d1524;
+  --tb-glow: 0 0 20px rgba(34, 211, 238, 0.25);
+  --tb-glow-strong: 0 0 32px rgba(34, 211, 238, 0.4);
+  --tb-line: rgba(56, 189, 248, 0.14);
+  --tb-grid: rgba(56, 189, 248, 0.055);
+  --tb-clip: none;
+  --tb-scan: 0;
+}
+
+/* ---------- C：重度 星舰控制台 ---------- */
+[data-skin='c'] {
+  --radius: 0.25rem;
+
+  --background: #03060d;
+  --foreground: #d8f3ff;
+
+  --card: #081120;
+  --card-foreground: #d8f3ff;
+  --popover: #0c1728;
+  --popover-foreground: #d8f3ff;
+
+  --primary: #00e5ff;
+  --primary-foreground: #001318;
+  --secondary: #0e1d33;
+  --secondary-foreground: #a5d8ee;
+  --muted: #0b1727;
+  --muted-foreground: #6c8ba8;
+  --accent: #12253d;
+  --accent-foreground: #d8f3ff;
+  --destructive: #ff2d55;
+  --destructive-foreground: #ffffff;
+
+  --border: rgba(0, 229, 255, 0.35);
+  --input: rgba(0, 229, 255, 0.25);
+  --ring: #00e5ff;
+
+  --tb-accent-2: #ff2d95;
+  --tb-panel: rgba(8, 17, 32, 0.78);
+  --tb-panel-solid: #081120;
+  --tb-glow: 0 0 28px rgba(0, 229, 255, 0.45);
+  --tb-glow-strong: 0 0 44px rgba(0, 229, 255, 0.6);
+  --tb-line: rgba(0, 229, 255, 0.22);
+  --tb-grid: rgba(0, 229, 255, 0.09);
+  /* 切角：星舰面板的招牌造型 */
+  --tb-clip: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  --tb-scan: 1;
+}
+
+/* ---------- 共用：背景与字体 ---------- */
+[data-skin] {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-feature-settings: 'tnum' 1;
+}
+
+/* C 的网格背景（用伪元素，避免额外 DOM） */
+[data-skin='c']::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--tb-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tb-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 35%, transparent 100%);
+}
+
+/* C 的扫描线 */
+[data-skin='c']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 229, 255, 0.035) 0px,
+    rgba(0, 229, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: tb-scan-drift 8s linear infinite;
+}
+
+@keyframes tb-scan-drift {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 44px;
+  }
+}
+
+/* ---------- 工具类：面板 / 切角 / 辉光 ---------- */
+.tb-panel {
+  background: var(--tb-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  clip-path: var(--tb-clip);
+  backdrop-filter: blur(12px);
+}
+
+.tb-panel-glow {
+  box-shadow: var(--tb-glow);
+}
+
+.tb-title {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* C 的标题加一道品红辉光 */
+[data-skin='c'] .tb-title {
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
+}
+
+/* 横向发光线 */
+.tb-hr {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--tb-line) 18%, var(--tb-line) 82%, transparent);
+}
+
+/* 尊重「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  [data-skin='c']::after {
+    animation: none;
+  }
+}
