@@ -322,6 +322,27 @@
   --tb-title-gradient: linear-gradient(92deg, #2f5233 0%, #4a7c43 100%);
 }
 
+
+/* N 的关键：参考设计的每张卡片各有**自己的粉彩色域**，这是它的灵魂。
+   只做「灰底 + 白卡」会变得很平，所以这里按顺序给卡片轮换粉彩底色。 */
+[data-skin='n'] .tb-panel:nth-of-type(4n + 1) {
+  background: linear-gradient(180deg, #fdeef6 0%, #fbe6f1 100%); /* 粉 */
+}
+[data-skin='n'] .tb-panel:nth-of-type(4n + 2) {
+  background: linear-gradient(180deg, #eef5e6 0%, #e6f0dc 100%); /* 黄绿 */
+}
+[data-skin='n'] .tb-panel:nth-of-type(4n + 3) {
+  background: linear-gradient(180deg, #fdf1e4 0%, #fbe9d8 100%); /* 蜜桃 */
+}
+[data-skin='n'] .tb-panel:nth-of-type(4n + 4) {
+  background: linear-gradient(180deg, #eeecf9 0%, #e7e4f6 100%); /* 薰衣草 */
+}
+/* 卡片内的输入控件要退回白底，否则会跟卡片糊在一起 */
+[data-skin='n'] .tb-panel input,
+[data-skin='n'] .tb-panel .tb-btn {
+  background: rgba(255, 255, 255, 0.72);
+}
+
 /* ---------- O · 液态玻璃（学自「天气仪表盘」那份）----------
    要点：全幅背景图（这里用多层深色渐变模拟大气）、
    磨砂玻璃面板（半透明白 + backdrop-blur + 饱和提升）、
@@ -376,49 +397,6 @@
     radial-gradient(at 12% 86%, rgba(40, 92, 88, 0.5) 0px, transparent 55%),
     linear-gradient(170deg, #0e2a33 0%, #071821 60%, #04121b 100%);
   --tb-title-gradient: linear-gradient(92deg, #ffffff 0%, #a8e6dc 55%, #ffffff 100%);
-}
-
-/* ---------- P · 轻盈 SaaS（学自「FreedomSection」那份）----------
-   要点：纯白底、**极淡的柔光阴影**（不是硬阴影）、18px 圆角、
-   大量留白、标题用蓝→紫→橙的渐变字、无边框、无重装饰。
-   ------------------------------------------------------------ */
-[data-skin='p'] {
-  --radius: 1.125rem;
-  --background: #ffffff;
-  --foreground: #1a0b54;
-  --card: #ffffff;
-  --card-foreground: #1a0b54;
-  --popover: #ffffff;
-  --popover-foreground: #1a0b54;
-  --primary: #2ba7ff;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f6fb;
-  --secondary-foreground: #1a0b54;
-  --muted: #f7f7f9;
-  --muted-foreground: #83799e;
-  --accent: #f2f5fb;
-  --accent-foreground: #1a0b54;
-  --destructive: #e11d48;
-  --destructive-foreground: #ffffff;
-  --border: rgba(63, 74, 126, 0.1);
-  --input: rgba(63, 74, 126, 0.14);
-  --ring: #ca45ff;
-
-  --tb-accent-2: #fe881b;
-  --tb-font-display: var(--font-jakarta), 'PingFang SC', system-ui, sans-serif;
-  --tb-font-body: var(--font-jakarta), 'PingFang SC', system-ui, sans-serif;
-  --tb-tracking: -0.02em;
-  --tb-border-w: 1px;
-  /* 招牌：极淡的双层柔光阴影，几乎像浮在纸面上 */
-  --tb-shadow: 0 3px 9px rgba(63, 74, 126, 0.05), 0 1px 29px rgba(63, 74, 126, 0.1);
-  --tb-panel-radius: 1.125rem;
-  --tb-clip: none;
-  --tb-panel-bg: #ffffff;
-  --tb-panel-blur: 0px;
-  --tb-rule: 1px solid rgba(63, 74, 126, 0.1);
-  --tb-panel-pad: 1.75rem;
-  --tb-bg-gradient: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-  --tb-title-gradient: linear-gradient(90deg, #2ba7ff 0%, #ca45ff 50%, #fe881b 100%);
 }
 
 /* ============================================================

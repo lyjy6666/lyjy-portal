@@ -13,7 +13,7 @@ import { createContext, useContext, useCallback, useEffect, useState, type React
  * 不只是换颜色。
  */
 
-export type SkinId = 'i' | 'g' | 'm' | 'k' | 'c' | 'n' | 'o' | 'p';
+export type SkinId = 'i' | 'g' | 'm' | 'k' | 'c' | 'n' | 'o';
 
 export type SkinMeta = {
   name: string;
@@ -84,17 +84,9 @@ export const SKIN_META: Record<SkinId, SkinMeta> = {
     tone: 'dark',
     group: '新学三版',
   },
-  p: {
-    name: '轻盈 SaaS',
-    short: '极简留白',
-    desc: '纯白底、极淡柔光阴影、大量留白，标题用蓝紫橙渐变字',
-    swatch: ['#ffffff', '#2ba7ff', '#ca45ff'],
-    tone: 'light',
-    group: '新学三版',
-  },
 };
 
-export const SKIN_ORDER: SkinId[] = ['i', 'g', 'm', 'k', 'n', 'o', 'p', 'c'];
+export const SKIN_ORDER: SkinId[] = ['i', 'g', 'm', 'k', 'n', 'o', 'c'];
 
 const STORAGE_KEY = 'toolbox_skin';
 
