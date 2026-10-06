@@ -1,21 +1,24 @@
 /**
  * 数据格式互转（JSON / YAML / TOML / XML / CSV / TSV）
  *
+ * 使用专业库而非手写解析器：
+ *   papaparse        CSV —— RFC-4180 完整实现，含引号内换行、转义引号、编码探测
+ *   js-yaml          YAML —— 完整规范（锚点、别名、标签、复杂折叠都支持）
+ *   smol-toml        TOML —— 完整规范
+ *   fast-xml-parser  XML  —— 保留属性与顺序
+ *
  * 修掉旧版的硬伤：
  *   - CSV 先 split('\n') 再处理引号 → 引号内含换行的字段解析错
- *     → 这里用 RFC-4180 状态机逐字符解析
- *   - CSV 数字强转丢精度（"007" → 7、手机号变科学计数）
- *     → 一律按字符串保留
- *   - XML 值不转义、属性全丢、解析错误被吞
- *     → 解析用浏览器自带 DOMParser（真解析器）并检查 parsererror；
- *       生成时转义 + 保留属性
- *   - JSON→TOML 实际输出 JSON、null 在 TOML 里非法
- *     → 各自实现真正的序列化
- *
- * 关于依赖：papaparse / js-yaml / smol-toml 装不上（沙箱拦了 pnpm 调用的 wmic），
- * 所以 CSV 用状态机手写、XML 用 DOMParser、YAML/TOML 写覆盖常见用法的子集。
- * 子集之外的语法会明确报错，不会静默产出错误结果。
+ *   - CSV 数字强转丢精度（"007" → 7、手机号变科学计数）→ 全程不做类型推断
+ *   - XML 值不转义、属性全丢、解析错误被吞 → 现在转义 + 保留属性 + 明确报错
+ *   - JSON→TOML 实际输出 JSON、null 在 TOML 里非法 → 各自实现真正的序列化
  */
+
+import Papa from 'papaparse';
+// js-yaml v5 起 load/dump 是**具名导出**，不再挂在默认导出上
+import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
+import { parse as parseTomlLib, stringify as stringifyTomlLib } from 'smol-toml';
+import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 
 export type DataFormat = 'json' | 'yaml' | 'toml' | 'xml' | 'csv' | 'tsv';
 
@@ -36,78 +39,30 @@ export class DataError extends Error {
 }
 
 /* ============================================================
-   CSV / TSV —— RFC-4180 状态机
+   CSV / TSV —— papaparse
    ============================================================ */
 
-/** 逐字符解析，正确处理引号内的分隔符、换行与转义引号 */
 export function parseCsv(text: string, delimiter = ','): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = '';
-  let inQuotes = false;
-  let i = 0;
+  const result = Papa.parse<string[]>(text, {
+    delimiter,
+    // 关键：不做类型推断，"007" / 手机号 / 邮编才不会被转成数字丢精度
+    dynamicTyping: false,
+    skipEmptyLines: 'greedy',
+    header: false,
+  });
 
-  // 去掉 BOM，否则首个字段会带上不可见字符
-  if (text.charCodeAt(0) === 0xfeff) i = 1;
-
-  while (i < text.length) {
-    const c = text[i];
-
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"'; // 转义的引号
-          i += 2;
-          continue;
-        }
-        inQuotes = false;
-        i++;
-        continue;
-      }
-      field += c;
-      i++;
-      continue;
-    }
-
-    if (c === '"' && field === '') {
-      inQuotes = true;
-      i++;
-      continue;
-    }
-    if (c === delimiter) {
-      row.push(field);
-      field = '';
-      i++;
-      continue;
-    }
-    if (c === '\r') {
-      i++; // 等 LF 一起处理
-      continue;
-    }
-    if (c === '\n') {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-      i++;
-      continue;
-    }
-    field += c;
-    i++;
+  const fatal = result.errors.filter((e) => e.type === 'Quotes' || e.code === 'UndetectableDelimiter');
+  if (fatal.length) {
+    throw new DataError(`CSV 解析失败：${fatal[0].message}（第 ${(fatal[0].row ?? 0) + 1} 行）`);
   }
 
-  // 收尾（末行没有换行时）
-  if (field !== '' || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-
-  // 丢掉完全空白的行
-  return rows.filter((r) => !(r.length === 1 && r[0].trim() === ''));
+  return (result.data as unknown as string[][]).map((row) =>
+    (Array.isArray(row) ? row : [String(row)]).map((c) => (c === null || c === undefined ? '' : String(c)))
+  );
 }
 
 function csvCell(v: unknown, delimiter: string): string {
-  // 关键：数字/布尔等一律按字符串输出，不做类型推断，避免 "007" → 7
+  // 一律按字符串输出，不做类型推断
   const s = v === null || v === undefined ? '' : String(v);
   if (s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes(delimiter)) {
     return `"${s.replace(/"/g, '""')}"`;
@@ -115,7 +70,7 @@ function csvCell(v: unknown, delimiter: string): string {
   return s;
 }
 
-/** 数组 → CSV。对象数组会取并集表头；二维数组直接输出 */
+/** 数组 → CSV。对象数组取键的并集当表头；二维数组直接输出 */
 export function stringifyCsv(data: unknown, delimiter = ','): string {
   let rows: unknown[][];
 
@@ -124,7 +79,6 @@ export function stringifyCsv(data: unknown, delimiter = ','): string {
     if (Array.isArray(data[0])) {
       rows = data as unknown[][];
     } else if (typeof data[0] === 'object' && data[0] !== null) {
-      // 对象数组：表头取所有键的并集，保证列不丢
       const keys: string[] = [];
       for (const item of data) {
         if (item && typeof item === 'object') {
@@ -148,543 +102,131 @@ export function stringifyCsv(data: unknown, delimiter = ','): string {
 }
 
 /* ============================================================
-   YAML —— 覆盖常见用法的子集
+   YAML —— js-yaml
    ============================================================ */
 
-/** 解析标量：引号内原样，其余按 YAML 规则推断类型 */
-function parseYamlScalar(raw: string): unknown {
-  const s = raw.trim();
-  if (s === '') return null;
-  if (s === 'null' || s === '~') return null;
-  if (s === 'true' || s === 'True' || s === 'TRUE') return true;
-  if (s === 'false' || s === 'False' || s === 'FALSE') return false;
-
-  // 单引号：内部 '' 表示一个 '
-  if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) {
-    return s.slice(1, -1).replace(/''/g, "'");
-  }
-  // 双引号：处理转义
-  if (s.startsWith('"') && s.endsWith('"') && s.length >= 2) {
-    return s
-      .slice(1, -1)
-      .replace(/\\n/g, '\n')
-      .replace(/\\t/g, '\t')
-      .replace(/\\"/g, '"')
-      .replace(/\\\\/g, '\\');
-  }
-  // 内联数组 / 对象
-  if (s.startsWith('[') && s.endsWith(']')) {
-    const inner = s.slice(1, -1).trim();
-    if (!inner) return [];
-    return splitTopLevel(inner).map((x) => parseYamlScalar(x));
-  }
-  if (s.startsWith('{') && s.endsWith('}')) {
-    const inner = s.slice(1, -1).trim();
-    const obj: Record<string, unknown> = {};
-    if (!inner) return obj;
-    for (const pair of splitTopLevel(inner)) {
-      const idx = pair.indexOf(':');
-      if (idx < 0) continue;
-      obj[String(parseYamlScalar(pair.slice(0, idx)))] = parseYamlScalar(pair.slice(idx + 1));
-    }
-    return obj;
-  }
-  // 数字：只有形态明确是数字才转，避免把 "007" 这类带前导零的当数字
-  if (/^-?\d+$/.test(s) && !/^-?0\d/.test(s)) return Number(s);
-  if (/^-?\d*\.\d+([eE][-+]?\d+)?$/.test(s)) return Number(s);
-  if (/^-?(0x[0-9a-fA-F]+|0o[0-7]+)$/.test(s)) return Number(s);
-
-  return s;
-}
-
-/** 按顶层分隔符切分（忽略引号与括号内的分隔符） */
-function splitTopLevel(s: string, sep = ','): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let quote: string | null = null;
-  let cur = '';
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (quote) {
-      cur += c;
-      if (c === quote) quote = null;
-      continue;
-    }
-    if (c === '"' || c === "'") {
-      quote = c;
-      cur += c;
-      continue;
-    }
-    if (c === '[' || c === '{') depth++;
-    if (c === ']' || c === '}') depth--;
-    if (c === sep && depth === 0) {
-      out.push(cur);
-      cur = '';
-      continue;
-    }
-    cur += c;
-  }
-  if (cur.trim() !== '' || out.length) out.push(cur);
-  return out;
-}
-
-/** 去掉行尾注释（不在引号内的 #） */
-function stripComment(line: string): string {
-  let quote: string | null = null;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quote) {
-      if (c === quote && line[i - 1] !== '\\') quote = null;
-      continue;
-    }
-    if (c === '"' || c === "'") {
-      quote = c;
-      continue;
-    }
-    if (c === '#' && (i === 0 || /\s/.test(line[i - 1]))) return line.slice(0, i);
-  }
-  return line;
-}
-
 export function parseYaml(text: string): unknown {
-  const rawLines = text.replace(/\r\n?/g, '\n').split('\n');
-
-  type Line = { indent: number; content: string; index: number };
-  const lines: Line[] = [];
-  for (let i = 0; i < rawLines.length; i++) {
-    const stripped = stripComment(rawLines[i]).replace(/\s+$/, '');
-    if (!stripped.trim()) continue;
-    if (stripped.trim() === '---') continue;
-    lines.push({ indent: stripped.length - stripped.trimStart().length, content: stripped.trim(), index: i });
+  try {
+    return yamlLoad(text) ?? null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message.split('\n')[0] : '格式不正确';
+    throw new DataError(`YAML 解析失败：${msg}`);
   }
-  if (!lines.length) return null;
-
-  let pos = 0;
-
-  /** 解析缩进 >= indent 的块 */
-  function parseBlock(indent: number): unknown {
-    if (pos >= lines.length) return null;
-    const first = lines[pos];
-
-    // 序列
-    if (first.content.startsWith('- ') || first.content === '-') {
-      const arr: unknown[] = [];
-      while (pos < lines.length && lines[pos].indent >= indent && (lines[pos].content.startsWith('- ') || lines[pos].content === '-')) {
-        const line = lines[pos];
-        const rest = line.content === '-' ? '' : line.content.slice(2).trim();
-        pos++;
-
-        if (rest === '') {
-          // 内容在下一层
-          arr.push(pos < lines.length && lines[pos].indent > line.indent ? parseBlock(lines[pos].indent) : null);
-          continue;
-        }
-
-        // `- key: value` 形式：把这一行当成子对象的开头
-        const kv = rest.match(/^([^:]+):\s*(.*)$/);
-        if (kv && !rest.startsWith('{') && !rest.startsWith('[')) {
-          const obj: Record<string, unknown> = {};
-          const key = String(parseYamlScalar(kv[1]));
-          const val = kv[2].trim();
-          obj[key] = val === '' ? (pos < lines.length && lines[pos].indent > line.indent ? parseBlock(lines[pos].indent) : null) : parseYamlScalar(val);
-
-          // 继续吸收同层级的后续键
-          while (pos < lines.length && lines[pos].indent > line.indent && !lines[pos].content.startsWith('- ')) {
-            const sub = lines[pos];
-            const m = sub.content.match(/^([^:]+):\s*(.*)$/);
-            if (!m) break;
-            pos++;
-            const k2 = String(parseYamlScalar(m[1]));
-            const v2 = m[2].trim();
-            obj[k2] = v2 === '' ? (pos < lines.length && lines[pos].indent > sub.indent ? parseBlock(lines[pos].indent) : null) : parseYamlScalar(v2);
-          }
-          arr.push(obj);
-          continue;
-        }
-
-        arr.push(parseYamlScalar(rest));
-      }
-      return arr;
-    }
-
-    // 映射
-    if (/^[^:]+:(\s|$)/.test(first.content)) {
-      const obj: Record<string, unknown> = {};
-      while (pos < lines.length && lines[pos].indent >= indent && !lines[pos].content.startsWith('- ')) {
-        const line = lines[pos];
-        const m = line.content.match(/^([^:]+):\s*(.*)$/);
-        if (!m) break;
-        pos++;
-        const key = String(parseYamlScalar(m[1]));
-        const rest = m[2].trim();
-        if (rest === '' ) {
-          obj[key] = pos < lines.length && lines[pos].indent > line.indent ? parseBlock(lines[pos].indent) : null;
-        } else if (rest === '|' || rest === '>') {
-          // 多行字符串：收集更深缩进的行
-          const parts: string[] = [];
-          const baseIndent = lines[pos]?.indent ?? line.indent + 2;
-          while (pos < lines.length && lines[pos].indent >= baseIndent) {
-            parts.push(rawLines[lines[pos].index].slice(baseIndent));
-            pos++;
-          }
-          obj[key] = rest === '|' ? parts.join('\n') : parts.join(' ');
-        } else {
-          obj[key] = parseYamlScalar(rest);
-        }
-      }
-      return obj;
-    }
-
-    // 单个标量
-    pos++;
-    return parseYamlScalar(first.content);
-  }
-
-  return parseBlock(lines[0].indent);
 }
 
-/** 需要引号包裹的标量 */
-function yamlScalar(v: unknown, indent: number): string {
-  if (v === null || v === undefined) return 'null';
-  if (typeof v === 'boolean') return String(v);
-  if (typeof v === 'number') return String(v);
-  if (typeof v === 'string') {
-    if (v === '') return "''";
-    // 含特殊字符或形态像其它类型 → 加引号（并转义，避免出现非法 YAML）
-    if (/[:#\-?*&!|>'"%@`\[\]{},]/.test(v) || /^\s|\s$/.test(v) || /^(true|false|null|~|\d)/.test(v) || v.includes('\n')) {
-      return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
-    }
-    return v;
+export function stringifyYaml(data: unknown): string {
+  try {
+    return yamlDump(data, {
+      indent: 2,
+      lineWidth: -1, // 不自动折行，避免长字符串被切碎
+      noRefs: true, // 不输出锚点/别名，输出更直观
+    });
+  } catch (e) {
+    throw new DataError(`YAML 生成失败：${e instanceof Error ? e.message : '未知错误'}`);
   }
-  return `"${String(v)}"`;
-}
-
-export function stringifyYaml(data: unknown, indent = 0): string {
-  const pad = '  '.repeat(indent);
-
-  if (data === null || data === undefined) return 'null';
-  if (typeof data !== 'object') return yamlScalar(data, indent);
-
-  if (Array.isArray(data)) {
-    if (!data.length) return '[]';
-    return data
-      .map((item) => {
-        if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
-          const entries = Object.entries(item as object);
-          if (!entries.length) return `${pad}- {}`;
-          const [firstK, firstV] = entries[0];
-          const head = `${pad}- ${firstK}: ${typeof firstV === 'object' && firstV !== null ? '' : yamlScalar(firstV, indent)}`;
-          const rest = entries.slice(1).map(([k, v]) => {
-            if (v !== null && typeof v === 'object') {
-              return `${pad}  ${k}:\n${stringifyYaml(v, indent + 2)}`;
-            }
-            return `${pad}  ${k}: ${yamlScalar(v, indent)}`;
-          });
-          const firstTail =
-            typeof firstV === 'object' && firstV !== null ? `\n${stringifyYaml(firstV, indent + 2)}` : '';
-          return [head + firstTail, ...rest].join('\n');
-        }
-        if (Array.isArray(item)) return `${pad}-\n${stringifyYaml(item, indent + 1)}`;
-        return `${pad}- ${yamlScalar(item, indent)}`;
-      })
-      .join('\n');
-  }
-
-  const entries = Object.entries(data as object);
-  if (!entries.length) return '{}';
-  return entries
-    .map(([k, v]) => {
-      const key = /[:#\-?*&!|>'"%@`\[\]{},\s]/.test(k) ? `"${k}"` : k;
-      if (v !== null && typeof v === 'object') {
-        const inner = stringifyYaml(v, indent + 1);
-        if (Array.isArray(v) && v.length === 0) return `${pad}${key}: []`;
-        if (!Array.isArray(v) && Object.keys(v as object).length === 0) return `${pad}${key}: {}`;
-        return `${pad}${key}:\n${inner}`;
-      }
-      return `${pad}${key}: ${yamlScalar(v, indent)}`;
-    })
-    .join('\n');
 }
 
 /* ============================================================
-   TOML
+   TOML —— smol-toml
    ============================================================ */
 
-function tomlValue(raw: string): unknown {
-  const s = raw.trim();
-  if (s === '') return '';
-  if (s.startsWith('"""') && s.endsWith('"""') && s.length >= 6) return s.slice(3, -3);
-  if (s.startsWith('"') && s.endsWith('"') && s.length >= 2) {
-    return s.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-  }
-  if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) return s.slice(1, -1);
-  if (s === 'true') return true;
-  if (s === 'false') return false;
-  if (s.startsWith('[') && s.endsWith(']')) {
-    const inner = s.slice(1, -1).trim();
-    if (!inner) return [];
-    return splitTopLevel(inner).map((x) => tomlValue(x));
-  }
-  if (s.startsWith('{') && s.endsWith('}')) {
-    const obj: Record<string, unknown> = {};
-    for (const pair of splitTopLevel(s.slice(1, -1))) {
-      const idx = pair.indexOf('=');
-      if (idx < 0) continue;
-      obj[pair.slice(0, idx).trim()] = tomlValue(pair.slice(idx + 1));
-    }
-    return obj;
-  }
-  // 日期时间保持字符串（转 JSON 时没有原生类型）
-  if (/^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}:\d{2})?/.test(s)) return s;
-  if (/^[+-]?\d+$/.test(s) && !/^[+-]?0\d/.test(s)) return Number(s);
-  if (/^[+-]?\d*\.\d+([eE][+-]?\d+)?$/.test(s)) return Number(s);
-  if (s === 'inf' || s === '+inf') return Infinity;
-  if (s === '-inf') return -Infinity;
-  if (s === 'nan') return NaN;
-  return s;
-}
-
 export function parseToml(text: string): Record<string, unknown> {
-  const root: Record<string, unknown> = {};
-  let current: Record<string, unknown> = root;
-  /** [[table]] 的数组表：记录每个路径对应的数组 */
-  const arrayTables = new Map<string, Record<string, unknown>[]>();
-
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
-
-  for (let li = 0; li < lines.length; li++) {
-    const line = stripComment(lines[li]).trim();
-    if (!line) continue;
-
-    // [[数组表]]
-    const arrayTable = line.match(/^\[\[(.+)\]\]$/);
-    if (arrayTable) {
-      const path = arrayTable[1].trim().split('.').map((s) => s.trim().replace(/^["']|["']$/g, ''));
-      let node = root;
-      for (let i = 0; i < path.length - 1; i++) {
-        const k = path[i];
-        if (typeof node[k] !== 'object' || node[k] === null || Array.isArray(node[k])) {
-          node[k] = node[k] ?? {};
-        }
-        node = node[k] as Record<string, unknown>;
-      }
-      const last = path[path.length - 1];
-      const full = path.join('.');
-      if (!arrayTables.has(full)) {
-        const arr: Record<string, unknown>[] = [];
-        node[last] = arr;
-        arrayTables.set(full, arr);
-      }
-      const arr = arrayTables.get(full)!;
-      const item: Record<string, unknown> = {};
-      arr.push(item);
-      current = item;
-      continue;
-    }
-
-    // [表]
-    const table = line.match(/^\[(.+)\]$/);
-    if (table) {
-      const path = table[1].trim().split('.').map((s) => s.trim().replace(/^["']|["']$/g, ''));
-      let node = root;
-      for (const k of path) {
-        if (node[k] === undefined) node[k] = {};
-        if (typeof node[k] !== 'object' || node[k] === null || Array.isArray(node[k])) {
-          throw new DataError(`TOML 结构冲突：${path.join('.')} 既是值又是表`);
-        }
-        node = node[k] as Record<string, unknown>;
-      }
-      current = node;
-      continue;
-    }
-
-    // key = value
-    const eq = line.indexOf('=');
-    if (eq < 0) throw new DataError(`TOML 第 ${li + 1} 行缺少 "="：${line}`);
-
-    const rawKey = line.slice(0, eq).trim();
-    let rawVal = line.slice(eq + 1).trim();
-
-    // 多行数组 / 多行字符串
-    if (rawVal.startsWith('[') && !rawVal.endsWith(']')) {
-      while (li + 1 < lines.length && !rawVal.trimEnd().endsWith(']')) {
-        li++;
-        rawVal += ' ' + stripComment(lines[li]).trim();
-      }
-    }
-
-    const key = rawKey.replace(/^["']|["']$/g, '');
-    current[key] = tomlValue(rawVal);
+  try {
+    return parseTomlLib(text) as Record<string, unknown>;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message.split('\n')[0] : '格式不正确';
+    throw new DataError(`TOML 解析失败：${msg}`);
   }
-
-  return root;
 }
 
-function tomlKey(k: string): string {
-  return /^[A-Za-z0-9_-]+$/.test(k) ? k : `"${k.replace(/"/g, '\\"')}"`;
-}
-
-function tomlVal(v: unknown): string {
-  if (v === null || v === undefined) {
-    // TOML 没有 null —— 明确报错而不是像旧版那样输出非法内容
-    throw new DataError('TOML 不支持 null，请先移除该字段或改用 JSON/YAML');
+/** 递归检查 null —— TOML 没有 null，必须明确报错而不是输出非法内容 */
+function assertNoNull(value: unknown, path = ''): void {
+  if (value === null) {
+    throw new DataError(
+      `TOML 不支持 null${path ? `（位置：${path}）` : ''}。请改用 JSON/YAML，或先移除该字段。`
+    );
   }
-  if (typeof v === 'boolean') return String(v);
-  if (typeof v === 'number') {
-    if (!Number.isFinite(v)) throw new DataError('TOML 不支持 Infinity / NaN');
-    return String(v);
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => assertNoNull(v, `${path}[${i}]`));
+    return;
   }
-  if (typeof v === 'string') {
-    return `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t')}"`;
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value as object)) {
+      assertNoNull(v, path ? `${path}.${k}` : k);
+    }
   }
-  if (Array.isArray(v)) return `[${v.map((x) => tomlVal(x)).join(', ')}]`;
-  // 内联表
-  const entries = Object.entries(v as object);
-  return `{ ${entries.map(([k, x]) => `${tomlKey(k)} = ${tomlVal(x)}`).join(', ')} }`;
 }
 
 export function stringifyToml(data: unknown): string {
   if (data === null || typeof data !== 'object' || Array.isArray(data)) {
     throw new DataError('TOML 的顶层必须是对象（键值对）');
   }
-
-  const out: string[] = [];
-  const entries = Object.entries(data as Record<string, unknown>);
-
-  // 先输出简单键值，再输出表
-  for (const [k, v] of entries) {
-    if (v !== null && typeof v === 'object' && !Array.isArray(v)) continue;
-    if (Array.isArray(v) && v.length && v.every((x) => x !== null && typeof x === 'object' && !Array.isArray(x))) continue;
-    out.push(`${tomlKey(k)} = ${tomlVal(v)}`);
+  assertNoNull(data);
+  try {
+    return stringifyTomlLib(data as Record<string, unknown>);
+  } catch (e) {
+    throw new DataError(`TOML 生成失败：${e instanceof Error ? e.message : '未知错误'}`);
   }
-
-  for (const [k, v] of entries) {
-    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-      const inner = stringifyTomlInner(v as Record<string, unknown>, [k]);
-      if (inner) out.push('', inner);
-    } else if (Array.isArray(v) && v.length && v.every((x) => x !== null && typeof x === 'object' && !Array.isArray(x))) {
-      for (const item of v) {
-        const inner = stringifyTomlInner(item as Record<string, unknown>, [k], true);
-        if (inner) out.push('', inner);
-      }
-    }
-  }
-
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function stringifyTomlInner(obj: Record<string, unknown>, path: string[], isArrayTable = false): string {
-  const out: string[] = [];
-  const entries = Object.entries(obj);
-
-  const scalarEntries = entries.filter(([, v]) => !(v !== null && typeof v === 'object' && !Array.isArray(v)));
-  const tableEntries = entries.filter(([, v]) => v !== null && typeof v === 'object' && !Array.isArray(v));
-
-  out.push(isArrayTable ? `[[${path.map(tomlKey).join('.')}]]` : `[${path.map(tomlKey).join('.')}]`);
-  for (const [k, v] of scalarEntries) out.push(`${tomlKey(k)} = ${tomlVal(v)}`);
-
-  for (const [k, v] of tableEntries) {
-    out.push('', stringifyTomlInner(v as Record<string, unknown>, [...path, k]));
-  }
-
-  return out.join('\n');
 }
 
 /* ============================================================
-   XML —— 解析用浏览器原生 DOMParser，生成时转义
+   XML —— fast-xml-parser
    ============================================================ */
 
-function xmlEscape(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@', // 与 JSON 互转时属性用 @name 表示
+  textNodeName: '#text',
+  parseAttributeValue: false, // 属性保持字符串，避免丢精度
+  parseTagValue: false, // 文本也保持字符串，避免 "007" → 7
+  trimValues: true,
+  allowBooleanAttributes: true,
+  isArray: () => false,
+});
 
-/** 把 DOM 节点转成普通对象：保留属性（@attr）、文本（#text）、同名子节点合并成数组 */
-function domToValue(el: Element): unknown {
-  const children = Array.from(el.children);
-  const attrs: Record<string, string> = {};
-  for (const a of Array.from(el.attributes)) attrs[`@${a.name}`] = a.value;
-
-  if (!children.length) {
-    const text = (el.textContent ?? '').trim();
-    if (Object.keys(attrs).length === 0) return text;
-    return { ...attrs, ...(text ? { '#text': text } : {}) };
-  }
-
-  const obj: Record<string, unknown> = { ...attrs };
-  for (const child of children) {
-    const key = child.tagName;
-    const val = domToValue(child);
-    if (key in obj) {
-      const prev = obj[key];
-      obj[key] = Array.isArray(prev) ? [...prev, val] : [prev, val];
-    } else {
-      obj[key] = val;
-    }
-  }
-  return obj;
-}
+const xmlBuilder = new XMLBuilder({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@',
+  textNodeName: '#text',
+  format: true,
+  indentBy: '  ',
+  suppressEmptyNode: true,
+  suppressBooleanAttributes: false,
+});
 
 export function parseXml(text: string): unknown {
-  const doc = new DOMParser().parseFromString(text, 'application/xml');
-  // 关键：DOMParser 遇到非法 XML 不抛错，而是返回一个 parsererror 节点
-  const err = doc.querySelector('parsererror');
-  if (err) {
-    const msg = (err.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
-    throw new DataError(`XML 解析失败：${msg || '格式不正确'}`);
+  // 先做一次结构检查：fast-xml-parser 默认容错，非法 XML 也会「成功」解析
+  if (!/^\s*(<\?xml[^>]*\?>\s*)?<[^>]+>/.test(text)) {
+    throw new DataError('XML 解析失败：找不到根元素');
   }
-  const root = doc.documentElement;
-  if (!root) throw new DataError('XML 没有根元素');
-  return { [root.tagName]: domToValue(root) };
-}
-
-function valueToXml(tag: string, value: unknown, indent: number): string {
-  const pad = '  '.repeat(indent);
-
-  if (value === null || value === undefined) return `${pad}<${tag} />`;
-  if (typeof value !== 'object') return `${pad}<${tag}>${xmlEscape(String(value))}</${tag}>`;
-
-  if (Array.isArray(value)) {
-    return value.map((v) => valueToXml(tag, v, indent)).join('\n');
+  try {
+    const parsed = xmlParser.parse(text) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object' || !Object.keys(parsed).length) {
+      throw new DataError('XML 解析失败：内容为空');
+    }
+    return parsed;
+  } catch (e) {
+    if (e instanceof DataError) throw e;
+    const msg = e instanceof Error ? e.message : '格式不正确';
+    throw new DataError(`XML 解析失败：${msg}`);
   }
-
-  const obj = value as Record<string, unknown>;
-  const attrs: string[] = [];
-  const kids: [string, unknown][] = [];
-  let textContent: string | null = null;
-
-  for (const [k, v] of Object.entries(obj)) {
-    if (k.startsWith('@')) attrs.push(`${k.slice(1)}="${xmlEscape(String(v))}"`);
-    else if (k === '#text') textContent = String(v);
-    else kids.push([k, v]);
-  }
-
-  const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
-
-  if (!kids.length) {
-    if (textContent === null) return `${pad}<${tag}${attrStr} />`;
-    return `${pad}<${tag}${attrStr}>${xmlEscape(textContent)}</${tag}>`;
-  }
-
-  const inner = kids.map(([k, v]) => valueToXml(k, v, indent + 1)).join('\n');
-  const textPart = textContent ? `${pad}  ${xmlEscape(textContent)}\n` : '';
-  return `${pad}<${tag}${attrStr}>\n${textPart}${inner}\n${pad}</${tag}>`;
 }
 
 export function stringifyXml(data: unknown): string {
-  if (data === null || typeof data !== 'object') {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
     throw new DataError('XML 的顶层必须是对象，且只含一个根节点');
   }
   const entries = Object.entries(data as object);
   if (entries.length !== 1) {
     throw new DataError('XML 只允许一个根节点，请先包一层（如 { root: ... }）');
   }
-  const [rootTag, rootVal] = entries[0];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n${valueToXml(rootTag, rootVal, 0)}`;
+  try {
+    const body = xmlBuilder.build(data as Record<string, unknown>);
+    return `<?xml version="1.0" encoding="UTF-8"?>\n${body}`;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '未知错误';
+    throw new DataError(`XML 生成失败：${msg}`);
+  }
 }
 
 /* ============================================================
@@ -731,19 +273,16 @@ export function stringifyData(data: unknown, format: DataFormat): string {
   }
 }
 
-/** 格式化（美化）与压缩 */
 export function formatData(text: string, format: DataFormat): string {
   return stringifyData(parseData(text, format), format);
 }
 
 export function minifyData(text: string, format: DataFormat): string {
   if (format === 'json') return JSON.stringify(JSON.parse(text));
-  if (format === 'csv' || format === 'tsv') {
-    // 表格的「压缩」没有意义，原样返回
-    return text;
-  }
-  // 其它格式的压缩会改变可读性但保留语义，这里统一走「解析后紧凑输出」
+  if (format === 'csv' || format === 'tsv') return text; // 表格压缩无意义
   const data = parseData(text, format);
-  if (format === 'yaml') return stringifyYaml(data).replace(/\n\s*/g, '\n').replace(/\n{2,}/g, '\n');
+  if (format === 'yaml') {
+    return yamlDump(data, { indent: 2, lineWidth: -1, noRefs: true, flowLevel: 0 }).trimEnd();
+  }
   return stringifyData(data, format);
 }

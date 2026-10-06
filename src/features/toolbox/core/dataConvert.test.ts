@@ -115,12 +115,16 @@ describe('YAML', () => {
 
   it('带引号的字符串不参与类型推断', () => {
     expect(parseYaml('a: "007"')).toEqual({ a: '007' });
-    expect(parseYaml('a: 007')).toEqual({ a: '007' }); // 前导零保留为字符串
+    // 未加引号的 007 按 YAML 规范就是整数 7 —— 这是规范行为，不是丢精度。
+    // （需要保前导零的场景请写成 CSV，那里一律按字符串处理）
+    expect(parseYaml('a: 007')).toEqual({ a: 7 });
   });
 
-  it('多行字符串（| 保留换行）', () => {
+  it('多行字符串（| 为 clip chomping，保留结尾换行）', () => {
     const y = ['a: |', '  line1', '  line2'].join('\n');
-    expect(parseYaml(y)).toEqual({ a: 'line1\nline2' });
+    expect(parseYaml(y)).toEqual({ a: 'line1\nline2\n' });
+    // |- 是 strip chomping，去掉结尾换行
+    expect(parseYaml('a: |-\n  x')).toEqual({ a: 'x' });
   });
 
   it('序列化含特殊字符的字符串会加引号（旧版会产生非法 YAML）', () => {
