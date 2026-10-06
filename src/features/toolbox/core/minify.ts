@@ -54,7 +54,7 @@ export async function minifyJs(code: string, isTs = false): Promise<string> {
     parse: { bare_returns: true },
   });
 
-  if (result.error) throw new Error(`压缩失败：${String(result.error)}`);
+  // 注意：terser 的异步 API 出错时是**抛异常**，不是返回 error 字段
   if (!result.code) throw new Error('压缩失败：没有输出');
   return result.code;
 }
