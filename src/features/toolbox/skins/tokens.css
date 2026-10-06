@@ -19,6 +19,8 @@
 [data-skin] {
   color: var(--foreground);
   background-color: var(--background);
+  background-image: var(--tb-bg-gradient, none);
+  background-attachment: fixed;
   font-family: var(--tb-font-body);
   font-feature-settings: 'tnum' 1;
   -webkit-font-smoothing: antialiased;
@@ -123,222 +125,233 @@
 }
 
 /* ============================================================
-   D · 瑞士精密
-   冷白纸面 · 直角 · 发丝线 · 零阴影 · 单一信号红
-   参考：瑞士国际主义、精密仪器面板、技术手册
+   渐变家族（贴合本站原有视觉语言：柔和渐变 + 圆润 + 明亮 + 有色彩）
+   ------------------------------------------------------------
+   本站原有的语言是：粉紫渐变底 + 大号彩色渐变标题 + 圆角胶囊 + 毛玻璃卡片。
+   之前我按「设计学院派」做了极简/粗野/蓝图，方向完全错了 —— 那是我的审美，
+   不是这个站的。这一组回到同一条路上，但做得更讲究：
+   多层柔和渐变（不是单一 linear-gradient）、标题用渐变字、
+   卡片毛玻璃带细描边（不是只靠 blur）、圆角与阴影成体系。
    ============================================================ */
-[data-skin='d'] {
-  --radius: 0px;
-  --background: #f7f7f5;
-  --foreground: #141414;
-  --card: #ffffff;
-  --card-foreground: #141414;
-  --popover: #ffffff;
-  --popover-foreground: #141414;
-  --primary: #e5352b; /* 信号红：整个界面唯一的强调色 */
-  --primary-foreground: #ffffff;
-  --secondary: #eeeeea;
-  --secondary-foreground: #141414;
-  --muted: #f0f0ec;
-  --muted-foreground: #6b6b66;
-  --accent: #ebebe6;
-  --accent-foreground: #141414;
-  --destructive: #c0392b;
-  --destructive-foreground: #ffffff;
-  --border: #d8d8d2;
-  --input: #d8d8d2;
-  --ring: #141414;
 
-  --tb-accent-2: #141414;
-  --tb-font-display: var(--font-archivo), 'Helvetica Neue', sans-serif;
-  --tb-font-body: var(--font-archivo), 'Helvetica Neue', sans-serif;
+/* ---------- I · 柔光极光：原版的精修版 ---------- */
+[data-skin='i'] {
+  --radius: 1.125rem;
+  --background: #fbfaff;
+  --foreground: #2b2440;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-foreground: #2b2440;
+  --popover: #ffffff;
+  --popover-foreground: #2b2440;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #f3e8ff;
+  --secondary-foreground: #5b21b6;
+  --muted: #f5f2ff;
+  --muted-foreground: #7b7396;
+  --accent: #f3e8ff;
+  --accent-foreground: #5b21b6;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: rgba(124, 58, 237, 0.14);
+  --input: rgba(124, 58, 237, 0.16);
+  --ring: #a78bfa;
+
+  --tb-accent-2: #ec4899;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 28px -10px rgba(124, 58, 237, 0.22);
+  --tb-panel-radius: 1.125rem;
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 255, 255, 0.82);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(124, 58, 237, 0.14);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 12% 8%, rgba(196, 181, 253, 0.75) 0px, transparent 55%),
+    radial-gradient(at 88% 4%, rgba(251, 207, 232, 0.7) 0px, transparent 50%),
+    radial-gradient(at 78% 92%, rgba(167, 243, 208, 0.6) 0px, transparent 55%),
+    radial-gradient(at 16% 88%, rgba(191, 219, 254, 0.65) 0px, transparent 52%),
+    linear-gradient(180deg, #fdfcff 0%, #f7f4ff 100%);
+  --tb-title-gradient: linear-gradient(92deg, #7c3aed 0%, #db2777 48%, #f59e0b 100%);
+}
+
+/* ---------- J · 蜜桃日落：暖色系 ---------- */
+[data-skin='j'] {
+  --radius: 1.125rem;
+  --background: #fffaf6;
+  --foreground: #40261c;
+  --card: rgba(255, 255, 255, 0.84);
+  --card-foreground: #40261c;
+  --popover: #ffffff;
+  --popover-foreground: #40261c;
+  --primary: #e0562d;
+  --primary-foreground: #ffffff;
+  --secondary: #ffe8dc;
+  --secondary-foreground: #9a3412;
+  --muted: #fff2ea;
+  --muted-foreground: #9c7a6b;
+  --accent: #ffe8dc;
+  --accent-foreground: #9a3412;
+  --destructive: #c81e1e;
+  --destructive-foreground: #ffffff;
+  --border: rgba(224, 86, 45, 0.16);
+  --input: rgba(224, 86, 45, 0.18);
+  --ring: #fb923c;
+
+  --tb-accent-2: #f59e0b;
+  --tb-font-display: var(--font-fraunces), 'PingFang SC', Georgia, serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
   --tb-tracking: -0.015em;
   --tb-border-w: 1px;
-  --tb-shadow: none; /* 不用阴影，靠边框与留白分层 */
-  --tb-glow: none;
-  --tb-panel-bg: #ffffff;
-  --tb-panel-radius: 0px;
+  --tb-shadow: 0 8px 28px -10px rgba(224, 86, 45, 0.24);
+  --tb-panel-radius: 1.125rem;
   --tb-clip: none;
-  --tb-rule: 1px solid #d8d8d2;
-  --tb-panel-pad: 1.75rem;
+  --tb-panel-bg: rgba(255, 255, 255, 0.84);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(224, 86, 45, 0.16);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 10% 6%, rgba(254, 215, 170, 0.85) 0px, transparent 55%),
+    radial-gradient(at 90% 8%, rgba(254, 205, 211, 0.75) 0px, transparent 50%),
+    radial-gradient(at 72% 94%, rgba(253, 186, 116, 0.6) 0px, transparent 55%),
+    radial-gradient(at 22% 90%, rgba(255, 237, 213, 0.9) 0px, transparent 52%),
+    linear-gradient(180deg, #fffdfb 0%, #fff6ef 100%);
+  --tb-title-gradient: linear-gradient(92deg, #e0562d 0%, #f59e0b 55%, #ec4899 100%);
 }
 
-/* ============================================================
-   E · 编辑部
-   奶油纸 · 大衬线标题 · 编辑红 · 发丝分隔 · 印刷感
-   参考：报刊排版、书籍扉页
-   ============================================================ */
-[data-skin='e'] {
-  --radius: 0px;
-  --background: #fbf8f1;
-  --foreground: #1a1714;
-  --card: #fdfbf6;
-  --card-foreground: #1a1714;
-  --popover: #fdfbf6;
-  --popover-foreground: #1a1714;
-  --primary: #b3341a; /* 编辑红，比信号红更沉 */
-  --primary-foreground: #fdfbf6;
-  --secondary: #f2ebdd;
-  --secondary-foreground: #1a1714;
-  --muted: #f4eee2;
-  --muted-foreground: #6f6558;
-  --accent: #efe6d5;
-  --accent-foreground: #1a1714;
-  --destructive: #a32c1a;
-  --destructive-foreground: #fdfbf6;
-  --border: #e0d9cc;
-  --input: #ddd4c4;
-  --ring: #b3341a;
-
-  --tb-accent-2: #2c4a3e; /* 墨绿，用于次级标注 */
-  --tb-font-display: var(--font-fraunces), Georgia, 'Songti SC', serif;
-  --tb-font-body: var(--font-fraunces), Georgia, 'Songti SC', serif;
-  --tb-tracking: -0.022em;
-  --tb-border-w: 1px;
-  --tb-shadow: none;
-  --tb-glow: none;
-  --tb-panel-bg: #fdfbf6;
-  --tb-panel-radius: 0px;
-  --tb-clip: none;
-  --tb-rule: 1px solid #e0d9cc;
-  --tb-panel-pad: 2rem;
-}
-
-/* ============================================================
-   F · 新粗野
-   亮白底 · 3px 黑边 · 硬偏移阴影 · 酸性黄 + 电蓝
-   参考：Neo-Brutalism、risograph 印刷
-   ============================================================ */
-[data-skin='f'] {
-  --radius: 0px;
-  --background: #fffdf5;
-  --foreground: #0a0a0a;
-  --card: #ffffff;
-  --card-foreground: #0a0a0a;
+/* ---------- K · 薄荷汽水：冷色清爽系 ---------- */
+[data-skin='k'] {
+  --radius: 1rem;
+  --background: #f7fdfc;
+  --foreground: #14343a;
+  --card: rgba(255, 255, 255, 0.85);
+  --card-foreground: #14343a;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #0037ff; /* 电蓝：主要动作 */
+  --popover-foreground: #14343a;
+  --primary: #0d9488;
   --primary-foreground: #ffffff;
-  --secondary: #ffe600; /* 酸性黄：次要标记 */
-  --secondary-foreground: #0a0a0a;
-  --muted: #f2f0e6;
-  --muted-foreground: #4a4a44;
-  --accent: #ffe600;
-  --accent-foreground: #0a0a0a;
-  --destructive: #ff2d2d;
+  --secondary: #ccfbf1;
+  --secondary-foreground: #115e59;
+  --muted: #effcf9;
+  --muted-foreground: #6b8f8b;
+  --accent: #ccfbf1;
+  --accent-foreground: #115e59;
+  --destructive: #e11d48;
   --destructive-foreground: #ffffff;
-  --border: #0a0a0a;
-  --input: #0a0a0a;
-  --ring: #0037ff;
+  --border: rgba(13, 148, 136, 0.16);
+  --input: rgba(13, 148, 136, 0.18);
+  --ring: #2dd4bf;
 
-  --tb-accent-2: #ffe600;
-  --tb-font-display: var(--font-archivo-black), var(--font-archivo), sans-serif;
-  --tb-font-body: var(--font-archivo), system-ui, sans-serif;
+  --tb-accent-2: #0ea5e9;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 28px -10px rgba(13, 148, 136, 0.2);
+  --tb-panel-radius: 1rem;
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 255, 255, 0.85);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(13, 148, 136, 0.16);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 14% 6%, rgba(153, 246, 228, 0.85) 0px, transparent 55%),
+    radial-gradient(at 86% 6%, rgba(186, 230, 253, 0.8) 0px, transparent 50%),
+    radial-gradient(at 80% 92%, rgba(165, 243, 252, 0.65) 0px, transparent 55%),
+    radial-gradient(at 18% 90%, rgba(209, 250, 229, 0.8) 0px, transparent 52%),
+    linear-gradient(180deg, #fbfffe 0%, #f0fdfa 100%);
+  --tb-title-gradient: linear-gradient(92deg, #0d9488 0%, #0ea5e9 55%, #14b8a6 100%);
+}
+
+/* ---------- L · 糖果波普：高饱和、更活泼 ---------- */
+[data-skin='l'] {
+  --radius: 1.375rem;
+  --background: #fdf9ff;
+  --foreground: #33144f;
+  --card: rgba(255, 255, 255, 0.88);
+  --card-foreground: #33144f;
+  --popover: #ffffff;
+  --popover-foreground: #33144f;
+  --primary: #c026d3;
+  --primary-foreground: #ffffff;
+  --secondary: #fae8ff;
+  --secondary-foreground: #86198f;
+  --muted: #fbf1ff;
+  --muted-foreground: #866a99;
+  --accent: #fae8ff;
+  --accent-foreground: #86198f;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: rgba(192, 38, 211, 0.18);
+  --input: rgba(192, 38, 211, 0.2);
+  --ring: #e879f9;
+
+  --tb-accent-2: #06b6d4;
+  --tb-font-display: var(--font-archivo-black), var(--font-archivo), 'PingFang SC', sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
   --tb-tracking: -0.03em;
-  --tb-border-w: 3px;
-  /* 硬阴影：无模糊、纯黑偏移，是这一风格的招牌 */
-  --tb-shadow: 6px 6px 0 #0a0a0a;
-  --tb-glow: none;
-  --tb-panel-bg: #ffffff;
-  --tb-panel-radius: 0px;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 10px 32px -12px rgba(192, 38, 211, 0.3);
+  --tb-panel-radius: 1.375rem;
   --tb-clip: none;
-  --tb-rule: 3px solid #0a0a0a;
+  --tb-panel-bg: rgba(255, 255, 255, 0.88);
+  --tb-panel-blur: 18px;
+  --tb-rule: 1px solid rgba(192, 38, 211, 0.18);
   --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 8% 10%, rgba(240, 171, 252, 0.8) 0px, transparent 52%),
+    radial-gradient(at 92% 6%, rgba(165, 243, 252, 0.8) 0px, transparent 50%),
+    radial-gradient(at 76% 94%, rgba(253, 164, 175, 0.65) 0px, transparent 55%),
+    radial-gradient(at 20% 92%, rgba(196, 181, 253, 0.75) 0px, transparent 52%),
+    linear-gradient(180deg, #fffbff 0%, #fdf4ff 100%);
+  --tb-title-gradient: linear-gradient(92deg, #c026d3 0%, #7c3aed 40%, #06b6d4 100%);
 }
 
-/* ============================================================
-   G · 有机纸感
-   暖纸底 · 不规则圆角 · 纸纹 · 陶土橙与鼠尾草绿
-   参考：手工纸、自然材料、陶瓷
-   ============================================================ */
-[data-skin='g'] {
-  --radius: 1.25rem;
-  --background: #f3ede3;
-  --foreground: #3a3229;
-  --card: #faf6ee;
-  --card-foreground: #3a3229;
-  --popover: #faf6ee;
-  --popover-foreground: #3a3229;
-  --primary: #b5623a; /* 陶土橙 */
-  --primary-foreground: #fdfaf4;
-  --secondary: #e6ded0;
-  --secondary-foreground: #3a3229;
-  --muted: #ece4d8;
-  --muted-foreground: #7d7263;
-  --accent: #e3dccd;
-  --accent-foreground: #3a3229;
-  --destructive: #a8472f;
-  --destructive-foreground: #fdfaf4;
-  --border: #ded3c1;
-  --input: #d9cdb9;
-  --ring: #b5623a;
+/* ---------- M · 暮色渐变：同族的深色版（不是霓虹黑） ---------- */
+[data-skin='m'] {
+  --radius: 1.125rem;
+  --background: #16112b;
+  --foreground: #ede9fe;
+  --card: rgba(255, 255, 255, 0.07);
+  --card-foreground: #ede9fe;
+  --popover: #241b40;
+  --popover-foreground: #ede9fe;
+  --primary: #a78bfa;
+  --primary-foreground: #1e1235;
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: #ddd6fe;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #a99fc9;
+  --accent: rgba(255, 255, 255, 0.1);
+  --accent-foreground: #ede9fe;
+  --destructive: #fb7185;
+  --destructive-foreground: #2a0d14;
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #a78bfa;
 
-  --tb-accent-2: #7d8f69; /* 鼠尾草绿 */
-  --tb-font-display: var(--font-fraunces), Georgia, 'Songti SC', serif;
-  --tb-font-body: var(--font-karla), system-ui, 'PingFang SC', sans-serif;
-  --tb-tracking: -0.005em;
+  --tb-accent-2: #f0abfc;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
   --tb-border-w: 1px;
-  --tb-shadow: 0 2px 10px rgba(90, 70, 50, 0.07);
-  --tb-glow: none;
-  --tb-panel-bg: #faf6ee;
-  /* 不规则圆角：四个角不同，避免「统一的圆角+通用阴影」 */
-  --tb-panel-radius: 1.5rem 0.75rem 1.5rem 0.75rem;
+  --tb-shadow: 0 10px 34px -14px rgba(0, 0, 0, 0.6);
+  --tb-panel-radius: 1.125rem;
   --tb-clip: none;
-  --tb-rule: 1px solid #ded3c1;
-  --tb-panel-pad: 1.75rem;
-  /* 细噪点模拟纸纹 */
-  --tb-texture: radial-gradient(rgba(120, 100, 75, 0.055) 1px, transparent 1px);
-  --tb-texture-size: 3px 3px;
-  --tb-texture-opacity: 1;
-}
-
-/* ============================================================
-   H · 工程蓝图
-   图纸深蓝 · 制图网格 · 标注线 · 编号角标
-   参考：机械制图、建筑蓝图、技术图纸
-   ============================================================ */
-[data-skin='h'] {
-  --radius: 0px;
-  --background: #0b2545;
-  --foreground: #eaf2ff;
-  --card: #12335c;
-  --card-foreground: #eaf2ff;
-  --popover: #12335c;
-  --popover-foreground: #eaf2ff;
-  --primary: #ffd166; /* 图纸标注黄：像铅笔标注，而不是霓虹 */
-  --primary-foreground: #0b2545;
-  --secondary: #1a4272;
-  --secondary-foreground: #cfe0f5;
-  --muted: #103056;
-  --muted-foreground: #93b0d4;
-  --accent: #1a4272;
-  --accent-foreground: #eaf2ff;
-  --destructive: #ff6b6b;
-  --destructive-foreground: #0b2545;
-  --border: rgba(234, 242, 255, 0.28);
-  --input: rgba(234, 242, 255, 0.22);
-  --ring: #ffd166;
-
-  --tb-accent-2: #8fd3ff;
-  --tb-font-display: var(--font-plex-mono), ui-monospace, monospace;
-  --tb-font-body: var(--font-plex-sans), system-ui, sans-serif;
-  --tb-tracking: 0.02em;
-  --tb-border-w: 1px;
-  --tb-shadow: none;
-  --tb-glow: none;
-  --tb-panel-bg: rgba(18, 51, 92, 0.55);
-  --tb-panel-radius: 0px;
-  --tb-clip: none;
-  --tb-rule: 1px dashed rgba(234, 242, 255, 0.32);
+  --tb-panel-bg: rgba(255, 255, 255, 0.07);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(255, 255, 255, 0.14);
   --tb-panel-pad: 1.5rem;
-  /* 制图网格：小格 + 大格 */
-  --tb-texture:
-    linear-gradient(rgba(234, 242, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(234, 242, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(rgba(234, 242, 255, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(234, 242, 255, 0.12) 1px, transparent 1px);
-  --tb-texture-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
-  --tb-texture-opacity: 1;
+  --tb-bg-gradient:
+    radial-gradient(at 10% 6%, rgba(139, 92, 246, 0.55) 0px, transparent 55%),
+    radial-gradient(at 90% 10%, rgba(217, 70, 239, 0.4) 0px, transparent 52%),
+    radial-gradient(at 78% 92%, rgba(56, 189, 248, 0.28) 0px, transparent 55%),
+    radial-gradient(at 14% 90%, rgba(244, 114, 182, 0.3) 0px, transparent 52%),
+    linear-gradient(180deg, #1a1433 0%, #120e24 100%);
+  --tb-title-gradient: linear-gradient(92deg, #c4b5fd 0%, #f0abfc 50%, #7dd3fc 100%);
 }
 
 /* ============================================================
@@ -352,7 +365,8 @@
   clip-path: var(--tb-clip);
   box-shadow: var(--tb-shadow);
   padding: var(--tb-panel-pad, 1.25rem);
-  backdrop-filter: none; /* 明确不用毛玻璃：那是 AI 味的重灾区 */
+  /* 渐变家族用毛玻璃（这是本站原有的语言）；扁平家族在各自 token 里把 blur 设为 0 */
+  backdrop-filter: blur(var(--tb-panel-blur, 0px));
 }
 
 .tb-title {
@@ -476,4 +490,30 @@
   [data-skin='f'] .tb-btn:active {
     transform: none;
   }
+}
+
+/* 大标题：渐变字（本站原有的招牌处理，保留并做得更精细） */
+.tb-hero-title {
+  font-family: var(--tb-font-display);
+  font-weight: 800;
+  letter-spacing: var(--tb-tracking, -0.02em);
+  line-height: 1.1;
+  background-image: var(--tb-title-gradient, none);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 没有渐变定义的皮肤退回实色，避免出现透明字 */
+[data-skin='b'] .tb-hero-title,
+[data-skin='c'] .tb-hero-title,
+[data-skin='d'] .tb-hero-title,
+[data-skin='e'] .tb-hero-title,
+[data-skin='f'] .tb-hero-title,
+[data-skin='g'] .tb-hero-title,
+[data-skin='h'] .tb-hero-title {
+  background-image: none;
+  color: var(--foreground);
+  -webkit-text-fill-color: currentColor;
 }

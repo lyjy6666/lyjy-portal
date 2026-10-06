@@ -13,7 +13,7 @@ import { createContext, useContext, useCallback, useEffect, useState, type React
  * 不只是换颜色。
  */
 
-export type SkinId = 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h';
+export type SkinId = 'i' | 'j' | 'k' | 'l' | 'm' | 'g' | 'b' | 'c';
 
 export type SkinMeta = {
   name: string;
@@ -26,10 +26,52 @@ export type SkinMeta = {
 };
 
 export const SKIN_META: Record<SkinId, SkinMeta> = {
+  i: {
+    name: '柔光极光',
+    short: '粉紫渐变',
+    desc: '粉紫到薄荷的多层柔和渐变底 + 毛玻璃卡片，原版语言的精修版',
+    swatch: ['#e9d5ff', '#db2777', '#f59e0b'],
+    tone: 'light',
+  },
+  j: {
+    name: '蜜桃日落',
+    short: '暖色渐变',
+    desc: '蜜桃橙到玫瑰的暖色渐变，标题用衬线体，温和有温度',
+    swatch: ['#fed7aa', '#e0562d', '#f59e0b'],
+    tone: 'light',
+  },
+  k: {
+    name: '薄荷汽水',
+    short: '清爽渐变',
+    desc: '薄荷绿到天蓝的冷色渐变，干净通透，看久了不累',
+    swatch: ['#99f6e4', '#0d9488', '#0ea5e9'],
+    tone: 'light',
+  },
+  l: {
+    name: '糖果波普',
+    short: '高饱和',
+    desc: '品红配青的高饱和渐变，圆角更大、标题更重，最活泼的一版',
+    swatch: ['#f0abfc', '#c026d3', '#06b6d4'],
+    tone: 'light',
+  },
+  m: {
+    name: '暮色渐变',
+    short: '深色渐变',
+    desc: '深靛蓝到紫罗兰的暮色渐变，同族的深色版，不是霓虹黑',
+    swatch: ['#8b5cf6', '#f0abfc', '#7dd3fc'],
+    tone: 'dark',
+  },
+  g: {
+    name: '有机纸感',
+    short: '暖纸手作',
+    desc: '暖纸底、纸纹噪点、四角不等的圆角，陶土橙配鼠尾草绿',
+    swatch: ['#f3ede3', '#b5623a', '#7d8f69'],
+    tone: 'light',
+  },
   b: {
     name: 'HUD 控制台',
     short: '深色科幻',
-    desc: '深空底 + 青色霓虹 + 玻璃面板。早期版本，保留对照',
+    desc: '深空底 + 青色霓虹。早期版本，保留对照',
     swatch: ['#060a12', '#22d3ee', '#8b5cf6'],
     tone: 'dark',
   },
@@ -40,44 +82,9 @@ export const SKIN_META: Record<SkinId, SkinMeta> = {
     swatch: ['#03060d', '#00e5ff', '#ff2d95'],
     tone: 'dark',
   },
-  d: {
-    name: '瑞士精密',
-    short: '瑞士精密',
-    desc: '冷白纸面、严格网格、发丝分隔线、零阴影，全界面只用一种信号红',
-    swatch: ['#f7f7f5', '#141414', '#e5352b'],
-    tone: 'light',
-  },
-  e: {
-    name: '编辑部',
-    short: '编辑排版',
-    desc: '奶油纸底、大号衬线标题、首字下沉、发丝分隔，像一本印刷物',
-    swatch: ['#fbf8f1', '#1a1714', '#b3341a'],
-    tone: 'light',
-  },
-  f: {
-    name: '新粗野',
-    short: '新粗野主义',
-    desc: '3px 纯黑描边、硬偏移阴影、酸性黄配电蓝，按键按下去会真的位移',
-    swatch: ['#fffdf5', '#0037ff', '#ffe600'],
-    tone: 'light',
-  },
-  g: {
-    name: '有机纸感',
-    short: '有机自然',
-    desc: '暖纸底、纸纹噪点、四角不等的圆角、陶土橙与鼠尾草绿',
-    swatch: ['#f3ede3', '#b5623a', '#7d8f69'],
-    tone: 'light',
-  },
-  h: {
-    name: '工程蓝图',
-    short: '技术制图',
-    desc: '图纸深蓝、制图网格、虚线标注、编号角标，像一张机械图纸',
-    swatch: ['#0b2545', '#ffd166', '#8fd3ff'],
-    tone: 'dark',
-  },
 };
 
-export const SKIN_ORDER: SkinId[] = ['d', 'e', 'f', 'g', 'h', 'b', 'c'];
+export const SKIN_ORDER: SkinId[] = ['i', 'j', 'k', 'l', 'm', 'g', 'b', 'c'];
 
 const STORAGE_KEY = 'toolbox_skin';
 
@@ -88,7 +95,7 @@ type SkinContextValue = {
 };
 
 const SkinContext = createContext<SkinContextValue>({
-  skin: 'd',
+  skin: 'i',
   setSkin: () => {},
   motion: true,
 });
@@ -99,7 +106,7 @@ export function useSkin() {
 
 export function SkinProvider({
   children,
-  initial = 'd',
+  initial = 'i',
 }: {
   children: ReactNode;
   initial?: SkinId;

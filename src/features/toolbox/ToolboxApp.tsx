@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { SkinProvider, useSkin, SKIN_META, SKIN_ORDER, type SkinId } from './skins/skin';
 import { fontClassNames } from './skins/fonts';
+import ImageTool from './ui/ImageTool';
 
 export type ToolTab = {
   id: string;
@@ -125,6 +126,8 @@ function SkinPicker() {
 /* ============================ 标签内容（P2~P6 分批接入） ============================ */
 
 function TabContent({ tab }: { tab: string }) {
+  if (tab === 'image') return <ImageTool />;
+
   const meta = TABS.find((t) => t.id === tab);
   return (
     <div className="tb-panel flex flex-col items-center justify-center py-16 text-center">
@@ -150,19 +153,23 @@ function Shell() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-6">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      {/* 顶栏：左侧品牌，右侧操作 */}
+      <header className="mb-7 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-10 w-10 items-center justify-center"
+            className="flex h-11 w-11 items-center justify-center"
             style={{
               background: 'var(--primary)',
               borderRadius: 'var(--tb-panel-radius)',
+              boxShadow: 'var(--tb-shadow)',
             }}
           >
-            <i className="fa-solid fa-atom" style={{ color: 'var(--primary-foreground)' }} />
+            <i className="fa-solid fa-atom text-lg" style={{ color: 'var(--primary-foreground)' }} />
           </div>
           <div>
-            <h1 className="tb-title text-[17px] leading-tight">格式转换工具箱</h1>
+            <p className="tb-label" style={{ marginBottom: 2 }}>
+              LYJY TOOLBOX
+            </p>
             <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
               全部处理在浏览器本地完成 · 文件不上传
             </p>
@@ -186,8 +193,30 @@ function Shell() {
         </div>
       </header>
 
+      {/* 大标题：渐变字 + BETA 徽章（沿用本站原有的处理方式） */}
+      <div className="mb-7 text-center">
+        <h1 className="tb-hero-title text-[2.1rem] sm:text-[2.6rem]">
+          lyjy格式转换工具箱
+        </h1>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <span
+            className="px-2.5 py-0.5 text-[11px] font-semibold"
+            style={{
+              background: 'linear-gradient(92deg, var(--primary), var(--tb-accent-2))',
+              color: 'var(--primary-foreground)',
+              borderRadius: 999,
+            }}
+          >
+            BETA
+          </span>
+          <span className="text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
+            图片、文档、文本数据、代码、音视频、压缩、水印与开发工具
+          </span>
+        </div>
+      </div>
+
       {/* 标签栏 */}
-      <nav className="mb-6 flex flex-wrap gap-x-1 gap-y-2">
+      <nav className="mb-6 flex flex-wrap justify-center gap-x-1 gap-y-2">
         {TABS.map((t) => (
           <button
             key={t.id}
