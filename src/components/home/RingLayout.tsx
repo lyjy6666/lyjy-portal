@@ -7,7 +7,7 @@ import { ChartLine, Headset, History, LayoutGrid, Sparkles, X } from 'lucide-rea
 import { flattenServices, serviceCategories, type ServiceItem } from '@/data/services';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
-import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle, accents, handleNudge } from './shared';
+import { ServiceAction, ServiceBadges, ProEntry, ServiceIcon, accentStyle, accents, handleNudge } from './shared';
 import { uniformAngles } from './ringAngles';
 
 const RING_RADIUS = 46;
@@ -239,8 +239,10 @@ export default function RingLayout({
               <div className="text-base font-semibold text-white">{hovered.name}</div>
               <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
               <ServiceBadges service={hovered} />
-              <div className="mt-3 flex justify-center">
+              {/* 主入口 + 尝鲜版入口并排 */}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <ServiceAction service={hovered} />
+                <ProEntry service={hovered} />
               </div>
               {hovered.upgradeHref && (
                 <Link

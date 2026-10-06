@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
+import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
 import { resolveService } from '@/lib/serviceNav';
@@ -69,6 +69,37 @@ export function ServiceAction({ service, className = 'portal-enter' }: { service
 export function ServiceBadges({ service }: { service: ServiceItem }) {
   const badges = service.badge ? (Array.isArray(service.badge) ? service.badge : [service.badge]) : [];
   return <div className="portal-badges">{badges.map((badge) => <span key={badge}>{badge}</span>)}</div>;
+}
+
+/**
+ * 「尝鲜版」入口。
+ *
+ * 放在主入口旁边，用渐变描边和两个标签（尝鲜体验 / 重大更新）把它和普通入口区分开。
+ * 数据来自 ServiceItem.pro，所以以后别的子站想出尝鲜版只要加一个字段。
+ */
+export function ProEntry({ service, inline = false }: { service: ServiceItem; inline?: boolean }) {
+  const pro = service.pro;
+  if (!pro) return null;
+
+  return (
+    <a
+      className={`portal-pro-entry ${inline ? 'is-inline' : ''}`}
+      href={pro.href}
+      title={pro.hint ?? pro.label}
+    >
+      <span className="portal-pro-label">
+        <Sparkles size={13} strokeWidth={2} aria-hidden="true" />
+        {pro.label}
+      </span>
+      <span className="portal-pro-tags">
+        {pro.tags.map((tag) => (
+          <span key={tag} className="portal-pro-tag">
+            {tag}
+          </span>
+        ))}
+      </span>
+    </a>
+  );
 }
 export function readPreference(key: string): string | null {
   try { return localStorage.getItem(key); } catch { return null; }

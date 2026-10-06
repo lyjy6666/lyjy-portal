@@ -1106,3 +1106,77 @@ button, a, input, textarea, select {
     transition: none;
   }
 }
+
+/* ============================================================
+   「尝鲜版」入口（主入口旁边）
+   ------------------------------------------------------------
+   用渐变描边 + 轻微呼吸光晕把它和普通入口区分开，
+   两个标签（尝鲜体验 / 重大更新）说明它的性质。
+   ============================================================ */
+.portal-pro-entry {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.7rem;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.72)) padding-box,
+    linear-gradient(100deg, #67e8f9, #a78bfa 55%, #f0abfc) border-box;
+  color: #e0f2fe;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+  animation: portal-pro-breathe 3.2s ease-in-out infinite;
+}
+
+.portal-pro-entry:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.45);
+}
+
+.portal-pro-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background-image: linear-gradient(92deg, #a5f3fc, #c4b5fd 55%, #f5d0fe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.portal-pro-tags {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.portal-pro-tag {
+  font-size: 0.625rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  background: rgba(167, 139, 250, 0.14);
+  color: #ddd6fe;
+}
+
+/* 列表布局里空间更紧，横排显示 */
+.portal-pro-entry.is-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+}
+
+@keyframes portal-pro-breathe {
+  0%, 100% { box-shadow: 0 0 10px rgba(103, 232, 249, 0.22); }
+  50%      { box-shadow: 0 0 20px rgba(167, 139, 250, 0.42); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-pro-entry { animation: none; }
+}

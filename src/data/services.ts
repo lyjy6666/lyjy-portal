@@ -1,3 +1,15 @@
+/** 「尝鲜版」入口：主按钮旁边多给一个入口，带两个标签 */
+export type ProEntry = {
+  /** 目标地址 */
+  href: string;
+  /** 按钮文案 */
+  label: string;
+  /** 标签（如「尝鲜体验」「重大更新」） */
+  tags: string[];
+  /** 悬停提示 */
+  hint?: string;
+};
+
 export type ServiceItem = {
   id: string;
   name: string;
@@ -5,6 +17,8 @@ export type ServiceItem = {
   color: string;
   url: string;
   desc: string;
+  /** 主入口旁边额外展示的尝鲜版入口 */
+  pro?: ProEntry;
   badge?: string | string[];
   external?: boolean;
   type?: string;
@@ -32,7 +46,20 @@ export const serviceCategories: ServiceCategory[] = [
     { id: 'search', name: '搜索页', icon: 'fa-magnifying-glass-chart', color: 'purple', url: '/search', desc: '聚合 26+ 搜索引擎' },
   ] },
   { id: 'tools', name: '效率工具', icon: 'fa-screwdriver-wrench', color: 'cyan', services: [
-    { id: 'toolbox', name: '格式转换工具箱', icon: 'fa-screwdriver-wrench', color: 'cyan', url: '/toolbox', desc: '多种格式高效转换' },
+    {
+      id: 'toolbox',
+      name: '格式转换工具箱',
+      icon: 'fa-screwdriver-wrench',
+      color: 'cyan',
+      url: '/toolbox',
+      desc: '多种格式高效转换',
+      pro: {
+        href: '/toolbox/pro',
+        label: 'Pro 尝鲜版',
+        tags: ['尝鲜体验', '重大更新'],
+        hint: '完全重写的新版：9 个工具、修复全部已知问题',
+      },
+    },
     { id: 'homework', name: '作业管理系统', icon: 'fa-graduation-cap', color: 'green', url: '/homework', desc: '语音输入、智能排期、按时间视图、AI 批改', badge: '重磅更新' },
     { id: 'pomodoro', name: '番茄钟', icon: 'fa-stopwatch', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
     { id: 'tts', name: '语音朗读', icon: 'fa-microphone-lines', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
