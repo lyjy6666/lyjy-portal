@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle, Droplet } from 'lucide-react';
+import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle, Droplet, Crown } from 'lucide-react';
 import ImageConverter from '@/components/converters/ImageConverter';
 import TextConverter from '@/components/converters/TextConverter';
 import CodeConverter from '@/components/converters/CodeConverter';
@@ -59,6 +59,15 @@ export default function ToolboxPage() {
                 BETA
               </span>
             </span>
+            {/* Pro 版入口：从旧版也能直接尝鲜 */}
+            <a
+              href="/toolbox/pro"
+              title="完全重写的新版：9 个工具、修复全部已知问题"
+              className="group relative inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition-transform hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-500/40"
+            >
+              <Crown className="h-4 w-4" strokeWidth={2.2} />
+              PRO 尝鲜版
+            </a>
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-400">
             全能格式转换工具，支持图片、文本、代码、文档等多种格式的高效转换

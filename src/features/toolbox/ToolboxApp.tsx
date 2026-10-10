@@ -226,6 +226,20 @@ function Shell() {
           >
             BETA
           </span>
+          {/* PRO 徽章：标出这是 Pro 版 */}
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold"
+            title="Pro 版：完全重写，修复全部已知问题"
+            style={{
+              background: 'linear-gradient(92deg, #f0abfc, #c4b5fd 55%, #67e8f9)',
+              color: '#1e1235',
+              borderRadius: 999,
+              boxShadow: 'var(--tb-shadow)',
+            }}
+          >
+            <i className="fa-solid fa-crown text-[9px]" />
+            PRO
+          </span>
           <span className="text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
             图片、文档、文本数据、代码、音视频、压缩、水印与开发工具
           </span>
