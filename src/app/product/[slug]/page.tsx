@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PRODUCTS, getProduct } from '@/data/products';
+import { productFontVars } from '../fonts';
 import HashCopy from './HashCopy';
+import '../product-themes.css';
 
 export function generateStaticParams() {
   return PRODUCTS.map((p) => ({ slug: p.slug }));
@@ -21,38 +23,6 @@ export async function generateMetadata({
     description: product.tagline,
   };
 }
-
-// Tailwind 只识别字面量类名，所以这里把每个配色的类名写全，不用模板拼接
-const ACCENT: Record<string, { tile: string; icon: string; btn: string; chip: string; bar: string }> = {
-  blue: {
-    tile: 'bg-blue-50 border-blue-100',
-    icon: 'text-blue-600',
-    btn: 'bg-blue-600 hover:bg-blue-700 focus-visible:outline-blue-600',
-    chip: 'bg-blue-50 text-blue-700 border-blue-100',
-    bar: 'bg-blue-600',
-  },
-  green: {
-    tile: 'bg-emerald-50 border-emerald-100',
-    icon: 'text-emerald-600',
-    btn: 'bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-emerald-600',
-    chip: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    bar: 'bg-emerald-600',
-  },
-  purple: {
-    tile: 'bg-violet-50 border-violet-100',
-    icon: 'text-violet-600',
-    btn: 'bg-violet-600 hover:bg-violet-700 focus-visible:outline-violet-600',
-    chip: 'bg-violet-50 text-violet-700 border-violet-100',
-    bar: 'bg-violet-600',
-  },
-  cyan: {
-    tile: 'bg-cyan-50 border-cyan-100',
-    icon: 'text-cyan-600',
-    btn: 'bg-cyan-600 hover:bg-cyan-700 focus-visible:outline-cyan-600',
-    chip: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-    bar: 'bg-cyan-600',
-  },
-};
 
 const ICONS: Record<string, React.ReactNode> = {
   qianglilock: (
@@ -90,20 +60,33 @@ function formatBytes(n?: number) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
+function Icon({ slug, size = 24 }: { slug: string; size?: number }) {
   return (
-    <div className="mb-5 flex items-baseline justify-between gap-4">
-      <h2 className="text-lg font-semibold tracking-tight text-slate-900">{children}</h2>
-      {hint && <span className="text-xs text-slate-400">{hint}</span>}
-    </div>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ICONS[slug] ?? ICONS['windows-toolbox']}
+    </svg>
   );
 }
 
-function Row({ label, children, mono }: { label: string; children: React.ReactNode; mono?: boolean }) {
+/** 区块标题：左标题 + 右注脚，下面一条分隔线 */
+function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
-    <div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:gap-6">
-      <dt className="w-28 shrink-0 text-sm text-slate-500">{label}</dt>
-      <dd className={`min-w-0 flex-1 text-sm text-slate-900 ${mono ? 'font-mono' : ''}`}>{children}</dd>
+    <div className="mb-6">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-[1.0625rem] font-semibold">{children}</h2>
+        {hint && <span className="pt-label">{hint}</span>}
+      </div>
+      <hr className="pt-rule mt-3" />
     </div>
   );
 }
@@ -113,206 +96,329 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = getProduct(slug);
   if (!product) notFound();
 
-  const a = ACCENT[product.color] ?? ACCENT.blue;
-  const icon = ICONS[product.slug] ?? ICONS['windows-toolbox'];
-
+  const theme = product.theme ?? 'aurora';
+  const offline = product.offline === true;
+  const sizeText = formatBytes(product.bytes);
   const metaChips = [product.platform, product.size, product.format, product.version].filter(Boolean) as string[];
+  /** organic 主题用衬线标题，标题需要稍大的字号补偿 */
+  const isSerif = theme === 'organic';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div data-ptheme={theme} className={productFontVars}>
       {/* 顶栏 */}
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur">
+      <header
+        className="sticky top-0 z-20"
+        style={{
+          background: 'color-mix(in oklab, var(--pt-bg) 82%, transparent)',
+          borderBottom: '1px solid var(--pt-line)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[0.8125rem] transition-opacity hover:opacity-70"
+            style={{ color: 'var(--pt-ink-dim)' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />
               <path d="m12 19-7-7 7-7" />
             </svg>
             返回导航
           </Link>
-          <span className="text-sm text-slate-400">LYJY 下载专区</span>
+          <span className="pt-label">LYJY 下载专区</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-5 pb-20 sm:px-8">
-        {/* 产品头部 + 下载面板 */}
-        <section className="grid gap-8 py-12 md:grid-cols-[1fr_20rem] md:py-16">
+      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-24 sm:px-8">
+        {/* ============ 头部 + 下载面板 ============ */}
+        <section className="grid gap-10 py-14 md:grid-cols-[1fr_19rem] md:py-20">
           <div>
-            <div className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl border ${a.tile}`}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={a.icon}>
-                {icon}
-              </svg>
+            <div
+              className="mb-7 inline-flex h-14 w-14 items-center justify-center"
+              style={{
+                background: 'var(--pt-chip-bg)',
+                border: '1px solid var(--pt-line)',
+                borderRadius: 'var(--pt-radius)',
+                color: 'var(--pt-ink)',
+              }}
+            >
+              <Icon slug={product.slug} size={26} />
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{product.name}</h1>
-            <p className="mt-3 max-w-xl text-base leading-relaxed text-slate-600">{product.tagline}</p>
-            <ul className="mt-6 flex flex-wrap gap-2">
-              {metaChips.map((m) => (
-                <li key={m} className={`rounded-full border px-3 py-1 text-xs ${a.chip}`}>
-                  {m}
-                </li>
-              ))}
-            </ul>
+
+            <h1
+              className={`${isSerif ? 'text-[2.5rem] sm:text-[3.25rem]' : 'text-[2.25rem] sm:text-[3rem]'} font-bold leading-[1.08]`}
+            >
+              {product.name}
+            </h1>
+
+            <p
+              className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed"
+              style={{ color: 'var(--pt-ink-dim)' }}
+            >
+              {product.tagline}
+            </p>
+
+            {metaChips.length > 0 && (
+              <ul className="mt-7 flex flex-wrap gap-2">
+                {metaChips.map((m) => (
+                  <li key={m} className="pt-chip">
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* 下载面板 */}
-          <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:sticky md:top-20 md:self-start">
-            <div className="text-sm font-medium text-slate-900">获取安装包</div>
-            {product.fileName ? (
-              <p className="mt-1.5 break-all font-mono text-xs text-slate-500">
-                {product.fileName}
-                {formatBytes(product.bytes) ? ` · ${formatBytes(product.bytes)}` : ''}
-              </p>
+          <aside className="pt-panel p-6 md:sticky md:top-24 md:self-start">
+            {offline ? (
+              <>
+                <div className="pt-label mb-3">项目状态</div>
+                <p className="text-[0.9375rem] font-semibold" style={{ color: 'var(--pt-ink)' }}>
+                  已下线
+                </p>
+                <p className="mt-2 text-[0.8125rem] leading-relaxed" style={{ color: 'var(--pt-ink-dim)' }}>
+                  {product.offlineNote ?? '该项目已下线，不再提供下载。'}
+                </p>
+                <div className="pt-offline mt-5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="mt-0.5 shrink-0">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8v5" />
+                    <path d="M12 16.5v.01" />
+                  </svg>
+                  <span>
+                    想要格式转换？网页版工具箱一直在维护，功能更全且无需下载。
+                  </span>
+                </div>
+                <Link
+                  href="/toolbox/pro"
+                  className="pt-btn mt-5"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                  去用网页版工具箱
+                </Link>
+              </>
             ) : (
-              product.size && <p className="mt-1.5 text-xs text-slate-500">{product.size}</p>
-            )}
+              <>
+                <div className="pt-label">获取安装包</div>
 
-            <a
-              href={product.downloadUrl}
-              target={product.external ? '_blank' : undefined}
-              rel={product.external ? 'noopener noreferrer' : undefined}
-              download={product.external ? undefined : ''}
-              className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white transition ${a.btn}`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v12" />
-                <path d="m7 10 5 5 5-5" />
-                <path d="M5 21h14" />
-              </svg>
-              {product.downloadLabel}
-            </a>
+                {product.fileName ? (
+                  <p className="mt-2.5 break-all font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                    {product.fileName}
+                    {sizeText ? ` · ${sizeText}` : ''}
+                  </p>
+                ) : (
+                  product.size && (
+                    <p className="mt-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                      {product.size}
+                    </p>
+                  )
+                )}
 
-            {product.external && <p className="mt-3 text-xs leading-relaxed text-slate-500">将跳转到外部资源站获取安装包</p>}
+                <a
+                  href={product.downloadUrl}
+                  target={product.external ? '_blank' : undefined}
+                  rel={product.external ? 'noopener noreferrer' : undefined}
+                  /* 用 fileName 作保存名：URL 走 ASCII 更稳，用户拿到的仍是中文名 */
+                  download={product.external ? undefined : product.fileName || ''}
+                  className="pt-btn mt-5"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v12" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M5 21h14" />
+                  </svg>
+                  {product.downloadLabel}
+                </a>
 
-            <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-xs">
-              {product.requirement && (
-                <p className="flex gap-2">
-                  <span className="text-slate-400">运行环境</span>
-                  <span className="text-slate-700">{product.requirement}</span>
-                </p>
-              )}
-              {product.updatedAt && (
-                <p className="flex gap-2">
-                  <span className="text-slate-400">最近更新</span>
-                  <span className="text-slate-700">{product.updatedAt}</span>
-                </p>
-              )}
-              {product.sha256 && (
-                <p className="flex gap-2">
-                  <span className="text-slate-400">校验</span>
-                  <a href="#file-info" className="text-slate-700 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500">
-                    查看 SHA-256
-                  </a>
-                </p>
-              )}
-            </div>
+                {product.external && (
+                  <p className="mt-3 text-[0.75rem] leading-relaxed" style={{ color: 'var(--pt-ink-faint)' }}>
+                    将跳转到外部资源站获取安装包
+                  </p>
+                )}
 
-            {product.note && (
-              <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">{product.note}</p>
+                <hr className="pt-rule my-5" />
+
+                <dl className="space-y-2.5 text-[0.75rem]">
+                  {product.requirement && (
+                    <div className="flex gap-3">
+                      <dt style={{ color: 'var(--pt-ink-faint)' }} className="w-14 shrink-0">
+                        运行环境
+                      </dt>
+                      <dd className="min-w-0 flex-1">{product.requirement}</dd>
+                    </div>
+                  )}
+                  {product.updatedAt && (
+                    <div className="flex gap-3">
+                      <dt style={{ color: 'var(--pt-ink-faint)' }} className="w-14 shrink-0">
+                        最近更新
+                      </dt>
+                      <dd className="min-w-0 flex-1">{product.updatedAt}</dd>
+                    </div>
+                  )}
+                  {product.sha256 && (
+                    <div className="flex gap-3">
+                      <dt style={{ color: 'var(--pt-ink-faint)' }} className="w-14 shrink-0">
+                        校验
+                      </dt>
+                      <dd className="min-w-0 flex-1">
+                        <a
+                          href="#file-info"
+                          className="underline underline-offset-2 transition-opacity hover:opacity-70"
+                        >
+                          查看 SHA-256
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </>
             )}
           </aside>
         </section>
 
-        {/* 产品简介 */}
-        <section className="border-t border-slate-200 py-12">
-          <SectionTitle>产品简介</SectionTitle>
-          <p className="max-w-3xl text-[15px] leading-8 text-slate-700">{product.desc}</p>
+        {/* ============ 产品简介 ============ */}
+        <section className="py-10">
+          <SectionTitle hint="About">产品简介</SectionTitle>
+          <p
+            className="max-w-3xl text-[0.9375rem] leading-[1.85]"
+            style={{ color: 'var(--pt-ink-dim)' }}
+          >
+            {product.desc}
+          </p>
         </section>
 
-        {/* 功能特性 */}
-        <section className="border-t border-slate-200 py-12">
-          <SectionTitle hint={`${product.features.length} 项核心能力`}>功能特性</SectionTitle>
-          <ul className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
-            {product.features.map((f) => (
-              <li key={f.title} className="flex gap-3.5">
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${a.tile}`}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={a.icon}>
-                    <path d="m5 13 4 4L19 7" />
-                  </svg>
+        {/* ============ 功能特性 ============ */}
+        <section className="py-10">
+          <SectionTitle hint={`${product.features.length} 项`}>功能特性</SectionTitle>
+          <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+            {product.features.map((f, i) => (
+              <div key={f.title} className="flex gap-4">
+                {/* 序号当视觉锚点，比图标更克制 */}
+                <span
+                  className="mt-0.5 shrink-0 font-mono text-[0.6875rem] tabular-nums"
+                  style={{ color: 'var(--pt-ink-faint)' }}
+                >
+                  {String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-slate-900">{f.title}</div>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{f.text}</p>
+                  <h3 className="text-[0.9375rem] font-semibold">{f.title}</h3>
+                  <p className="mt-1.5 text-[0.8125rem] leading-relaxed" style={{ color: 'var(--pt-ink-dim)' }}>
+                    {f.text}
+                  </p>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
-        {/* 文件信息 */}
-        <section id="file-info" className="scroll-mt-20 border-t border-slate-200 py-12">
-          <SectionTitle hint="下载后可自行核对">文件信息</SectionTitle>
-          <dl className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {product.fileName && (
-              <Row label="文件名" mono>
-                {product.fileName}
-              </Row>
-            )}
-            {product.bytes && (
-              <Row label="文件大小">
-                {formatBytes(product.bytes)}
-                <span className="ml-2 text-slate-400">（{product.bytes.toLocaleString()} 字节）</span>
-              </Row>
-            )}
-            {product.format && <Row label="文件格式">{product.format}</Row>}
-            {product.platform && <Row label="适用系统">{product.platform}</Row>}
-            {product.requirement && <Row label="运行要求">{product.requirement}</Row>}
-            {product.version && <Row label="版本">{product.version}</Row>}
-            {product.updatedAt && <Row label="最近更新">{product.updatedAt}</Row>}
-            {product.sha256 ? (
-              <Row label="SHA-256">
-                <HashCopy value={product.sha256} />
-                <p className="mt-2 text-xs text-slate-400">
-                  在 Windows 上可用 PowerShell 执行{' '}
-                  <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">Get-FileHash 文件名 -Algorithm SHA256</code> 对比结果。
-                </p>
-              </Row>
-            ) : (
-              <Row label="校验值">
-                <span className="text-slate-500">该资源托管在外部网盘，未提供校验值。</span>
-              </Row>
-            )}
-          </dl>
-        </section>
-
-        {/* 安装步骤 */}
-        {product.steps?.length ? (
-          <section className="border-t border-slate-200 py-12">
-            <SectionTitle>安装步骤</SectionTitle>
-            <ol className="max-w-3xl space-y-4">
+        {/* ============ 安装步骤 ============ */}
+        {product.steps && product.steps.length > 0 && (
+          <section className="py-10">
+            <SectionTitle hint="Steps">安装与使用</SectionTitle>
+            <ol className="max-w-3xl space-y-0">
               {product.steps.map((s, i) => (
-                <li key={s} className="flex gap-4">
-                  <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white ${a.bar}`}>
+                <li
+                  key={s}
+                  className="flex gap-4 py-4"
+                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--pt-line)' }}
+                >
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[0.6875rem] tabular-nums"
+                    style={{ background: 'var(--pt-chip-bg)', color: 'var(--pt-ink-dim)', border: '1px solid var(--pt-line)' }}
+                  >
                     {i + 1}
                   </span>
-                  <p className="text-sm leading-7 text-slate-700">{s}</p>
+                  <span className="text-[0.875rem] leading-relaxed">{s}</span>
                 </li>
               ))}
             </ol>
           </section>
-        ) : null}
+        )}
 
-        {/* 常见问题 */}
-        {product.faq?.length ? (
-          <section className="border-t border-slate-200 py-12">
-            <SectionTitle>常见问题</SectionTitle>
-            <div className="max-w-3xl divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {/* ============ 文件校验 ============ */}
+        {(product.sha256 || product.bytes || product.fileName) && (
+          <section id="file-info" className="scroll-mt-24 py-10">
+            <SectionTitle hint="Verification">文件校验</SectionTitle>
+            <div className="pt-panel overflow-hidden">
+              <dl>
+                {product.fileName && (
+                  <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                    <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                      文件名
+                    </dt>
+                    <dd className="min-w-0 flex-1 break-all font-mono text-[0.8125rem]">{product.fileName}</dd>
+                  </div>
+                )}
+                {sizeText && (
+                  <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                    <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                      大小
+                    </dt>
+                    <dd className="min-w-0 flex-1 text-[0.8125rem]">
+                      {sizeText}
+                      {product.bytes && (
+                        <span className="ml-2 font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                          ({product.bytes.toLocaleString('en-US')} 字节)
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {product.sha256 && (
+                  <div className="px-5 py-4">
+                    <dt className="mb-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                      SHA-256
+                    </dt>
+                    <dd>
+                      <HashCopy value={product.sha256} />
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+            <p className="mt-3 text-[0.75rem] leading-relaxed" style={{ color: 'var(--pt-ink-faint)' }}>
+              下载后可用 <code className="font-mono">certutil -hashfile 文件名 SHA256</code> 核对，
+              确认与上方一致再运行。
+            </p>
+          </section>
+        )}
+
+        {/* ============ 常见问题 ============ */}
+        {product.faq && product.faq.length > 0 && (
+          <section className="py-10">
+            <SectionTitle hint="FAQ">常见问题</SectionTitle>
+            <div className="max-w-3xl space-y-6">
               {product.faq.map((item) => (
-                <div key={item.q} className="px-5 py-4">
-                  <div className="text-sm font-medium text-slate-900">{item.q}</div>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{item.a}</p>
+                <div key={item.q}>
+                  <h3 className="text-[0.9375rem] font-semibold">{item.q}</h3>
+                  <p className="mt-2 text-[0.875rem] leading-relaxed" style={{ color: 'var(--pt-ink-dim)' }}>
+                    {item.a}
+                  </p>
                 </div>
               ))}
             </div>
           </section>
-        ) : null}
-
-        <footer className="flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-8 text-xs text-slate-500 sm:flex-row sm:items-center">
-          <span>LYJY 下载专区 · 所有工具均免费提供，不含任何付费或捆绑内容</span>
-          <Link href="/" className="text-slate-600 underline decoration-slate-300 underline-offset-2 transition hover:text-slate-900 hover:decoration-slate-500">
-            返回导航系统
-          </Link>
-        </footer>
+        )}
       </main>
+
+      <footer className="relative z-10 mx-auto max-w-5xl px-5 pb-12 sm:px-8">
+        <hr className="pt-rule mb-5" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="pt-label">LYJY 下载专区</span>
+          <Link
+            href="/"
+            className="text-[0.75rem] transition-opacity hover:opacity-70"
+            style={{ color: 'var(--pt-ink-faint)' }}
+          >
+            返回导航首页
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

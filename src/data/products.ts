@@ -30,11 +30,18 @@ export type Product = {
   updatedAt?: string; // 最近更新日期
   steps?: string[]; // 安装 / 使用步骤
   faq?: { q: string; a: string }[];
+
+  /** 产品页主题：每页固定一套，不做切换 */
+  theme?: 'glass' | 'organic' | 'dusk' | 'aurora';
+  /** 已下线：页面显示下线说明，不再提供下载入口 */
+  offline?: boolean;
+  offlineNote?: string; // 下线原因（展示给用户）
 };
 
 export const PRODUCTS: Product[] = [
   {
     slug: 'qianglilock',
+    theme: 'dusk',
     name: '强力锁',
     tagline: '一键锁定电脑，专注当下、守护隐私',
     icon: 'fa-lock',
@@ -48,7 +55,7 @@ export const PRODUCTS: Product[] = [
       { title: '屏幕自动变暗', text: '锁屏 30 秒后屏幕自动变暗，进一步隔绝干扰、保护隐私。' },
       { title: '极简单文件', text: '绿色版 exe，无需安装、不写注册表，双击即用。' },
     ],
-    downloadUrl: '/强力锁.exe',
+    downloadUrl: '/downloads/qianglilock.exe',
     downloadLabel: '下载 EXE',
     external: false,
     note: '这是一个自包含单文件 exe（已内置运行环境，无需安装 .NET）。下载后默认在浏览器的「下载」文件夹中，双击即可运行。',
@@ -84,6 +91,9 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'toolbox-desktop',
+    offline: true,
+    offlineNote: '该项目已下线，不再提供下载。需要格式转换请使用网页版工具箱。',
+    theme: 'aurora',
     name: '格式转换工具箱（桌面版）',
     tagline: '离线全能格式转换，文件不出本机',
     icon: 'fa-download',
@@ -127,6 +137,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'windows-toolbox',
+    theme: 'glass',
     name: 'Windows Toolbox（应用程序版）',
     tagline: '原生桌面应用，功能更丰富',
     icon: 'fa-cube',
@@ -174,6 +185,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'windows-tool-web',
+    theme: 'organic',
     name: 'Windows 工具（网页版）',
     tagline: '界面精致的单文件绿色版，双击即用',
     icon: 'fa-globe',
