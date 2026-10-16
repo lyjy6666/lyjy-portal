@@ -41,7 +41,7 @@ export type Product = {
 export const PRODUCTS: Product[] = [
   {
     slug: 'qianglilock',
-    theme: 'dusk',
+    theme: 'aurora',
     name: '强力锁',
     tagline: '一键锁定电脑，专注当下、守护隐私',
     icon: 'fa-lock',
@@ -137,7 +137,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'windows-toolbox',
-    theme: 'glass',
+    theme: 'aurora',
     name: 'Windows Toolbox（应用程序版）',
     tagline: '原生桌面应用，功能更丰富',
     icon: 'fa-cube',
@@ -185,7 +185,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'windows-tool-web',
-    theme: 'organic',
+    theme: 'aurora',
     name: 'Windows 工具（网页版）',
     tagline: '界面精致的单文件绿色版，双击即用',
     icon: 'fa-globe',
