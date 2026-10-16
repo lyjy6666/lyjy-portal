@@ -31,6 +31,8 @@ export type Product = {
   steps?: string[]; // 安装 / 使用步骤
   faq?: { q: string; a: string }[];
 
+  /** 应用界面预览的样式 key（目前只有 'lock'），用于 app 风格介绍页 */
+  preview?: string;
   /** 产品页主题：每页固定一套，不做切换 */
   theme?: 'glass' | 'organic' | 'dusk' | 'aurora';
   /** 已下线：页面显示下线说明，不再提供下载入口 */
@@ -42,6 +44,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'qianglilock',
     theme: 'aurora',
+    preview: 'lock',
     name: '强力锁',
     tagline: '一键锁定电脑，专注当下、守护隐私',
     icon: 'fa-lock',

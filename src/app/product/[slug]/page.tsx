@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { PRODUCTS, getProduct } from '@/data/products';
 import { productFontVars } from '../fonts';
 import HashCopy from './HashCopy';
+import AppPreview from './AppPreview';
 import '../product-themes.css';
 
 export function generateStaticParams() {
@@ -280,6 +281,34 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
           </aside>
         </section>
+
+        {/* ============ 应用界面预览（仅带 preview 的产品） ============ */}
+        {product.preview && (
+          <section className="py-10">
+            <SectionTitle hint="Preview">界面预览</SectionTitle>
+            <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+              <AppPreview kind={product.preview} />
+              <div>
+                <h3 className="text-[1.0625rem] font-semibold">锁屏期间，干扰进不来</h3>
+                <p className="mt-3 text-[0.875rem] leading-[1.8]" style={{ color: 'var(--pt-ink-dim)' }}>
+                  锁定后整个桌面被覆盖，任务切换与关闭窗口的快捷键一并禁用，
+                  屏幕 30 秒后自动变暗。倒计时归零才自动解锁。
+                </p>
+                <ul className="mt-5 space-y-2.5">
+                  {['多档时长：2 分钟到 5 小时', '3 次临时操作机会，每次 20 秒', '不写注册表，退出即还原'].map((t) => (
+                    <li key={t} className="flex gap-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                      <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full" style={{ background: 'var(--pt-accent)' }} />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                  上图是按程序界面绘制的示意图，非真实截图。
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ============ 产品简介 ============ */}
         <section className="py-10">
