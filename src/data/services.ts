@@ -76,7 +76,7 @@ export const serviceCategories: ServiceCategory[] = [
     { id: 'grandma', name: '老人训练题', icon: 'fa-brain', color: 'pink', url: 'https://grandma-lyjy.netlify.app', desc: '为老人设计的认知训练题库', external: true },
   ] },
   { id: 'download', name: '产品下载', icon: 'fa-download', color: 'purple', services: [
-    { id: 'qianglilock', name: '强力锁', icon: 'fa-shield-halved', color: 'blue', url: '/product/qianglilock', desc: '锁定电脑，更加专注，保护安全', badge: '新增', type: 'download' },
+    { id: 'qianglilock', name: '强力锁', icon: 'fa-shield-halved', color: 'blue', url: '/product/qianglilock', desc: '锁定电脑，更加专注，保护安全', badge: '新增' },
     { id: 'toolbox-desktop', name: '格式转换工具箱（桌面版）', shortName: '格式转换桌面版', icon: 'fa-box-open', color: 'cyan', url: '#', desc: '该项目已下线', badge: '已下线', soon: true, unavailable: '此项目已下线' },
     { id: 'windows-toolbox', name: 'Windows Toolbox（应用程序版）', shortName: 'Windows Toolbox', icon: 'fa-cubes-stacked', color: 'indigo', url: '/product/windows-toolbox', desc: '原生桌面工具合集，需安装 .NET 8 桌面运行时', badge: 'ZIP 包' },
     { id: 'windows-tool-web', name: 'Windows 工具（网页版）', shortName: 'Windows 工具网页版', icon: 'fa-window-restore', color: 'green', url: '/product/windows-tool-web', desc: '单文件绿色版，内置本地服务器', badge: '单文件' },

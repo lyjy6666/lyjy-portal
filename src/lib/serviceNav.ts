@@ -29,7 +29,16 @@ export function resolveService(service: ServiceItem): NavTarget {
     };
   }
   if (service.type === 'download') {
-    return { mode: 'download', href: service.url, label: '下载' };
+    // 防御：只有当 url 真的指向一个**文件**时才按下载处理。
+    //
+    // 如果指向的是站内页面（比如 /product/xxx 介绍页），却带着 download 语义，
+    // 浏览器会把那个 HTML 页面当文件下载下来 —— 用户打开后看到的就是「又一个下载页」。
+    // 强力锁曾经就是这样：url 是 /product/qianglilock 介绍页，却标了 type: 'download'。
+    const looksLikeFile = /\.(exe|msi|zip|7z|rar|dmg|pkg|apk|deb|rpm|tar|gz)$/i.test(service.url);
+    if (looksLikeFile) {
+      return { mode: 'download', href: service.url, label: '下载' };
+    }
+    // 否则当作普通站内跳转，继续往下走
   }
   if (service.external) {
     return { mode: 'external', href: service.url, label: '访问网站' };
