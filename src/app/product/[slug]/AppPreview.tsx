@@ -74,11 +74,25 @@ function WindowChrome({
    ============================================================ */
 
 function LockPreview() {
-  const [remain, setRemain] = useState(28 * 60 + 45);
+  // 真实默认是「剩余时间：30:00」，这里就从 30 分钟开始倒数
+  const [remain, setRemain] = useState(30 * 60);
+  const [clock, setClock] = useState('00:00');
 
   useEffect(() => {
-    const t = setInterval(() => setRemain((v) => (v <= 1 ? 28 * 60 + 45 : v - 1)), 1000);
-    return () => clearInterval(t);
+    const tick = () => {
+      const now = new Date();
+      setClock(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      );
+    };
+    tick();
+    const t1 = setInterval(tick, 1000);
+    // 倒计时走快一点（每 40ms 减 1 秒），不然示意看不出来在动
+    const t2 = setInterval(() => setRemain((v) => (v <= 1 ? 30 * 60 : v - 1)), 40);
+    return () => {
+      clearInterval(t1);
+      clearInterval(t2);
+    };
   }, []);
 
   const mm = String(Math.floor(remain / 60)).padStart(2, '0');
@@ -94,44 +108,32 @@ function LockPreview() {
         boxShadow: '0 26px 60px -30px rgba(20, 16, 60, 0.6)',
       }}
     >
-      <div
-        className="flex items-center gap-2 px-3.5 py-2.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}
-      >
-        <span className="flex gap-1.5" aria-hidden="true">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#ff5f57' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#febc2e' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: '#28c840' }} />
-        </span>
-        <span className="ml-1.5 font-mono text-[0.6875rem] text-white/35">强力锁 · 锁屏中</span>
-      </div>
+      {/*
+       * 真实锁屏界面（LockScreenWindow.xaml）：无边框全屏、隐藏任务栏，
+       * 所以这里不画窗口标题栏，直接铺满一块深色屏。
+       */}
+      <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+        <p className="text-[1.75rem] font-bold leading-tight text-white/95">🔒 屏幕已锁定</p>
 
-      <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+        <p className="mt-6 font-mono text-[1.5rem] leading-none tabular-nums text-white/62">
+          剩余时间：{mm}:{ss}
+        </p>
+
+        <p className="mt-3.5 font-mono text-[1rem] leading-none tabular-nums text-white/40">
+          当前时间：{clock}
+        </p>
+
+        {/* 「操纵屏幕」按钮：真实颜色 #F59E0B，悬停转 #DC2626 */}
         <div
-          className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="mt-8 inline-flex items-center justify-center px-8 py-3 text-[0.9375rem] font-bold text-white"
+          style={{ background: '#F59E0B', borderRadius: '0.375rem' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.82)" strokeWidth="1.7" strokeLinecap="round">
-            <rect x="4" y="10" width="16" height="11" rx="2" />
-            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-          </svg>
+          操纵屏幕（剩余 3 次）
         </div>
 
-        <div className="font-mono text-[3rem] leading-none tabular-nums text-white/92">
-          {mm}:{ss}
-        </div>
-
-        <p className="mt-3.5 text-[0.8125rem] text-white/45">已锁定 · 时间到自动解锁</p>
-
-        <div
-          className="mt-7 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-        >
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#34d399' }} />
-          <span className="text-[0.75rem] text-white/60">临时操作机会 · 剩余 3 次</span>
-        </div>
-
-        <p className="mt-5 text-[0.6875rem] text-white/25">Win+Tab / Alt+Tab / Alt+F4 已禁用</p>
+        <p className="mt-7 text-[0.75rem]" style={{ color: '#606070' }}>
+          按 ESC 可隐藏/显示信息
+        </p>
       </div>
     </div>
   );
@@ -145,7 +147,7 @@ function LockPreview() {
  * 真实的板块名 —— 从 WindowsToolbox.dll 里提取的界面文字。
  * 之前我按「格式转换」的方向编了一组（图片转换/文档处理…），完全是错的。
  */
-const WPF_TOOLS = ['性能优化', '隐私防护', '界面定制', '网络优化', '磁盘清理', '游戏模式', '系统修复', '高级工具'];
+const WPF_TOOLS = ['主页总览', '性能优化', '隐私防护', '界面定制', '网络优化', '磁盘清理', '游戏模式', '系统修复', '高级工具', '软件设置'];
 
 /** 磁盘清理页里的真实清理项 */
 const CLEAN_ITEMS = ['系统临时文件', '更新缓存', '缩略图缓存', '事件日志', '回收站'];
@@ -253,7 +255,7 @@ function WpfPreview() {
    browser · Windows 工具网页版
    ============================================================ */
 
-const WEB_TABS = ['图片', '文档', '编码', '哈希', '时间'];
+const WEB_TABS = ['主页总览', '性能优化', '隐私防护', '界面定制', '网络优化', '磁盘清理', '游戏模式', '系统修复', '高级工具', '开发者模式', '快捷工具箱', '软件设置'];
 
 function BrowserPreview() {
   const [tab, setTab] = useState(0);
@@ -270,7 +272,7 @@ function BrowserPreview() {
   }, []);
 
   return (
-    <WindowChrome title="Windows 工具 — 本地服务">
+    <WindowChrome title="lyjy Windows 调校工具箱 — 本地服务">
       {/* 地址栏 */}
       <div className="flex items-center gap-2 px-3.5 py-2" style={{ borderBottom: '1px solid var(--pt-line)' }}>
         <span className="flex gap-1.5" aria-hidden="true">
@@ -291,9 +293,9 @@ function BrowserPreview() {
       {/* 页面内容 */}
       <div className="p-4" style={{ minHeight: 236 }}>
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-[0.8125rem] font-semibold">Windows 工具</span>
+          <span className="text-[0.8125rem] font-semibold">lyjy Windows 调校工具箱</span>
           <span className="font-mono text-[0.625rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-            无需安装 · 单文件
+            单文件 · 本地服务
           </span>
         </div>
 
@@ -315,20 +317,59 @@ function BrowserPreview() {
           ))}
         </div>
 
-        {/* 工具面板 */}
-        <div
-          className="flex flex-col items-center justify-center gap-2 py-7"
-          style={{ border: '1px dashed var(--pt-line)', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.5)' }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pt-accent)" strokeWidth="1.5" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="3" />
-            <path d="M3 15l5-5 4 4 3-3 6 6" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-          </svg>
-          <span className="text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-            拖入图片，或点击选择文件
-          </span>
+        {/*
+         * 真实界面是「功能卡片列表」，每张卡片带风险等级徽标与开关，
+         * 不是文件拖放区 —— 之前那版是错的。
+         */}
+        <div className="flex flex-col gap-1.5">
+          {[
+            { name: '视觉效果→最佳性能', risk: '安全', level: 'safe' },
+            { name: '电源：高性能', risk: '安全', level: 'safe' },
+            { name: '关闭微软诊断遥测', risk: '谨慎', level: 'caution' },
+            { name: '停用遥测诊断服务', risk: '谨慎', level: 'caution' },
+            { name: '激活 Windows', risk: '高危', level: 'high' },
+          ].map((f) => {
+            const tone =
+              f.level === 'safe'
+                ? { bg: 'rgba(16,185,129,0.12)', fg: '#0f766e', bd: 'rgba(16,185,129,0.35)' }
+                : f.level === 'caution'
+                  ? { bg: 'rgba(245,158,11,0.14)', fg: '#b45309', bd: 'rgba(245,158,11,0.4)' }
+                  : { bg: 'rgba(220,38,38,0.12)', fg: '#b91c1c', bd: 'rgba(220,38,38,0.35)' };
+            return (
+              <div
+                key={f.name}
+                className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5"
+                style={{ background: 'rgba(255,255,255,0.72)', border: '1px solid var(--pt-line)' }}
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span
+                    className="shrink-0 rounded px-1 py-0.5 text-[0.5625rem] font-semibold"
+                    style={{ background: tone.bg, color: tone.fg, border: '1px solid ' + tone.bd }}
+                  >
+                    {f.risk}
+                  </span>
+                  <span className="truncate text-[0.6875rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                    {f.name}
+                  </span>
+                </span>
+                {/* 开关 */}
+                <span
+                  className="relative h-3 w-6 shrink-0 rounded-full"
+                  style={{ background: f.level === 'safe' ? 'var(--pt-accent)' : 'rgba(0,0,0,0.12)' }}
+                >
+                  <span
+                    className="absolute top-0.5 h-2 w-2 rounded-full bg-white"
+                    style={{ left: f.level === 'safe' ? '0.875rem' : '0.125rem' }}
+                  />
+                </span>
+              </div>
+            );
+          })}
         </div>
+
+        <p className="mt-2.5 text-[0.5625rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+          共 144 项 · 每项都带还原命令
+        </p>
       </div>
     </WindowChrome>
   );

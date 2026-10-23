@@ -40,9 +40,13 @@
   padding-bottom: 4rem;
   /* ScrollPager 用它算吸附位置，顶栏让位 */
   scroll-margin-top: var(--pt-header-h, 3.25rem);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  /*
+   * 注意：这里**不要**写 display / flex-direction。
+   * 之前写了 display:flex + justify-content:center，直接把 section 上
+   * Tailwind 的 `grid md:grid-cols-[1fr_20rem]` 覆盖掉了 ——
+   * 结果首屏变成竖着堆，下载卡片跑到标题下面，右半边整个空着。
+   * 区块内部的布局交给各自的 class，这里只管高度与留白。
+   */
 }
 
 /*

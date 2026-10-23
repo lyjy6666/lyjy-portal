@@ -63,14 +63,14 @@ const PREVIEW_COPY: Record<string, { title: string; desc: string; points: string
     points: ['多档时长：2 分钟到 5 小时', '3 次临时操作机会，每次 20 秒', '不写注册表，退出即还原'],
   },
   wpf: {
-    title: '八个板块，一项一个开关',
-    desc: '左侧是性能优化、隐私防护、界面定制、网络优化、磁盘清理、游戏模式、系统修复、高级工具八个板块，右侧是当前板块的开关列表。每项改动前都会先记录系统原始状态，改坏了可以单独还原。',
-    points: ['八类调校集中在侧边栏', '每项独立回滚，全程有日志', '高危操作会二次确认'],
+    title: '十个板块，一项一个开关',
+    desc: '左侧是主页总览、性能优化、隐私防护、界面定制、网络优化、磁盘清理、游戏模式、系统修复、高级工具、软件设置十个板块，右侧是当前板块的开关列表。每项改动前都会先记录系统原始状态，改坏了可以单独还原。',
+    points: ['十类调校集中在侧边栏', '每项独立回滚，全程有日志', '高危操作会二次确认'],
   },
   browser: {
-    title: '双击即用，浏览器里操作',
-    desc: '程序启动后会在本机开一个本地服务，浏览器自动打开工具界面。全程离线，不经过任何外部服务器。',
-    points: ['单文件，不写注册表', '自动分配本地端口', '关闭窗口即停止服务'],
+    title: '144 项功能，每项都能还原',
+    desc: '界面是「模块 + 功能卡片」的结构：左边选模块，右边是一列开关，每项都标了风险等级（安全 / 谨慎 / 高危）。功能定义里同时写了应用与还原两段脚本，所以任何一项改错了都能单独退回。',
+    points: ['12 个模块、144 项功能', '安全 62 / 谨慎 62 / 高危 20', '高危项执行前二次确认'],
   },
 };
 
@@ -188,6 +188,57 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 ))}
               </ul>
             )}
+
+            {/*
+             * 核心亮点：取前 4 条功能做成 2×2 的紧凑清单。
+             * 首屏原本只有标题 + 一句话 + 几个标签，下面一大片空白 ——
+             * 这四条把左侧填满，也让「这软件到底能干什么」在首屏就说清楚。
+             */}
+            {product.features.length > 0 && (
+              <ul className="mt-8 grid max-w-2xl gap-x-8 gap-y-3 sm:grid-cols-2">
+                {product.features.slice(0, 4).map((f) => (
+                  <li key={f.title} className="flex items-start gap-2.5">
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--pt-accent)"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="mt-[3px] shrink-0"
+                      aria-hidden="true"
+                    >
+                      <path d="m5 13 4 4L19 7" />
+                    </svg>
+                    <span className="min-w-0">
+                      <span className="block text-[0.8125rem] font-semibold">{f.title}</span>
+                      <span
+                        className="mt-0.5 block text-[0.75rem] leading-relaxed"
+                        style={{ color: 'var(--pt-ink-dim)' }}
+                      >
+                        {f.text}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/*
+             * 次要入口：跳到界面预览。
+             * 用原生锚点而不是 onClick —— 这是服务端组件，不能挂事件处理器。
+             */}
+            {product.preview && (
+              <a href="#preview" className="pt-btn-ghost mt-8 inline-flex">
+                看看界面长什么样
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="m5 12 7 7 7-7" />
+                </svg>
+              </a>
+            )}
           </div>
 
           {/* 下载面板 */}
@@ -303,7 +354,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
         {/* ============ 应用界面预览（仅带 preview 的产品） ============ */}
         {product.preview && PREVIEW_COPY[product.preview] && (
-          <section className="py-10">
+          <section id="preview" className="scroll-mt-24 py-10">
             <SectionTitle hint="Preview">界面预览</SectionTitle>
             <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-center">
               <AppPreview kind={product.preview} />
