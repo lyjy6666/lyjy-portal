@@ -1180,3 +1180,73 @@ button, a, input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .portal-pro-entry { animation: none; }
 }
+
+/* ============================================================
+   服务入口组：Pro 版主按钮 + 原版次级入口（含关停停用）
+   ============================================================ */
+.portal-entries {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.portal-entries--inline {
+  align-items: flex-end;
+}
+
+/* Pro 版：主按钮，最醒目（渐变填充 + 呼吸光） */
+.portal-pro-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #0b1220;
+  background: linear-gradient(100deg, #67e8f9, #a78bfa 55%, #f0abfc);
+  box-shadow: 0 8px 26px -8px rgba(167, 139, 250, 0.75);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.2s ease;
+  animation: portal-pro-breathe 3.2s ease-in-out infinite;
+}
+.portal-pro-main:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 32px -8px rgba(167, 139, 250, 0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-pro-main { animation: none; }
+}
+
+/* 原版：次级入口，弱化 */
+.portal-old-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.portal-old-entry:hover {
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.55);
+}
+.portal-old-entry.is-off {
+  cursor: not-allowed;
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* 原版关停提示 */
+.portal-old-note {
+  font-size: 0.625rem;
+  line-height: 1;
+  color: #f59e0b;
+}

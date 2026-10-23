@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { serviceCategories, type ServiceItem } from '@/data/services';
 import { isNavigable } from '@/lib/serviceNav';
-import { ServiceAction, ServiceBadges, ServiceIcon, ProEntry, accentStyle, handleNudge } from './shared';
+import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, handleNudge } from './shared';
 import { useServiceNav } from './useServiceNav';
 
 type ListLayoutProps = {
@@ -70,11 +70,10 @@ function ServiceRow({ service }: { service: ServiceItem }) {
         <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1">
           {service.soon || service.unavailable ? (
             <span className="bg-slate-500/60 text-slate-300 text-xs px-2.5 py-1 rounded-full">筹备中</span>
+          ) : service.pro ? (
+            <ServiceEntries service={service} inline />
           ) : (
-            <>
-              <ServiceAction service={service} className={`${c.btn} text-white text-xs px-2.5 py-1 rounded-full inline-flex items-center whitespace-nowrap`} />
-              <ProEntry service={service} inline />
-            </>
+            <ServiceAction service={service} className={`${c.btn} text-white text-xs px-2.5 py-1 rounded-full inline-flex items-center whitespace-nowrap`} />
           )}
           {service.upgradeHref && <a href={service.upgradeHref} className="text-[10px] text-slate-500 hover:text-slate-300">{service.oldLabel ?? '返回旧版'}</a>}
         </div>

@@ -71,34 +71,69 @@ export function ServiceBadges({ service }: { service: ServiceItem }) {
   return <div className="portal-badges">{badges.map((badge) => <span key={badge}>{badge}</span>)}</div>;
 }
 
+/** 原版是否已过关停日期（按北京时间当天 23:59:59 截止，过了就停） */
+export function isSunset(service: ServiceItem): boolean {
+  if (!service.sunset) return false;
+  return Date.now() > new Date(`${service.sunset}T23:59:59+08:00`).getTime();
+}
+
+function sunsetLabel(service: ServiceItem): string {
+  if (!service.sunset) return '';
+  const [, m, d] = service.sunset.split('-');
+  return `${Number(m)}月${Number(d)}日关停服务`;
+}
+
 /**
- * 「尝鲜版」入口。
+ * 服务入口组。
  *
- * 放在主入口旁边，用渐变描边和两个标签（尝鲜体验 / 重大更新）把它和普通入口区分开。
- * 数据来自 ServiceItem.pro，所以以后别的子站想出尝鲜版只要加一个字段。
+ * 有 Pro 版时：Pro 版做成最醒目的主按钮，原版退到下方做次级入口，并标注关停日期；
+ * 一旦过了 sunset 日期，原版自动停用（按钮保留、置灰、不可进入），只留 Pro 版。
+ * 没有 Pro 版时退化为普通主入口，保持原样。
  */
-export function ProEntry({ service, inline = false }: { service: ServiceItem; inline?: boolean }) {
+export function ServiceEntries({ service, inline = false }: { service: ServiceItem; inline?: boolean }) {
+  const open = useServiceNav();
+  const target = resolveService(service);
   const pro = service.pro;
-  if (!pro) return null;
+
+  if (!pro) {
+    return <ServiceAction service={service} />;
+  }
+
+  const sunset = isSunset(service);
+  const soon = Boolean(service.soon || service.unavailable);
 
   return (
-    <a
-      className={`portal-pro-entry ${inline ? 'is-inline' : ''}`}
-      href={pro.href}
-      title={pro.hint ?? pro.label}
-    >
-      <span className="portal-pro-label">
-        <Sparkles size={13} strokeWidth={2} aria-hidden="true" />
+    <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
+      {/* Pro 版：主按钮，最醒目 */}
+      <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
+        <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
         {pro.label}
-      </span>
-      <span className="portal-pro-tags">
-        {pro.tags.map((tag) => (
-          <span key={tag} className="portal-pro-tag">
-            {tag}
+      </a>
+
+      {/* 原版：次级入口；到期后置灰停用 */}
+      {!soon &&
+        (sunset ? (
+          <span className="portal-old-entry is-off" aria-disabled="true">
+            原版已关停
           </span>
+        ) : (
+          <a
+            className="portal-old-entry"
+            href={target.href}
+            target={target.mode === 'external' ? '_blank' : undefined}
+            rel={target.mode === 'external' ? 'noopener noreferrer' : undefined}
+            onClick={(e) => {
+              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              open(service);
+            }}
+          >
+            进入原版
+          </a>
         ))}
-      </span>
-    </a>
+
+      <span className="portal-old-note">{sunset ? '请使用 Pro 版' : sunsetLabel(service)}</span>
+    </div>
   );
 }
 export function readPreference(key: string): string | null {

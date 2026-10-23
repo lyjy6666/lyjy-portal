@@ -19,6 +19,8 @@ export type ServiceItem = {
   desc: string;
   /** 主入口旁边额外展示的尝鲜版入口 */
   pro?: ProEntry;
+  /** 原版关停日期（YYYY-MM-DD）。到期后首页原版入口自动停用，仅保留 Pro 版 */
+  sunset?: string;
   badge?: string | string[];
   external?: boolean;
   type?: string;
@@ -43,7 +45,21 @@ export type ServiceCategory = {
 export const serviceCategories: ServiceCategory[] = [
   { id: 'core', name: '核心入口', icon: 'fa-compass', color: 'blue', services: [
     { id: 'home', name: '主页', icon: 'fa-house-signal', color: 'blue', url: '/home', desc: '每日名言、音乐播放器、功能入口、液态玻璃按钮', badge: '近期更新' },
-    { id: 'search', name: '搜索页', icon: 'fa-magnifying-glass-chart', color: 'purple', url: '/search', desc: '聚合 26+ 搜索引擎' },
+    {
+      id: 'search',
+      name: '搜索页',
+      icon: 'fa-magnifying-glass-chart',
+      color: 'purple',
+      url: '/search',
+      desc: '聚合 26+ 搜索引擎',
+      sunset: '2026-11-01',
+      pro: {
+        href: '/search/pro',
+        label: 'Pro 版',
+        tags: [],
+        hint: '搜索页 Pro 版：全新界面、修复搜索失效、本地壁纸与图标',
+      },
+    },
   ] },
   { id: 'tools', name: '效率工具', icon: 'fa-screwdriver-wrench', color: 'cyan', services: [
     {
@@ -53,10 +69,11 @@ export const serviceCategories: ServiceCategory[] = [
       color: 'cyan',
       url: '/toolbox',
       desc: '多种格式高效转换',
+      sunset: '2026-10-25',
       pro: {
         href: '/toolbox/pro',
-        label: 'Pro 尝鲜版',
-        tags: ['尝鲜体验', '重大更新'],
+        label: 'Pro 版',
+        tags: [],
         hint: '完全重写的新版：9 个工具、修复全部已知问题',
       },
     },

@@ -224,6 +224,14 @@ export default function CustomerServicePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [userMsgCount, setUserMsgCount] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  // 留言反馈表单
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [fbContent, setFbContent] = useState('');
+  const [fbContact, setFbContact] = useState('');
+  const [fbSending, setFbSending] = useState(false);
+  const [fbError, setFbError] = useState('');
+  const [fbHighlight, setFbHighlight] = useState(false);
+  const fbHpRef = useRef<HTMLInputElement>(null);
   /** 是否已通过人机验证（通过后长期有效，除非检测到敏感提问） */
   const [verified, setVerified] = useState(false);
 
@@ -393,7 +401,7 @@ export default function CustomerServicePage() {
       if (!res.ok) {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: '抱歉，AI服务暂时不可用，请稍后再试。',
+          content: '抱歉，客服服务暂时不可用，请稍后再试。',
           agentId,
         }]);
         setLoading(false);
@@ -402,6 +410,11 @@ export default function CustomerServicePage() {
 
       // 检测到敏感提问 → 撤销验证，下次提问前重新验证
       const sensitive = res.headers.get('X-Cs-Sensitive') === '1';
+      // 反馈场景：高亮「留言反馈」按钮，引导用户去点
+      if (res.headers.get('X-Cs-Feedback') === '1') {
+        setFbHighlight(true);
+        window.setTimeout(() => setFbHighlight(false), 10000);
+      }
 
       const reader = res.body?.getReader();
       if (!reader) {
@@ -530,18 +543,39 @@ export default function CustomerServicePage() {
     }
   };
 
-  // 转人工
+  // 留言反馈
   const handleTransferHuman = () => {
-    if (loading) return;
-    const hour = new Date().getHours();
-    const isWorkHour = hour >= 9 && hour < 18;
-    const content = isWorkHour
-      ? '⚠️ 当前人工服务繁忙，排队人数较多，请稍后再试。\n\n您也可以继续向AI客服提问，我会尽力为您解答！'
-      : '⚠️ 人工服务时间为 09:00-18:00，当前已下班，请在工作时间内联系。\n\n您也可以继续向AI客服提问，我会尽力为您解答！';
-    setMessages(prev => [...prev, { role: 'user', content: '转人工客服' }]);
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content, agentId }]);
-    }, 500);
+    setShowFeedback(true);
+  };
+
+  const submitFeedback = async () => {
+    const c = fbContent.trim();
+    if (!c) {
+      setFbError('请填写反馈内容');
+      return;
+    }
+    setFbSending(true);
+    setFbError('');
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: c, contact: fbContact.trim(), website: fbHpRef.current?.value || '' }),
+      });
+      const data = await res.json().catch(() => ({}) as { ok?: boolean; error?: string });
+      if (res.ok && data.ok) {
+        setShowFeedback(false);
+        setFbContent('');
+        setFbContact('');
+        setMessages(prev => [...prev, { role: 'assistant', agentId, content: '✅ 已收到你的反馈并发送给站长，感谢你的建议！' }]);
+      } else {
+        setFbError(data.error || '发送失败，请稍后重试');
+      }
+    } catch {
+      setFbError('网络异常，请稍后重试');
+    } finally {
+      setFbSending(false);
+    }
   };
 
   // 验证成功
@@ -764,12 +798,12 @@ export default function CustomerServicePage() {
       {/* 输入区域 */}
       <div className="flex-shrink-0 border-t border-white/10 bg-black/30 backdrop-blur-lg">
         <div className="max-w-3xl mx-auto px-4 py-4">
-          {/* AI免责声明 + 转人工 + 剩余消息数 */}
+          {/* 免责声明 + 留言反馈 + 剩余消息数 */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <p className="text-slate-500 text-xs flex items-center gap-1">
                 <i className="fa-solid fa-circle-info text-[10px]"></i>
-                AI回答仅供参考
+                客服回答仅供参考
               </p>
               {!devKey && !verified && remainingMsgs > 0 && remainingMsgs <= 2 && !loading && (
                 <span className="text-slate-600 text-xs flex items-center gap-1">
@@ -784,11 +818,13 @@ export default function CustomerServicePage() {
               className={`text-xs flex items-center gap-1.5 px-3 py-1 rounded-full transition-all ${
                 loading
                   ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-400 hover:text-blue-400 hover:bg-white/5'
+                  : fbHighlight
+                  ? 'bg-blue-500/20 text-blue-200 ring-1 ring-blue-400/50 animate-pulse'
+                  : 'border border-white/15 text-slate-300 hover:text-blue-300 hover:border-blue-400/40 hover:bg-blue-500/10'
               }`}
             >
               <i className="fa-solid fa-headset"></i>
-              转人工
+              留言反馈
             </button>
           </div>
           <div className="flex gap-3 items-end">
@@ -956,6 +992,80 @@ export default function CustomerServicePage() {
                   }`}
                 >
                   解锁
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 留言反馈弹窗 */}
+      <AnimatePresence>
+        {showFeedback && (
+          <motion.div
+            className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !fbSending && setShowFeedback(false)}
+          >
+            <motion.div
+              className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl"
+              initial={{ scale: 0.96, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 16 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-white font-bold text-base flex items-center gap-2">
+                  <i className="fa-solid fa-headset text-blue-400"></i> 留言反馈
+                </h3>
+                <button
+                  onClick={() => !fbSending && setShowFeedback(false)}
+                  aria-label="关闭"
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <p className="text-slate-400 text-xs mb-3">你的问题或建议会直接发送到站长邮箱。请勿填写密码等敏感信息。</p>
+              <textarea
+                value={fbContent}
+                onChange={e => setFbContent(e.target.value)}
+                maxLength={2000}
+                rows={5}
+                placeholder="请描述你的问题或建议…"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500/50 resize-none"
+              />
+              <input
+                value={fbContact}
+                onChange={e => setFbContact(e.target.value)}
+                maxLength={200}
+                placeholder="联系方式（选填，邮箱/QQ/微信，方便回复你）"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-blue-500/50"
+              />
+              {/* 蜜罐字段：机器人会填，人类看不到 */}
+              <input ref={fbHpRef} type="text" name="website" tabIndex={-1} aria-hidden="true" autoComplete="off" className="hidden" />
+              {fbError && <p className="mt-2 text-xs text-red-400">{fbError}</p>}
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => setShowFeedback(false)}
+                  disabled={fbSending}
+                  className="flex-1 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-400 hover:bg-white/5 transition-all disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={submitFeedback}
+                  disabled={fbSending || !fbContent.trim()}
+                  className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                    fbSending || !fbContent.trim()
+                      ? 'bg-white/5 text-slate-600 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                  }`}
+                >
+                  {fbSending ? '发送中…' : '发送'}
                 </button>
               </div>
             </motion.div>
