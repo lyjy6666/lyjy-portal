@@ -132,7 +132,7 @@ function LockPreview() {
         </div>
 
         <p className="mt-7 text-[0.75rem]" style={{ color: '#606070' }}>
-          按 ESC 可隐藏/显示信息
+          按 ESC 隐藏/显示信息 · Ctrl+Alt+L 临时操作
         </p>
       </div>
     </div>
