@@ -91,8 +91,6 @@ function sunsetLabel(service: ServiceItem): string {
  * 没有 Pro 版时退化为普通主入口，保持原样。
  */
 export function ServiceEntries({ service, inline = false }: { service: ServiceItem; inline?: boolean }) {
-  const open = useServiceNav();
-  const target = resolveService(service);
   const pro = service.pro;
 
   if (!pro) {
@@ -101,6 +99,7 @@ export function ServiceEntries({ service, inline = false }: { service: ServiceIt
 
   const sunset = isSunset(service);
   const soon = Boolean(service.soon || service.unavailable);
+  const oldHref = service.oldUrl ?? service.url;
 
   return (
     <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
@@ -117,17 +116,7 @@ export function ServiceEntries({ service, inline = false }: { service: ServiceIt
             原版已关停
           </span>
         ) : (
-          <a
-            className="portal-old-entry"
-            href={target.href}
-            target={target.mode === 'external' ? '_blank' : undefined}
-            rel={target.mode === 'external' ? 'noopener noreferrer' : undefined}
-            onClick={(e) => {
-              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-              e.preventDefault();
-              open(service);
-            }}
-          >
+          <a className="portal-old-entry" href={oldHref}>
             进入原版
           </a>
         ))}

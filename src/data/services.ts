@@ -16,6 +16,8 @@ export type ServiceItem = {
   icon: string;
   color: string;
   url: string;
+  /** 原版地址：有 Pro 版时 url 指向 Pro，原版入口用这个 */
+  oldUrl?: string;
   desc: string;
   /** 主入口旁边额外展示的尝鲜版入口 */
   pro?: ProEntry;
@@ -50,7 +52,8 @@ export const serviceCategories: ServiceCategory[] = [
       name: '搜索页',
       icon: 'fa-magnifying-glass-chart',
       color: 'purple',
-      url: '/search',
+      url: '/search/pro',
+      oldUrl: '/search',
       desc: '聚合 26+ 搜索引擎',
       sunset: '2026-11-01',
       pro: {
@@ -67,7 +70,8 @@ export const serviceCategories: ServiceCategory[] = [
       name: '格式转换工具箱',
       icon: 'fa-screwdriver-wrench',
       color: 'cyan',
-      url: '/toolbox',
+      url: '/toolbox/pro',
+      oldUrl: '/toolbox',
       desc: '多种格式高效转换',
       sunset: '2026-10-25',
       pro: {
