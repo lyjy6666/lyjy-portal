@@ -1194,23 +1194,6 @@ const socialItems: SocialItem[] = [
           <span>{greeting}，欢迎来到我的主页</span>
            </div>
   
-         {/* 搜索框 - 位于欢迎消息下方 */}
-         <div 
-           className="search-container relative z-10 bg-black/40 backdrop-blur-md py-1.5 px-4 border-b border-white/15 cursor-pointer group"
-           onClick={() => window.location.href = '/search'}
-         >
-           <div className="container mx-auto flex items-center justify-center">
-             <div className="relative w-full max-w-2xl">
-               <input
-                 type="text"
-                 placeholder="点击搜索..."
-                 className="w-full pl-10 pr-4 py-2 rounded-full border border-white/20 bg-white/10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all duration-300 group-hover:border-blue-400 group-hover:bg-white/15"
-                 readOnly
-               />
-               <i className="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 group-hover:text-blue-400 transition-colors"></i>
-             </div>
-           </div>
-         </div>
   
          {/* 主内容区 */}
          <main className="relative z-10 flex-grow container mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-center md:justify-between max-w-5xl">
