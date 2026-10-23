@@ -17,6 +17,7 @@ import VideoConverter from '@/components/converters/VideoConverter';
 import CompressConverter from '@/components/converters/CompressConverter';
 import WatermarkTool from '@/components/converters/WatermarkTool';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import SunsetBanner from '@/components/SunsetBanner';
 import Link from 'next/link';
 
 /** 格式转换工具箱的版本历史（越靠前越新） */
@@ -37,6 +38,7 @@ export default function ToolboxPage() {
         onComplete={() => setIsLoading(false)}
         duration={2000}
       />
+      <SunsetBanner date="2026年10月25日" proHref="/toolbox/pro" storageKey="sunset.toolbox" />
       <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
