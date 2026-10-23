@@ -45,6 +45,17 @@
   justify-content: center;
 }
 
+/*
+ * 首屏（含标题 + 下载面板）单独收紧：
+ * 之前也套了 62dvh 最小高度 + 4rem 上下 padding，上下都是空，
+ * 用户反馈「留白太多」。这里让它按内容高度走。
+ */
+[data-ptheme] > main > section:first-of-type {
+  min-height: 0;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
 /* 窄屏 / 矮屏：不启用累积控制，退回普通滚动，段落也不要最小高度 */
 @media (max-width: 860px), (max-height: 620px) {
   [data-ptheme] {

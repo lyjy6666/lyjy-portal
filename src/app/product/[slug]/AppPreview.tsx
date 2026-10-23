@@ -141,7 +141,14 @@ function LockPreview() {
    wpf · Windows Toolbox 应用程序版
    ============================================================ */
 
-const WPF_TOOLS = ['图片转换', '文档处理', '音视频', '压缩打包', '开发工具', '哈希校验'];
+/**
+ * 真实的板块名 —— 从 WindowsToolbox.dll 里提取的界面文字。
+ * 之前我按「格式转换」的方向编了一组（图片转换/文档处理…），完全是错的。
+ */
+const WPF_TOOLS = ['性能优化', '隐私防护', '界面定制', '网络优化', '磁盘清理', '游戏模式', '系统修复', '高级工具'];
+
+/** 磁盘清理页里的真实清理项 */
+const CLEAN_ITEMS = ['系统临时文件', '更新缓存', '缩略图缓存', '事件日志', '回收站'];
 
 function WpfPreview() {
   const [active, setActive] = useState(0);
@@ -162,7 +169,7 @@ function WpfPreview() {
   }, []);
 
   return (
-    <WindowChrome title="Windows Toolbox — 图片转换" variant="win">
+    <WindowChrome title={`调校工具箱 — ${WPF_TOOLS[active]}`} variant="win">
       <div className="flex" style={{ minHeight: 268 }}>
         {/* 侧边栏 */}
         <nav
@@ -193,38 +200,40 @@ function WpfPreview() {
         <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
           <div className="text-[0.8125rem] font-semibold">{WPF_TOOLS[active]}</div>
 
-          {/* 拖放区 */}
-          <div
-            className="flex flex-col items-center justify-center gap-1.5 py-6"
-            style={{ border: '1px dashed var(--pt-line)', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.5)' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--pt-accent)" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M12 16V4" />
-              <path d="m7 9 5-5 5 5" />
-              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-            </svg>
-            <span className="text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-              拖入文件，或点击选择
-            </span>
+          {/* 清理项勾选（真实界面里的样式） */}
+          <div className="flex flex-col gap-1.5">
+            {CLEAN_ITEMS.map((t, i) => (
+              <label key={t} className="flex items-center gap-2 text-[0.6875rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                <span
+                  className="flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px]"
+                  style={{
+                    background: i < 3 ? 'var(--pt-accent)' : 'transparent',
+                    border: '1px solid ' + (i < 3 ? 'var(--pt-accent)' : 'var(--pt-line)'),
+                  }}
+                >
+                  {i < 3 && (
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--pt-accent-ink)" strokeWidth="4" strokeLinecap="round">
+                      <path d="m5 13 4 4L19 7" />
+                    </svg>
+                  )}
+                </span>
+                {t}
+              </label>
+            ))}
           </div>
 
-          {/* 参数行 */}
-          <div className="flex flex-wrap gap-2">
-            {['格式 JPEG', '质量 85', '最长边 1920'].map((t) => (
-              <span
-                key={t}
-                className="rounded-md px-2 py-1 font-mono text-[0.625rem]"
-                style={{ background: 'rgba(248,247,252,0.9)', border: '1px solid var(--pt-line)', color: 'var(--pt-ink-dim)' }}
-              >
-                {t}
-              </span>
-            ))}
+          {/* 开始清理按钮 */}
+          <div
+            className="mt-1 rounded-md py-1.5 text-center text-[0.6875rem] font-semibold"
+            style={{ background: 'var(--pt-accent)', color: 'var(--pt-accent-ink)' }}
+          >
+            开始清理
           </div>
 
           {/* 进度条 */}
           <div className="mt-auto">
             <div className="mb-1.5 flex justify-between font-mono text-[0.625rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-              <span>{progress >= 100 ? '完成' : '转换中…'}</span>
+              <span>{progress >= 100 ? '清理完成' : '清理中…'}</span>
               <span className="tabular-nums">{progress}%</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }}>

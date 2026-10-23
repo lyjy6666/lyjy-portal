@@ -63,9 +63,9 @@ const PREVIEW_COPY: Record<string, { title: string; desc: string; points: string
     points: ['多档时长：2 分钟到 5 小时', '3 次临时操作机会，每次 20 秒', '不写注册表，退出即还原'],
   },
   wpf: {
-    title: '原生窗口，工具都在左边',
-    desc: '左侧是工具分类，右侧是当前工具的操作区。拖入文件即开始处理，参数与进度都在同一屏里看得见，不用来回切页面。',
-    points: ['六类工具集中在侧边栏', '拖放即用，支持批量', '长任务有真实进度条'],
+    title: '八个板块，一项一个开关',
+    desc: '左侧是性能优化、隐私防护、界面定制、网络优化、磁盘清理、游戏模式、系统修复、高级工具八个板块，右侧是当前板块的开关列表。每项改动前都会先记录系统原始状态，改坏了可以单独还原。',
+    points: ['八类调校集中在侧边栏', '每项独立回滚，全程有日志', '高危操作会二次确认'],
   },
   browser: {
     title: '双击即用，浏览器里操作',
@@ -134,7 +134,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <ScrollPager />
       {/* 顶栏：透出页面渐变（.pt-header 里做透明 + 背景模糊 + 极淡蒙版） */}
       <header className="pt-header sticky top-0 z-30">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5 sm:px-10">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-[0.8125rem] transition-opacity hover:opacity-70"
@@ -150,9 +150,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-24 sm:px-8">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-16 sm:px-10">
         {/* ============ 头部 + 下载面板 ============ */}
-        <section className="grid gap-10 py-14 md:grid-cols-[1fr_19rem] md:py-20">
+        <section className="grid gap-10 py-10 md:grid-cols-[1fr_20rem] md:py-12">
           <div>
             <div
               className="mb-7 inline-flex h-14 w-14 items-center justify-center"
@@ -453,7 +453,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         )}
       </main>
 
-      <footer className="relative z-10 mx-auto max-w-5xl px-5 pb-12 sm:px-8">
+      <footer className="relative z-10 mx-auto max-w-6xl px-6 pb-10 sm:px-10">
         <hr className="pt-rule mb-5" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="pt-label">LYJY 下载专区</span>
