@@ -5,6 +5,7 @@ import { PRODUCTS, getProduct } from '@/data/products';
 import { productFontVars } from '../fonts';
 import HashCopy from './HashCopy';
 import AppPreview from './AppPreview';
+import ScrollPager from './ScrollPager';
 import '../product-themes.css';
 
 export function generateStaticParams() {
@@ -52,6 +53,25 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M12 3c2.5 2.4 3.8 5.4 3.8 9S14.5 18.6 12 21c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3Z" />
     </>
   ),
+};
+
+/** 界面预览区的文案：按预览类型区分，避免三个产品共用一段锁屏说明 */
+const PREVIEW_COPY: Record<string, { title: string; desc: string; points: string[] }> = {
+  lock: {
+    title: '锁屏期间，干扰进不来',
+    desc: '锁定后整个桌面被覆盖，任务切换与关闭窗口的快捷键一并禁用，屏幕 30 秒后自动变暗。倒计时归零才自动解锁。',
+    points: ['多档时长：2 分钟到 5 小时', '3 次临时操作机会，每次 20 秒', '不写注册表，退出即还原'],
+  },
+  wpf: {
+    title: '原生窗口，工具都在左边',
+    desc: '左侧是工具分类，右侧是当前工具的操作区。拖入文件即开始处理，参数与进度都在同一屏里看得见，不用来回切页面。',
+    points: ['六类工具集中在侧边栏', '拖放即用，支持批量', '长任务有真实进度条'],
+  },
+  browser: {
+    title: '双击即用，浏览器里操作',
+    desc: '程序启动后会在本机开一个本地服务，浏览器自动打开工具界面。全程离线，不经过任何外部服务器。',
+    points: ['单文件，不写注册表', '自动分配本地端口', '关闭窗口即停止服务'],
+  },
 };
 
 function formatBytes(n?: number) {
@@ -105,16 +125,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const isSerif = theme === 'organic';
 
   return (
-    <div data-ptheme={theme} className={productFontVars}>
-      {/* 顶栏 */}
-      <header
-        className="sticky top-0 z-20"
-        style={{
-          background: 'color-mix(in oklab, var(--pt-bg) 82%, transparent)',
-          borderBottom: '1px solid var(--pt-line)',
-          backdropFilter: 'blur(16px)',
-        }}
-      >
+    <div
+      data-ptheme={theme}
+      className={productFontVars}
+      style={{ '--pt-header-h': '3.25rem' } as React.CSSProperties}
+    >
+      {/* 累积式整段滚动：滚轮转几下才滚一段 */}
+      <ScrollPager />
+      {/* 顶栏：透出页面渐变（.pt-header 里做透明 + 背景模糊 + 极淡蒙版） */}
+      <header className="pt-header sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <Link
             href="/"
@@ -283,19 +302,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </section>
 
         {/* ============ 应用界面预览（仅带 preview 的产品） ============ */}
-        {product.preview && (
+        {product.preview && PREVIEW_COPY[product.preview] && (
           <section className="py-10">
             <SectionTitle hint="Preview">界面预览</SectionTitle>
             <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-center">
               <AppPreview kind={product.preview} />
               <div>
-                <h3 className="text-[1.0625rem] font-semibold">锁屏期间，干扰进不来</h3>
+                <h3 className="text-[1.0625rem] font-semibold">{PREVIEW_COPY[product.preview].title}</h3>
                 <p className="mt-3 text-[0.875rem] leading-[1.8]" style={{ color: 'var(--pt-ink-dim)' }}>
-                  锁定后整个桌面被覆盖，任务切换与关闭窗口的快捷键一并禁用，
-                  屏幕 30 秒后自动变暗。倒计时归零才自动解锁。
+                  {PREVIEW_COPY[product.preview].desc}
                 </p>
                 <ul className="mt-5 space-y-2.5">
-                  {['多档时长：2 分钟到 5 小时', '3 次临时操作机会，每次 20 秒', '不写注册表，退出即还原'].map((t) => (
+                  {PREVIEW_COPY[product.preview].points.map((t) => (
                     <li key={t} className="flex gap-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-dim)' }}>
                       <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full" style={{ background: 'var(--pt-accent)' }} />
                       <span>{t}</span>

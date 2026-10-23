@@ -12,276 +12,88 @@
    毛玻璃当装饰滥用、把等宽当技术感。
    ============================================================ */
 
+/* ============================================================
+   整段滚动
+   ------------------------------------------------------------
+   滚轮行为由 ScrollPager 累积控制（转几下才滚一段），这里只负责：
+     · 页面作为自己的滚动容器
+     · 每段的**高度**——这是「一下滑老远」的根源，所以不再强制一屏高，
+       改成内容自然高度 + 充裕留白（约 0.6~0.8 屏），段与段之间就近了
+     · 不做 CSS scroll-snap（会和累积控制打架）
+   ============================================================ */
 [data-ptheme] {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   background-color: var(--pt-bg);
   background-image: var(--pt-bg-image, none);
+  background-attachment: local;
   color: var(--pt-ink);
   font-family: var(--pt-font-body);
   -webkit-font-smoothing: antialiased;
 }
 
-[data-ptheme] h1,
-[data-ptheme] h2,
-[data-ptheme] h3 {
-  font-family: var(--pt-font-display);
-  letter-spacing: var(--pt-tracking, -0.02em);
+[data-ptheme] > main > section {
+  /* 自然高度为主，但至少占 0.62 屏，避免一屏里挤进好几段 */
+  min-height: 62dvh;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+  /* ScrollPager 用它算吸附位置，顶栏让位 */
+  scroll-margin-top: var(--pt-header-h, 3.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-/* ---------- 通用件 ---------- */
-
-.pt-panel {
-  background: var(--pt-panel-bg);
-  border: 1px solid var(--pt-line);
-  border-radius: var(--pt-radius);
-  backdrop-filter: blur(var(--pt-blur, 0px));
-  box-shadow: var(--pt-shadow, none);
+/* 窄屏 / 矮屏：不启用累积控制，退回普通滚动，段落也不要最小高度 */
+@media (max-width: 860px), (max-height: 620px) {
+  [data-ptheme] {
+    height: auto;
+    overflow-y: visible;
+  }
+  [data-ptheme] > main > section {
+    min-height: 0;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
 }
 
-/* 玻璃主题的顶部高光：让面板像一块玻璃而不是一块色块 */
-[data-ptheme='glass'] .pt-panel {
-  position: relative;
-  overflow: hidden;
+/* ============================================================
+   顶栏：透出页面渐变（而不是拿纯色变量导致发白）
+   ============================================================ */
+.pt-header {
+  /* 完全透明 + 背景模糊：滚动时下方内容被虚化，页面渐变自然透出来 */
+  background: transparent;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--pt-line);
 }
-[data-ptheme='glass'] .pt-panel::before {
+
+/* 极淡的一层渐变蒙版，保证文字始终可读，但不盖掉渐变底 */
+.pt-header::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-}
-
-.pt-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.7rem;
-  font-size: 0.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--pt-line);
-  color: var(--pt-ink-dim);
-  background: var(--pt-chip-bg, transparent);
-}
-
-.pt-rule {
-  height: 0;
-  border: 0;
-  border-top: var(--pt-rule-style, 1px solid var(--pt-line));
-}
-
-.pt-label {
-  font-family: var(--pt-font-display);
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--pt-ink-faint);
-}
-
-/* 主按钮：各主题形态不同 */
-.pt-btn {
-  display: inline-flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.9rem 1.25rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border-radius: var(--pt-btn-radius, var(--pt-radius));
-  background: var(--pt-accent);
-  color: var(--pt-accent-ink);
-  border: 1px solid var(--pt-accent);
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, opacity 0.2s ease;
-}
-.pt-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--pt-accent-glow, none);
-}
-.pt-btn:active {
-  transform: translateY(0);
-}
-.pt-btn[aria-disabled='true'] {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-/* 次级按钮 */
-.pt-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.8125rem;
-  border-radius: var(--pt-btn-radius, var(--pt-radius));
-  border: 1px solid var(--pt-line);
-  color: var(--pt-ink-dim);
-  background: transparent;
-  transition: color 0.16s ease, border-color 0.16s ease;
-}
-.pt-btn-ghost:hover {
-  color: var(--pt-ink);
-  border-color: var(--pt-ink-faint);
-}
-
-/* ============================================================
-   主题 1 · glass（液态玻璃）
-   深青大气底 + 磨砂玻璃面板 + 白字。用于 Windows Toolbox 应用程序版。
-   ============================================================ */
-[data-ptheme='glass'] {
-  --pt-bg: #0a1a24;
-  --pt-ink: #eef7fa;
-  --pt-ink-dim: rgba(238, 247, 250, 0.72);
-  --pt-ink-faint: rgba(238, 247, 250, 0.45);
-  --pt-line: rgba(255, 255, 255, 0.16);
-  --pt-panel-bg: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.13) 0%,
-    rgba(255, 255, 255, 0.09) 55%,
-    rgba(255, 255, 255, 0.07) 100%
-  );
-  --pt-chip-bg: rgba(255, 255, 255, 0.07);
-  --pt-radius: 1.25rem;
-  --pt-btn-radius: 0.875rem;
-  --pt-blur: 22px;
-  --pt-shadow: 0 10px 34px rgba(0, 0, 0, 0.3);
-  --pt-accent: #e8f6f2;
-  --pt-accent-ink: #08222a;
-  --pt-accent-glow: 0 8px 26px rgba(232, 246, 242, 0.22);
-  --pt-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-tracking: -0.028em;
-  --pt-bg-image:
-    radial-gradient(at 18% 8%, rgba(58, 120, 110, 0.55) 0px, transparent 58%),
-    radial-gradient(at 88% 4%, rgba(30, 78, 96, 0.6) 0px, transparent 55%),
-    radial-gradient(at 72% 92%, rgba(18, 52, 68, 0.72) 0px, transparent 58%),
-    radial-gradient(at 8% 88%, rgba(40, 92, 88, 0.5) 0px, transparent 55%),
-    linear-gradient(168deg, #0e2a33 0%, #071821 62%, #04121b 100%);
-  --pt-bg-attach: fixed;
-}
-
-/* ============================================================
-   主题 2 · organic（有机纸感）
-   暖纸底 + 纸纹 + 四角不等圆角 + 衬线标题。用于 Windows 工具网页版。
-   ============================================================ */
-[data-ptheme='organic'] {
-  --pt-bg: #fdf4e7;
-  --pt-ink: #46301e;
-  --pt-ink-dim: #6d533a;
-  --pt-ink-faint: #9a7d5e;
-  --pt-line: rgba(217, 119, 6, 0.2);
-  --pt-panel-bg: rgba(255, 252, 246, 0.9);
-  --pt-chip-bg: rgba(251, 230, 204, 0.6);
-  --pt-radius: 1.5rem 0.75rem 1.5rem 0.75rem; /* 四角不等，手作感 */
-  --pt-btn-radius: 1rem 0.5rem 1rem 0.5rem;
-  --pt-blur: 10px;
-  --pt-shadow: 0 10px 28px -14px rgba(180, 110, 30, 0.35);
-  --pt-accent: #c2410c;
-  --pt-accent-ink: #fffaf2;
-  --pt-accent-glow: 0 8px 24px -8px rgba(194, 65, 12, 0.5);
-  --pt-font-display: var(--font-fraunces), Georgia, 'Songti SC', serif;
-  --pt-font-body: var(--font-karla), 'PingFang SC', system-ui, sans-serif;
-  --pt-tracking: -0.01em;
-  --pt-bg-image:
-    radial-gradient(at 10% 4%, rgba(253, 216, 160, 0.85) 0px, transparent 52%),
-    radial-gradient(at 92% 8%, rgba(254, 215, 170, 0.8) 0px, transparent 50%),
-    radial-gradient(at 78% 94%, rgba(252, 211, 158, 0.62) 0px, transparent 55%),
-    linear-gradient(180deg, #fffcf6 0%, #fdf3e3 100%);
-}
-
-/* 纸纹：细噪点 */
-[data-ptheme='organic']::before {
-  content: '';
-  position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
-  background-image: radial-gradient(rgba(150, 105, 55, 0.055) 1px, transparent 1px);
-  background-size: 3px 3px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--pt-bg) 62%, transparent) 0%,
+    color-mix(in oklab, var(--pt-bg) 18%, transparent) 100%
+  );
 }
 
-/* ============================================================
-   主题 3 · dusk（暮色渐变）
-   深靛蓝到紫罗兰，柔和的深色。用于强力锁。
-   ============================================================ */
-[data-ptheme='dusk'] {
-  --pt-bg: #16112b;
-  --pt-ink: #ede9fe;
-  --pt-ink-dim: rgba(237, 233, 254, 0.72);
-  --pt-ink-faint: rgba(237, 233, 254, 0.42);
-  --pt-line: rgba(255, 255, 255, 0.14);
-  --pt-panel-bg: rgba(255, 255, 255, 0.07);
-  --pt-chip-bg: rgba(255, 255, 255, 0.06);
-  --pt-radius: 1.25rem;
-  --pt-btn-radius: 0.875rem;
-  --pt-blur: 16px;
-  --pt-shadow: 0 12px 36px -16px rgba(0, 0, 0, 0.7);
-  --pt-accent: #c4b5fd;
-  --pt-accent-ink: #1e1235;
-  --pt-accent-glow: 0 8px 26px rgba(196, 181, 253, 0.28);
-  --pt-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-tracking: -0.024em;
-  --pt-bg-image:
-    radial-gradient(at 10% 6%, rgba(139, 92, 246, 0.5) 0px, transparent 55%),
-    radial-gradient(at 90% 10%, rgba(217, 70, 239, 0.32) 0px, transparent 52%),
-    radial-gradient(at 78% 92%, rgba(56, 189, 248, 0.22) 0px, transparent 55%),
-    linear-gradient(180deg, #1a1433 0%, #120e24 100%);
-  --pt-bg-attach: fixed;
+/* 区块内的内容需要压在这层蒙版之上 */
+.pt-header > * {
+  position: relative;
+  z-index: 1;
 }
 
-/* ============================================================
-   主题 4 · aurora（柔光极光）
-   粉紫到薄荷的柔和渐变。用于已下线的项目页。
-   ============================================================ */
-[data-ptheme='aurora'] {
-  --pt-bg: #fbfaff;
-  --pt-ink: #2b2440;
-  --pt-ink-dim: #5c5478;
-  --pt-ink-faint: #8b84a3;
-  --pt-line: rgba(124, 58, 237, 0.16);
-  --pt-panel-bg: rgba(255, 255, 255, 0.84);
-  --pt-chip-bg: rgba(243, 232, 255, 0.7);
-  --pt-radius: 1.25rem;
-  --pt-btn-radius: 0.875rem;
-  --pt-blur: 16px;
-  --pt-shadow: 0 10px 30px -12px rgba(124, 58, 237, 0.25);
-  --pt-accent: #7c3aed;
-  --pt-accent-ink: #ffffff;
-  --pt-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
-  --pt-tracking: -0.022em;
-  --pt-bg-image:
-    radial-gradient(at 12% 8%, rgba(196, 181, 253, 0.72) 0px, transparent 55%),
-    radial-gradient(at 88% 4%, rgba(251, 207, 232, 0.66) 0px, transparent 50%),
-    radial-gradient(at 78% 92%, rgba(167, 243, 208, 0.55) 0px, transparent 55%),
-    linear-gradient(180deg, #fdfcff 0%, #f7f4ff 100%);
-}
-
-/* ---------- 背景固定（深色主题滚动时不露白） ---------- */
-[data-ptheme='glass'],
-[data-ptheme='dusk'] {
-  background-attachment: fixed;
-}
-
-/* ---------- 已下线状态的提示条 ---------- */
-.pt-offline {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.15rem;
-  border-radius: var(--pt-radius);
-  border: 1px dashed var(--pt-line);
-  background: var(--pt-chip-bg);
-  color: var(--pt-ink-dim);
-  font-size: 0.875rem;
-  line-height: 1.65;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pt-btn {
-    transition: none;
+/* 支持 backdrop-filter 时才有意义；不支持就退回半透明底，避免完全透明看不清 */
+@supports not (backdrop-filter: blur(4px)) {
+  .pt-header {
+    background: color-mix(in oklab, var(--pt-bg) 88%, transparent);
   }
-  .pt-btn:hover {
-    transform: none;
+  .pt-header::before {
+    display: none;
   }
 }

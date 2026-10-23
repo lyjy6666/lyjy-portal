@@ -141,6 +141,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'windows-toolbox',
     theme: 'aurora',
+    preview: 'wpf',
     name: 'Windows Toolbox（应用程序版）',
     tagline: '原生桌面应用，功能更丰富',
     icon: 'fa-cube',
@@ -189,6 +190,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'windows-tool-web',
     theme: 'aurora',
+    preview: 'browser',
     name: 'Windows 工具（网页版）',
     tagline: '界面精致的单文件绿色版，双击即用',
     icon: 'fa-globe',
