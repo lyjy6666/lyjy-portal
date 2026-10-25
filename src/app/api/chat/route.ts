@@ -206,25 +206,30 @@ export async function POST(request: NextRequest) {
     ];
 
   let response: Response | null = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: fullMessages,
-        temperature: 0.3,
-        max_tokens: MAX_TOKENS,
-        stream: true,
-      }),
-    });
-    if (response.ok) break;
-    const errorText = await response.text();
-    console.error(`Agnes API error (attempt ${attempt + 1}):`, response.status, errorText);
-    if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: fullMessages,
+          temperature: 0.3,
+          max_tokens: MAX_TOKENS,
+          stream: true,
+        }),
+      });
+      if (response.ok) break;
+      const errorText = await response.text();
+      console.error(`Agnes API error (attempt ${attempt + 1}):`, response.status, errorText);
+    } catch (err) {
+      // 连接超时 / 网络抖动也计为一次失败，退避后重试
+      console.error(`Agnes fetch failed (attempt ${attempt + 1}):`, (err as Error)?.message);
+    }
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
   }
 
   if (!response || !response.ok) {
