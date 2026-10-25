@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
+import { isSunset, sunsetLabel } from '@/lib/sunset';
 import { resolveService } from '@/lib/serviceNav';
 import { useServiceNav } from './useServiceNav';
 
@@ -69,18 +70,6 @@ export function ServiceAction({ service, className = 'portal-enter' }: { service
 export function ServiceBadges({ service }: { service: ServiceItem }) {
   const badges = service.badge ? (Array.isArray(service.badge) ? service.badge : [service.badge]) : [];
   return <div className="portal-badges">{badges.map((badge) => <span key={badge}>{badge}</span>)}</div>;
-}
-
-/** 原版是否已过关停日期（按北京时间当天 23:59:59 截止，过了就停） */
-export function isSunset(service: ServiceItem): boolean {
-  if (!service.sunset) return false;
-  return Date.now() > new Date(`${service.sunset}T23:59:59+08:00`).getTime();
-}
-
-function sunsetLabel(service: ServiceItem): string {
-  if (!service.sunset) return '';
-  const [, m, d] = service.sunset.split('-');
-  return `${Number(m)}月${Number(d)}日关停服务`;
 }
 
 /**

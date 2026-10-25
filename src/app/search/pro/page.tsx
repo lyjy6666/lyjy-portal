@@ -30,6 +30,7 @@ import {
   getEngine,
   type QuickLink,
 } from '@/data/searchB';
+import { isSunsetDate } from '@/lib/sunset';
 
 const LS = {
   engine: 'searchB.engine',
@@ -71,6 +72,8 @@ export default function SearchProPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const engine = getEngine(engineId);
+  // 原版搜索页已关停时，禁用顶部「原版」入口
+  const searchOff = hydrated && isSunsetDate('2026-11-01');
 
   // 挂载后读取本地偏好，避免 SSR / 客户端 hydration 不一致
   useEffect(() => {
@@ -202,13 +205,22 @@ export default function SearchProPage() {
             >
               <ScrollText size={15} /> 更新日志
             </button>
-            <a
-              href="/search"
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/10 hover:text-white"
-              title="回到原版搜索页"
-            >
-              <ArrowLeftRight size={15} /> 原版
-            </a>
+            {searchOff ? (
+              <span
+                className="flex cursor-not-allowed items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/30 line-through"
+                title="原版已关停"
+              >
+                <ArrowLeftRight size={15} /> 原版已关停
+              </span>
+            ) : (
+              <a
+                href="/search"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/10 hover:text-white"
+                title="回到原版搜索页"
+              >
+                <ArrowLeftRight size={15} /> 原版
+              </a>
+            )}
             <a
               href="/"
               className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/10 hover:text-white"

@@ -18,6 +18,7 @@ import CompressConverter from '@/components/converters/CompressConverter';
 import WatermarkTool from '@/components/converters/WatermarkTool';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import SunsetBanner from '@/components/SunsetBanner';
+import SunsetOverlay from '@/components/SunsetOverlay';
 import Link from 'next/link';
 
 /** 格式转换工具箱的版本历史（越靠前越新） */
@@ -39,6 +40,7 @@ export default function ToolboxPage() {
         duration={2000}
       />
       <SunsetBanner date="2026年10月25日" proHref="/toolbox/pro" storageKey="sunset.toolbox" />
+      <SunsetOverlay date="2026-10-25" proHref="/toolbox/pro" name="格式转换工具箱" />
       <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

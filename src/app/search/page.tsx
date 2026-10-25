@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { motion, AnimatePresence } from 'framer-motion';
 import SunsetBanner from '@/components/SunsetBanner';
+import SunsetOverlay from '@/components/SunsetOverlay';
 
 type SearchEngine = "baidu" | "bing" | "google" | "yandex" | "doubao" | "tongyi" | "duckduckgo" | "sogou" | "so" | "zhihu" | "bilibili" | "github" | "douyin" | "xiaohongshu" | "scholar" | "metaso" | "yahoo" | "kaifa" | "taobao" | "weibo" | "douban" | "toutiao" | "naver" | "mdn" | "stackoverflow" | "jd";
 type Category = 'news' | 'shopping' | 'entertainment' | 'tools' | 'design' | 'dev' | 'games';
@@ -574,6 +575,7 @@ export default function SearchPage() {
     return (
         <div className="min-h-screen flex flex-col">
             <SunsetBanner date="2026年11月1日" proHref="/search/pro" storageKey="sunset.search" />
+            <SunsetOverlay date="2026-11-01" proHref="/search/pro" name="搜索页" />
             {/* FontAwesome 图标 */}
             <link
               rel="stylesheet"
