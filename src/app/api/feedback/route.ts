@@ -5,6 +5,21 @@ import nodemailer from 'nodemailer';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** 诊断：线上是否读到 MAIL_* 环境变量（只返回有无，不返回值）。GET /api/feedback 查看 */
+export async function GET() {
+  const status = {
+    MAIL_HOST: Boolean(process.env.MAIL_HOST),
+    MAIL_PORT: Boolean(process.env.MAIL_PORT),
+    MAIL_USER: Boolean(process.env.MAIL_USER),
+    MAIL_PASS: Boolean(process.env.MAIL_PASS),
+    MAIL_TO: Boolean(process.env.MAIL_TO),
+  };
+  return Response.json({
+    configured: status.MAIL_HOST && status.MAIL_USER && status.MAIL_PASS,
+    status,
+  });
+}
+
 /** 简单内存限流：同一 IP 每 60 秒最多 2 条（重启清零，个人项目够用） */
 const rateMap = new Map<string, number[]>();
 const RATE_WINDOW = 60_000;
