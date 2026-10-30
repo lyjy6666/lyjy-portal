@@ -213,6 +213,8 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
                 : tier === 'T1'
                 ? 'text-sky-300 bg-sky-400/10'
                 : 'text-white/40 bg-white/[0.06]';
+            const pct = Math.round(100 - ((rank - 1) / Math.max(board.models.length - 1, 1)) * 66);
+            const barColor = tier === 'T0' ? 'bg-amber-400' : tier === 'T1' ? 'bg-sky-400' : 'bg-slate-500';
             return (
               <div
                 key={m.name}
@@ -228,7 +230,10 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
                       {m.region} · {m.vendor}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs leading-relaxed text-white/55">{m.note}</p>
+                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-white/55">{m.note}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2.5">
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tierStyle}`}>{tier}</span>
