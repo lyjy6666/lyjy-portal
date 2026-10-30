@@ -280,7 +280,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 {product.variants && product.variants.length > 0 ? (
                   <div className="mt-3 space-y-2.5">
                     {product.variants.map((v) => (
-                      <a key={v.label} href={v.downloadUrl} download={v.fileName || ''} className="pt-btn w-full">
+                      <a
+                        key={v.label}
+                        href={v.downloadUrl}
+                        target={/^https?:/i.test(v.downloadUrl) ? '_blank' : undefined}
+                        rel={/^https?:/i.test(v.downloadUrl) ? 'noopener noreferrer' : undefined}
+                        download={/^https?:/i.test(v.downloadUrl) ? undefined : (v.fileName || '')}
+                        className="pt-btn w-full"
+                      >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                           <path d="M12 3v12" />
                           <path d="m7 10 5 5 5-5" />
@@ -294,6 +301,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                         </span>
                       </a>
                     ))}
+                    <p className="pt-1 text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>点击将跳转云盘下载</p>
                   </div>
                 ) : (
                   <>
