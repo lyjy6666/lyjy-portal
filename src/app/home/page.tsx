@@ -7,6 +7,7 @@ import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { applyLiquidGlass, clearLiquidGlass, supportsLiquidGlass } from '@/components/home/liquidGlass';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { Video, ShieldCheck, Keyboard, Briefcase, Camera, FileArchive, PlayCircle, Sparkles, Palette, Wrench, ArrowUpRight } from 'lucide-react';
 import HolidayCalendar from '@/components/HolidayCalendar';
 import MusicPlayer from '@/components/MusicPlayer';
 import AITools from '@/components/AITools';
@@ -1837,7 +1838,7 @@ const socialItems: SocialItem[] = [
                ></div>
                
                {/* 模态框内容 */}
-               <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/15 w-full max-w-4xl shadow-2xl overflow-hidden">
+               <div className="relative bg-slate-900/85 backdrop-blur-2xl rounded-3xl border border-white/10 w-full max-w-4xl shadow-2xl overflow-hidden">
                  {/* 标题栏 */}
                  <div className="flex justify-between items-center px-8 py-4 border-b border-white/10 bg-black/30">
                    <h3 className="text-white text-2xl font-semibold">实用工具</h3>
@@ -1850,113 +1851,36 @@ const socialItems: SocialItem[] = [
                    </button>
                  </div>
                  
-                 {/* 工具卡片 */}
-                 <div className="p-8">
-                   {/* 第一排 */}
-                   <div className="grid grid-cols-5 gap-6 mb-6">
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsScreenRecorderOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-video text-4xl text-red-400"></i>
-                       <span className="text-white/80 text-base">屏幕录制</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsSecuritySoftwareOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-shield-halved text-4xl text-green-400"></i>
-                       <span className="text-white/80 text-base">安全软件</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsInputMethodOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-keyboard text-4xl text-blue-400"></i>
-                       <span className="text-white/80 text-base">输入法</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsOfficeSoftwareOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-briefcase text-4xl text-purple-400"></i>
-                       <span className="text-white/80 text-base">办公软件</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsScreenshotToolOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-camera text-4xl text-cyan-400"></i>
-                       <span className="text-white/80 text-base">截图工具</span>
-                     </button>
-                   </div>
-                   {/* 第二排 */}
-                   <div className="grid grid-cols-5 gap-6">
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsCompressionToolOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-file-zipper text-4xl text-amber-400"></i>
-                       <span className="text-white/80 text-base">压缩解压</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsVideoPlayerOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-play text-4xl text-pink-400"></i>
-                       <span className="text-white/80 text-base">视频播放器</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsSystemCleanerOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-broom text-4xl text-emerald-400"></i>
-                       <span className="text-white/80 text-base">系统清理</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsDesktopBeautifyOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-palette text-4xl text-violet-400"></i>
-                       <span className="text-white/80 text-base">桌面美化</span>
-                     </button>
-                     <button 
-                       onClick={() => {
-                         setIsUtilityModalOpen(false);
-                         setIsOtherToolsModalOpen(true);
-                       }}
-                       className="flex flex-col items-center gap-3 p-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                     >
-                       <i className="fa-solid fa-toolbox text-4xl text-white/60"></i>
-                       <span className="text-white/80 text-base">其他工具</span>
-                     </button>
+                 {/* 工具面板 */}
+                 <div className="p-5">
+                   <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.07] sm:grid-cols-3 lg:grid-cols-5">
+                     {[
+                       { id: 'rec', name: '屏幕录制', desc: '录屏 / 定时录制', Icon: Video, fn: () => setIsScreenRecorderOpen(true) },
+                       { id: 'sec', name: '安全软件', desc: '杀软 / 防护推荐', Icon: ShieldCheck, fn: () => setIsSecuritySoftwareOpen(true) },
+                       { id: 'ime', name: '输入法', desc: '输入法推荐', Icon: Keyboard, fn: () => setIsInputMethodOpen(true) },
+                       { id: 'office', name: '办公软件', desc: '办公套件推荐', Icon: Briefcase, fn: () => setIsOfficeSoftwareOpen(true) },
+                       { id: 'shot', name: '截图工具', desc: '截图 / 标注', Icon: Camera, fn: () => setIsScreenshotToolOpen(true) },
+                       { id: 'zip', name: '压缩解压', desc: '压缩包处理', Icon: FileArchive, fn: () => setIsCompressionToolOpen(true) },
+                       { id: 'play', name: '视频播放器', desc: '本地视频播放', Icon: PlayCircle, fn: () => setIsVideoPlayerOpen(true) },
+                       { id: 'clean', name: '系统清理', desc: '垃圾清理', Icon: Sparkles, fn: () => setIsSystemCleanerOpen(true) },
+                       { id: 'beautify', name: '桌面美化', desc: '主题 / 壁纸', Icon: Palette, fn: () => setIsDesktopBeautifyOpen(true) },
+                       { id: 'more', name: '其他工具', desc: '更多实用工具', Icon: Wrench, fn: () => setIsOtherToolsModalOpen(true) },
+                     ].map((t) => (
+                       <button
+                         key={t.id}
+                         onClick={() => { setIsUtilityModalOpen(false); t.fn(); }}
+                         className="group flex flex-col items-start gap-3 bg-slate-900 p-4 text-left transition-colors hover:bg-slate-800"
+                       >
+                         <t.Icon size={22} className="text-white/55 transition-colors group-hover:text-sky-400" />
+                         <div className="w-full">
+                           <div className="flex items-center gap-1 text-sm font-semibold text-white">
+                             {t.name}
+                             <ArrowUpRight size={13} className="text-sky-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                           </div>
+                           <p className="mt-0.5 text-[11px] leading-snug text-white/40">{t.desc}</p>
+                         </div>
+                       </button>
+                     ))}
                    </div>
                  </div>
                  

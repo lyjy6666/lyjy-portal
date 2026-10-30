@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Bot, Code2, Clapperboard, Palette, Music,
   X, ExternalLink, Trophy, Search, type LucideIcon,
@@ -214,7 +215,7 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
                 ? 'text-sky-300 bg-sky-400/10'
                 : 'text-white/40 bg-white/[0.06]';
             const pct = Math.round(100 - ((rank - 1) / Math.max(board.models.length - 1, 1)) * 66);
-            const barColor = tier === 'T0' ? 'bg-amber-400' : tier === 'T1' ? 'bg-sky-400' : 'bg-slate-500';
+            const barGrad = tier === 'T0' ? 'bg-gradient-to-r from-amber-500 to-orange-400' : tier === 'T1' ? 'bg-gradient-to-r from-sky-500 to-indigo-400' : 'bg-gradient-to-r from-slate-500 to-slate-400';
             return (
               <div
                 key={m.name}
@@ -230,8 +231,16 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
                       {m.region} · {m.vendor}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <motion.div
+                      key={`${activeKey}-${m.name}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: rank * 0.035 }}
+                      className={`relative h-full rounded-full ${barGrad}`}
+                    >
+                      <span className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.6)]" />
+                    </motion.div>
                   </div>
                   <p className="mt-1 text-xs leading-relaxed text-white/55">{m.note}</p>
                 </div>
