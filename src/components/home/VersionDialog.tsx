@@ -61,7 +61,7 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
           <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 版本历史</p>
         </DialogHeader>
 
-        <div className="max-h-[60vh] overflow-y-auto py-3 pr-1">
+        <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <UpdateTimeline releases={SITE_RELEASES} />
         </div>
       </DialogContent>

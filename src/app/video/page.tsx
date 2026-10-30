@@ -67,6 +67,22 @@ export default function VideoListPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* 已下线提示 */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-6">
+        <div className="text-center">
+          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-white/5 text-slate-400">
+            <AlertCircle size={32} />
+          </div>
+          <h1 className="text-2xl font-bold text-white">该服务已下线</h1>
+          <p className="mt-2 text-sm text-slate-400">视频中心已停止服务，感谢你的支持。</p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-6 py-2.5 text-sm font-medium text-white transition hover:brightness-110"
+          >
+            <Home size={15} /> 返回导航首页
+          </Link>
+        </div>
+      </div>
       {/* 动态背景光效 */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/4 top-0 h-96 w-96 animate-pulse rounded-full bg-blue-500/15 blur-3xl" />

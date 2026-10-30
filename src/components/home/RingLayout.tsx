@@ -30,7 +30,19 @@ export default function RingLayout({
   onOpenVersion,
   onSwitchLayout,
 }: RingLayoutProps) {
-  const services = flattenServices();
+  const [hideInactive, setHideInactive] = useState(false);
+  const isInactive = (s: ServiceItem) => Boolean(s.soon || s.unavailable);
+  const services = useMemo(
+    () => (hideInactive ? flattenServices().filter((s) => !isInactive(s)) : flattenServices()),
+    [hideInactive]
+  );
+  const visibleCategories = useMemo(
+    () =>
+      serviceCategories
+        .map((c) => ({ ...c, services: hideInactive ? c.services.filter((s) => !isInactive(s)) : c.services }))
+        .filter((c) => c.services.length > 0),
+    [hideInactive]
+  );
   const [showGuide, setShowGuide] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -99,7 +111,7 @@ export default function RingLayout({
   const segments = useMemo(() => {
     const gap = angles.length > 1 ? Math.abs(angles[1] - angles[0]) * 0.45 : 3;
     let cursor = 0;
-    return serviceCategories.map((category) => {
+    return visibleCategories.map((category) => {
       const startIdx = cursor;
       cursor += category.services.length;
       const endIdx = cursor - 1;
@@ -117,7 +129,7 @@ export default function RingLayout({
         labelTop: `${label.y}%`,
       };
     });
-  }, [angles]);
+  }, [angles, visibleCategories]);
 
   const nodeState = (categoryId?: string) => {
     if (!activeCategory) return 'idle' as const;
@@ -132,7 +144,7 @@ export default function RingLayout({
       </div>
 
       <div className="portal-legend" onMouseLeave={() => setActiveCategory(null)}>
-        {serviceCategories.map((category) => (
+        {visibleCategories.map((category) => (
           <button
             key={category.id}
             type="button"
@@ -149,6 +161,16 @@ export default function RingLayout({
             <span className="portal-legend-count">{category.services.length}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setHideInactive((v) => !v)}
+          aria-pressed={hideInactive}
+          className={`portal-legend-item ${hideInactive ? 'portal-legend-item--on' : ''}`}
+          style={{ marginTop: '0.45rem' }}
+          title="隐藏已关停或筹备中的服务节点"
+        >
+          <span className="portal-legend-name">{hideInactive ? '显示已关停/筹备中' : '隐藏已关停/筹备中'}</span>
+        </button>
       </div>
 
       <div className="portal-ring-stage">
