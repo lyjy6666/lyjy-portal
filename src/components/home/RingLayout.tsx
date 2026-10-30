@@ -31,6 +31,8 @@ export default function RingLayout({
   onSwitchLayout,
 }: RingLayoutProps) {
   const [hideInactive, setHideInactive] = useState(false);
+  // 「已关停/筹备中」= soon/unavailable。原版入口的隐藏交给 ServiceEntries 的 hideOriginal，
+  // 不在此移除整个节点，避免把 search/toolbox 的 Pro 版也一起关掉。
   const isInactive = (s: ServiceItem) => Boolean(s.soon || s.unavailable);
   const services = useMemo(
     () => (hideInactive ? flattenServices().filter((s) => !isInactive(s)) : flattenServices()),
@@ -263,7 +265,7 @@ export default function RingLayout({
               <ServiceBadges service={hovered} />
               {/* 主入口 + 尝鲜版入口并排 */}
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                {hovered.pro ? <ServiceEntries service={hovered} /> : <ServiceAction service={hovered} />}
+                {hovered.pro ? <ServiceEntries service={hovered} hideOriginal={hideInactive} /> : <ServiceAction service={hovered} />}
               </div>
               {hovered.upgradeHref && (
                 <Link

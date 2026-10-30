@@ -80,7 +80,7 @@ export function ServiceBadges({ service }: { service: ServiceItem }) {
  * 一旦过了 sunset 日期，原版自动停用（按钮保留、置灰、不可进入），只留 Pro 版。
  * 没有 Pro 版时退化为普通主入口，保持原样。
  */
-export function ServiceEntries({ service, inline = false }: { service: ServiceItem; inline?: boolean }) {
+export function ServiceEntries({ service, inline = false, hideOriginal = false }: { service: ServiceItem; inline?: boolean; hideOriginal?: boolean }) {
   const pro = service.pro;
 
   if (!pro) {
@@ -90,6 +90,19 @@ export function ServiceEntries({ service, inline = false }: { service: ServiceIt
   const sunset = isSunset(service);
   const soon = Boolean(service.soon || service.unavailable);
   const oldHref = service.oldUrl ?? service.url;
+
+  // 首页圆环的「隐藏已关停/筹备中」开关开启时，只保留 Pro 版主按钮，
+  // 把已关停原版的入口（「进入原版」/「原版已关停」）收起来，但不影响 Pro 版本身。
+  if (hideOriginal) {
+    return (
+      <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
+        <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
+          <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
+          {pro.label}
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
