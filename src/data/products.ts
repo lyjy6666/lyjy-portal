@@ -5,6 +5,15 @@
 // 注意：bytes / sha256 必须与 public/ 下真实文件一致，
 // 修改安装包后请用 `sha256sum` 重新计算并更新这里，否则页面上的校验信息会失真。
 
+export type DownloadVariant = {
+  label: string;
+  downloadUrl: string;
+  fileName?: string;
+  bytes?: number;
+  format?: string;
+  sha256?: string;
+};
+
 export type Product = {
   slug: string;
   name: string;
@@ -18,6 +27,9 @@ export type Product = {
   downloadLabel: string;
   external: boolean;
   note?: string;
+
+  /** 多版本下载（单文件版/文件夹版、绿色版/安装版）。有则产品页展示多个下载按钮 */
+  variants?: DownloadVariant[];
 
   // —— 可信度信息（产品页展示用）——
   version?: string;
@@ -279,6 +291,10 @@ export const PRODUCTS: Product[] = [
     downloadLabel: '下载 EXE（单文件版）',
     external: false,
     note: '单文件版双击即用（首次启动 10~25 秒解压）。追求秒开可下载文件夹版。未签名程序，首次运行 Windows SmartScreen 会提示，点「更多信息 → 仍要运行」即可。',
+    variants: [
+      { label: '文件夹版（启动更快，推荐）', downloadUrl: '/downloads/campus-assistant-folder.zip', fileName: 'campus-assistant-folder.zip', bytes: 369489920, format: 'ZIP（文件夹版）', sha256: '491de59a6adce05417c974c87f45cc2d3c2db8700403e2f271249fbf09dcaf5c' },
+      { label: '单文件版（一个 exe，拷着方便）', downloadUrl: '/downloads/campus-assistant.exe', fileName: 'campus-assistant.exe', bytes: 138958472, format: 'EXE（单文件版）', sha256: '7ba6201ae81b97ec2e579dae9f09a212c139f9115c205a883ab44697736b2760' },
+    ],
     version: 'V3.5.0',
     fileName: 'campus-assistant.exe',
     bytes: 138958472,
@@ -322,6 +338,10 @@ export const PRODUCTS: Product[] = [
     downloadLabel: '下载 EXE（绿色版）',
     external: false,
     note: '绿色免安装版，双击直接运行、不需要管理员权限、不写注册表。未签名程序，首次运行 SmartScreen 提示点「更多信息 → 仍要运行」即可。',
+    variants: [
+      { label: '绿色版（免安装，推荐）', downloadUrl: '/downloads/papermark.exe', fileName: 'papermark.exe', bytes: 112076139, format: 'EXE（绿色免安装版）', sha256: '1ad965409361f77d913c8d8d8091f0d1f0932a02f966a552b5774e0cb59f7eb3' },
+      { label: '安装版（装进系统，进开始菜单）', downloadUrl: '/downloads/papermark-setup.exe', fileName: 'papermark-setup.exe', bytes: 112306397, format: 'EXE（安装版）', sha256: '39328ca4845aea04f63c5b4f0cdfc5a5b7bba4a74a166b0c34ce20ba5548f76c' },
+    ],
     version: '0.3.2',
     fileName: 'papermark.exe',
     bytes: 112076139,

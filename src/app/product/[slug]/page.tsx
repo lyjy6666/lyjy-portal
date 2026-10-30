@@ -277,34 +277,56 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <>
                 <div className="pt-label">获取安装包</div>
 
-                {product.fileName ? (
-                  <p className="mt-2.5 break-all font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-dim)' }}>
-                    {product.fileName}
-                    {sizeText ? ` · ${sizeText}` : ''}
-                  </p>
+                {product.variants && product.variants.length > 0 ? (
+                  <div className="mt-3 space-y-2.5">
+                    {product.variants.map((v) => (
+                      <a key={v.label} href={v.downloadUrl} download={v.fileName || ''} className="pt-btn w-full">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <path d="M12 3v12" />
+                          <path d="m7 10 5 5 5-5" />
+                          <path d="M5 21h14" />
+                        </svg>
+                        <span className="flex-1 text-left leading-tight">
+                          {v.label}
+                          <span className="mt-0.5 block text-[0.6875rem] font-normal opacity-80">
+                            {[v.format, formatBytes(v.bytes)].filter(Boolean).join(' · ')}
+                          </span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 ) : (
-                  product.size && (
-                    <p className="mt-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-dim)' }}>
-                      {product.size}
-                    </p>
-                  )
-                )}
+                  <>
+                    {product.fileName ? (
+                      <p className="mt-2.5 break-all font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                        {product.fileName}
+                        {sizeText ? ` · ${sizeText}` : ''}
+                      </p>
+                    ) : (
+                      product.size && (
+                        <p className="mt-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-dim)' }}>
+                          {product.size}
+                        </p>
+                      )
+                    )}
 
-                <a
-                  href={product.downloadUrl}
-                  target={product.external ? '_blank' : undefined}
-                  rel={product.external ? 'noopener noreferrer' : undefined}
-                  /* 用 fileName 作保存名：URL 走 ASCII 更稳，用户拿到的仍是中文名 */
-                  download={product.external ? undefined : product.fileName || ''}
-                  className="pt-btn mt-5"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 3v12" />
-                    <path d="m7 10 5 5 5-5" />
-                    <path d="M5 21h14" />
-                  </svg>
-                  {product.downloadLabel}
-                </a>
+                    <a
+                      href={product.downloadUrl}
+                      target={product.external ? '_blank' : undefined}
+                      rel={product.external ? 'noopener noreferrer' : undefined}
+                      /* 用 fileName 作保存名：URL 走 ASCII 更稳，用户拿到的仍是中文名 */
+                      download={product.external ? undefined : product.fileName || ''}
+                      className="pt-btn mt-5"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 3v12" />
+                        <path d="m7 10 5 5 5-5" />
+                        <path d="M5 21h14" />
+                      </svg>
+                      {product.downloadLabel}
+                    </a>
+                  </>
+                )}
 
                 {product.external && (
                   <p className="mt-3 text-[0.75rem] leading-relaxed" style={{ color: 'var(--pt-ink-faint)' }}>
@@ -439,46 +461,91 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         )}
 
         {/* ============ 文件校验 ============ */}
-        {(product.sha256 || product.bytes || product.fileName) && (
+        {(product.sha256 || product.bytes || product.fileName || (product.variants && product.variants.length > 0)) && (
           <section id="file-info" className="scroll-mt-24 py-10">
             <SectionTitle hint="Verification">文件校验</SectionTitle>
-            <div className="pt-panel overflow-hidden">
-              <dl>
-                {product.fileName && (
-                  <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
-                    <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-                      文件名
-                    </dt>
-                    <dd className="min-w-0 flex-1 break-all font-mono text-[0.8125rem]">{product.fileName}</dd>
-                  </div>
-                )}
-                {sizeText && (
-                  <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
-                    <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-                      大小
-                    </dt>
-                    <dd className="min-w-0 flex-1 text-[0.8125rem]">
-                      {sizeText}
-                      {product.bytes && (
-                        <span className="ml-2 font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-                          ({product.bytes.toLocaleString('en-US')} 字节)
-                        </span>
+            {product.variants && product.variants.length > 0 ? (
+              <div className="space-y-4">
+                {product.variants.map((v) => (
+                  <div key={v.label} className="pt-panel overflow-hidden">
+                    <div className="px-5 py-3 text-[0.8125rem] font-semibold" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                      {v.label}
+                    </div>
+                    <dl>
+                      {v.fileName && (
+                        <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                          <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                            文件名
+                          </dt>
+                          <dd className="min-w-0 flex-1 break-all font-mono text-[0.8125rem]">{v.fileName}</dd>
+                        </div>
                       )}
-                    </dd>
+                      {v.bytes && (
+                        <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                          <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                            大小
+                          </dt>
+                          <dd className="min-w-0 flex-1 text-[0.8125rem]">
+                            {formatBytes(v.bytes)}
+                            <span className="ml-2 font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                              ({v.bytes.toLocaleString('en-US')} 字节)
+                            </span>
+                          </dd>
+                        </div>
+                      )}
+                      {v.sha256 && (
+                        <div className="px-5 py-4">
+                          <dt className="mb-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                            SHA-256
+                          </dt>
+                          <dd>
+                            <HashCopy value={v.sha256} />
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
                   </div>
-                )}
-                {product.sha256 && (
-                  <div className="px-5 py-4">
-                    <dt className="mb-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
-                      SHA-256
-                    </dt>
-                    <dd>
-                      <HashCopy value={product.sha256} />
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="pt-panel overflow-hidden">
+                <dl>
+                  {product.fileName && (
+                    <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                      <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                        文件名
+                      </dt>
+                      <dd className="min-w-0 flex-1 break-all font-mono text-[0.8125rem]">{product.fileName}</dd>
+                    </div>
+                  )}
+                  {sizeText && (
+                    <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6" style={{ borderBottom: '1px solid var(--pt-line)' }}>
+                      <dt className="w-28 shrink-0 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                        大小
+                      </dt>
+                      <dd className="min-w-0 flex-1 text-[0.8125rem]">
+                        {sizeText}
+                        {product.bytes && (
+                          <span className="ml-2 font-mono text-[0.75rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                            ({product.bytes.toLocaleString('en-US')} 字节)
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {product.sha256 && (
+                    <div className="px-5 py-4">
+                      <dt className="mb-2.5 text-[0.8125rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                        SHA-256
+                      </dt>
+                      <dd>
+                        <HashCopy value={product.sha256} />
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
             <p className="mt-3 text-[0.75rem] leading-relaxed" style={{ color: 'var(--pt-ink-faint)' }}>
               下载后可用 <code className="font-mono">certutil -hashfile 文件名 SHA256</code> 核对，
               确认与上方一致再运行。
