@@ -1,5 +1,9 @@
 # 依赖
 node_modules/
+
+# 超过 GitHub 100MB 单文件限制的安装包（本地可下载，不随 git 部署；线上另用网盘/LFS）
+public/downloads/campus-assistant.exe
+public/downloads/papermark.exe
 .pnp
 .pnp.js
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
+import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, FilePen, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
 import { isSunset, sunsetLabel } from '@/lib/sunset';
@@ -18,6 +18,7 @@ const icons: Record<string, LucideIcon> = {
   'fa-box-open': PackageOpen, 'fa-cubes-stacked': Boxes,
   'fa-window-restore': PanelsTopLeft, 'fa-compass': Compass,
   'fa-play': Clapperboard, 'fa-gamepad': Gamepad2, 'fa-download': ArrowDownToLine,
+  'fa-file-pen': FilePen,
 };
 
 export const accents: Record<string, string> = {

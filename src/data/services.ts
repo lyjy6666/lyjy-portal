@@ -101,6 +101,8 @@ export const serviceCategories: ServiceCategory[] = [
     { id: 'toolbox-desktop', name: '格式转换工具箱（桌面版）', shortName: '格式转换桌面版', icon: 'fa-box-open', color: 'cyan', url: '#', desc: '该项目已下线', badge: '已下线', soon: true, unavailable: '此项目已下线' },
     { id: 'windows-toolbox', name: 'Windows Toolbox（应用程序版）', shortName: 'Windows Toolbox', icon: 'fa-cubes-stacked', color: 'indigo', url: '/product/windows-toolbox', desc: '原生桌面工具合集，需安装 .NET 8 桌面运行时', badge: 'ZIP 包' },
     { id: 'windows-tool-web', name: 'Windows 工具（网页版）', shortName: 'Windows 工具网页版', icon: 'fa-window-restore', color: 'green', url: '/product/windows-tool-web', desc: '单文件绿色版，内置本地服务器', badge: '单文件' },
+    { id: 'campus-assistant', name: '校园助手', shortName: '校园助手', icon: 'fa-graduation-cap', color: 'green', url: '/product/campus-assistant', desc: '一体机课堂叫人朗读工具', badge: '桌面应用' },
+    { id: 'papermark', name: '试卷批注助手', shortName: '试卷批注', icon: 'fa-file-pen', color: 'orange', url: '/product/papermark', desc: '试卷手写批注，重开还原', badge: '桌面应用' },
   ] },
 ];
 
