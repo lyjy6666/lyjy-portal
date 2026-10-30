@@ -217,22 +217,27 @@ export default function HomePage() {
   const [isGuestbookOpen, setIsGuestbookOpen] = useState(false);
   // 彩蛋一状态
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-  // 版本号点击计数（彩蛋一触发）
-  const versionClickCount = useRef(0);
-  const versionClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 彩蛋一：连续点击左下角版本号5次触发
-  const handleVersionClick = () => {
-    versionClickCount.current += 1;
-    if (versionClickTimer.current) clearTimeout(versionClickTimer.current);
-    versionClickTimer.current = setTimeout(() => {
-      versionClickCount.current = 0;
-    }, 1500);
-    if (versionClickCount.current >= 5) {
-      versionClickCount.current = 0;
-      setShowEasterEgg(true);
-    }
-  };
+  // 彩蛋一：在键盘上依次按下 L Y J Y 触发
+  useEffect(() => {
+    const secret = ['l', 'y', 'j', 'y'];
+    let idx = 0;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (k === secret[idx]) {
+        idx += 1;
+        if (idx === secret.length) {
+          idx = 0;
+          setShowEasterEgg(true);
+        }
+      } else {
+        idx = k === secret[0] ? 1 : 0;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   
   // 检测是否有任何模态框打开（用于隐藏底部元素）
   const isAnyModalOpen = isStudyModalOpen || isMovieModalOpen || isTimeCapsuleModalOpen || 
@@ -2010,7 +2015,7 @@ const socialItems: SocialItem[] = [
                       </motion.div>
                       <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent mb-3">彩蛋一</p>
                       <p className="text-white/90 text-lg mb-2">恭喜你发现了隐藏彩蛋！</p>
-                      <p className="text-white/70 text-sm mb-6">你是个善于探索的人，连续点击版本号5次解锁了这个秘密~</p>
+                      <p className="text-white/70 text-sm mb-6">你是个善于探索的人，在键盘上依次按下 L Y J Y 解锁了这个秘密~</p>
                       <p className="text-white/50 text-xs mb-6">提示：还有另一个彩蛋哦，试试按下方向键 ↑ ↓ ← →</p>
                       <button
                         className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-2 px-8 rounded-full transition-all duration-300 hover:shadow-lg hover:scale-105"
@@ -2043,9 +2048,8 @@ const socialItems: SocialItem[] = [
 
                {/* 左下角版本号 - 与版本动画无缝衔接 */}
    <div
-     onClick={handleVersionClick}
      title="版本号"
-     className={`version-badge fixed bottom-6 left-6 text-4xl font-black transform -rotate-12 z-20 transition-all duration-500 cursor-pointer ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+     className={`version-badge fixed bottom-6 left-6 text-4xl font-black transform -rotate-12 z-20 transition-all duration-500 ${isAnyModalOpen && !isSnakeGameOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
      style={{
        background: 'linear-gradient(to right, #fb923c, #fcd34d, #fb923c)',
        WebkitBackgroundClip: 'text',
