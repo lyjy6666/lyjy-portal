@@ -114,11 +114,7 @@ const BOARDS: ModelBoard[] = [
   },
 ];
 
-const RANK_STYLE = [
-  'bg-amber-400 text-black',   // 1
-  'bg-slate-300 text-black',   // 2
-  'bg-orange-500 text-white',  // 3
-];
+const RANK_STYLE: string[] = [];
 
 interface AIToolsProps {
   isOpen: boolean;
@@ -145,13 +141,16 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-2xl backdrop-blur-xl">
+      <div className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/85 shadow-[0_0_80px_-20px_rgba(56,189,248,0.5)] backdrop-blur-2xl">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
         {/* 标题栏 */}
         <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
           <div>
-            <h3 className="flex items-center gap-2 text-xl font-bold text-white">
-              <Trophy size={18} className="text-amber-400" />
-              AI 模型榜单
+            <h3 className="flex items-center gap-2.5 text-xl font-bold">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30">
+                <Trophy size={18} />
+              </span>
+              <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">AI 模型榜单</span>
             </h3>
             <p className="mt-1 text-xs text-white/50">
               分类型排名，不同类型不互相比较 · 数据整理于 2026 年 10 月
@@ -174,8 +173,8 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
               onClick={() => setActiveKey(b.key)}
               className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
                 activeKey === b.key
-                  ? 'bg-white text-slate-900 shadow'
-                  : 'text-white/65 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white/10 text-white ring-1 ring-inset ring-white/15'
+                  : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
               }`}
             >
               <b.icon size={14} /> {b.label}
@@ -193,50 +192,62 @@ export default function AITools({ isOpen, onClose }: AIToolsProps) {
         </div>
 
         {/* 榜单列表 */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <p className="mb-3 text-xs text-white/40">
-            {board.label} · 共 {board.models.length} 款，按综合实力排名（仅在本类型内比较）
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+          <p className="py-3 text-xs text-white/40">
+            {board.label} · 共 {board.models.length} 款 · 按综合实力排名（仅本类型内比较）
           </p>
-          <div className="space-y-2.5">
-            {models.map((m) => {
-              const rank = board.models.indexOf(m) + 1;
-              return (
-                <div
-                  key={m.name}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3.5 transition hover:border-white/20 hover:bg-white/[0.07]"
-                >
-                  <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
-                      RANK_STYLE[rank - 1] ?? 'bg-white/10 text-white/60'
-                    }`}
-                  >
-                    {rank}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-[0.95rem] font-semibold text-white">{m.name}</h4>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-white/50">
-                        {m.region}
-                      </span>
-                      <span className="text-[11px] text-white/40">{m.vendor}</span>
-                    </div>
-                    <p className="mt-0.5 text-xs leading-relaxed text-white/65">{m.note}</p>
+          {models.map((m) => {
+            const rank = board.models.indexOf(m) + 1;
+            const tier = rank <= 2 ? 'T0' : rank <= 5 ? 'T1' : 'T2';
+            const rankColor =
+              rank === 1
+                ? 'text-amber-300 [text-shadow:0_0_18px_rgba(251,191,36,0.55)]'
+                : rank === 2
+                ? 'text-slate-200 [text-shadow:0_0_14px_rgba(226,232,240,0.4)]'
+                : rank === 3
+                ? 'text-orange-400 [text-shadow:0_0_14px_rgba(251,146,60,0.4)]'
+                : 'text-white/15';
+            const tierStyle =
+              tier === 'T0'
+                ? 'text-amber-300 bg-amber-400/10'
+                : tier === 'T1'
+                ? 'text-sky-300 bg-sky-400/10'
+                : 'text-white/40 bg-white/[0.06]';
+            return (
+              <div
+                key={m.name}
+                className="group grid grid-cols-[2.9rem_1fr_auto] items-center gap-3 border-t border-white/[0.06] py-3.5 transition-colors hover:bg-white/[0.03]"
+              >
+                <span className={`font-mono text-2xl font-black leading-none tabular-nums ${rankColor}`}>
+                  {String(rank).padStart(2, '0')}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <h4 className="text-[0.95rem] font-semibold text-white">{m.name}</h4>
+                    <span className="text-[10px] text-white/40">
+                      {m.region} · {m.vendor}
+                    </span>
                   </div>
+                  <p className="mt-0.5 text-xs leading-relaxed text-white/55">{m.note}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2.5">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tierStyle}`}>{tier}</span>
                   <a
                     href={m.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/25"
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-white/45 transition-colors group-hover:border-sky-400/40 group-hover:text-sky-300"
+                    aria-label={`访问 ${m.name}`}
                   >
-                    <ExternalLink size={12} /> 官网
+                    <ExternalLink size={14} />
                   </a>
                 </div>
-              );
-            })}
-            {models.length === 0 && (
-              <p className="py-12 text-center text-sm text-white/40">本榜内没有匹配的模型</p>
-            )}
-          </div>
+              </div>
+            );
+          })}
+          {models.length === 0 && (
+            <p className="py-12 text-center text-sm text-white/40">本榜内没有匹配的模型</p>
+          )}
         </div>
 
         {/* 数据说明 */}
