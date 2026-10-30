@@ -753,7 +753,7 @@ export default function GPUTierChart({ isOpen, onClose }: GPUTierChartProps) {
             {/* 底部说明 */}
             <div className="px-6 py-2 bg-black/30 border-t border-white/10">
               <div className="flex items-center justify-between text-xs text-white/40">
-                <span>数据更新时间：2026年7月 | 仅供参考</span>
+                <span>数据更新时间：2026年10月 | 仅供参考</span>
                 <div className="flex items-center gap-3">
                   {Object.entries(tierColors).slice(0, 4).map(([tier, color]) => (
                     <div key={tier} className="flex items-center gap-1">
