@@ -88,7 +88,7 @@ export const serviceCategories: ServiceCategory[] = [
   { id: 'entertainment', name: '娱乐休闲', icon: 'fa-play', color: 'red', services: [
     { id: 'movie', name: '影视资源', icon: 'fa-clapperboard', color: 'red', url: '/movie', desc: '免费在线观影，多线路播放', badge: 'Beta' },
     { id: 'radio', name: '城市深夜电台 · 声音星系', shortName: '深夜电台', icon: 'fa-tower-cell', color: 'indigo', url: '#', desc: '城市深夜电台 · 声音星系，正在筹备中', badge: '施工中', soon: true },
-    { id: 'video', name: '视频播放器', icon: 'fa-photo-film', color: 'orange', url: 'http://8.217.179.106/', desc: '视频播放与浏览', external: true, upgradeHref: '/video', oldLabel: '返回旧版' },
+    { id: 'video', name: '视频播放器', icon: 'fa-photo-film', color: 'orange', url: '#', desc: '该项目已下架', badge: '已下架', soon: true, unavailable: '视频播放器已下架' },
   ] },
   { id: 'fun', name: '趣味应用', icon: 'fa-gamepad', color: 'yellow', services: [
     { id: 'doudizhu', name: '斗地主', icon: 'fa-clone', color: 'red', url: 'https://doudizhu-play.netlify.app', desc: '在线斗地主游戏，经典扑克玩法', external: true },

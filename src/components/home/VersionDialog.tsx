@@ -7,9 +7,20 @@ import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 /** 站点版本历史（越靠前越新） */
 const SITE_RELEASES: Release[] = [
   {
+    version: 'V6.5',
+    date: '2026.10-11',
+    latest: true,
+    items: [
+      '搜索页、格式转换工具箱全面升级 Pro 版，原版同步关停服务',
+      '强力锁等产品下载页全面重构',
+      '新增「校园助手」「试卷批注」两款产品',
+      '下架「格式转换工具箱（桌面版）」与「视频播放器」两个版本',
+      '彩蛋预告：7.0 将上线作业管理系统 Pro 版（新旧两版并存，请放心使用），语音朗读系统也有望升级',
+    ],
+  },
+  {
     version: 'V6.0',
     date: '2026.9.24',
-    latest: true,
     items: [
       '新增银河圆环布局：17 个服务节点环绕分布，按分类绘制弧线',
       '悬停任意节点，中心区域固定展示该服务的介绍与进入按钮',

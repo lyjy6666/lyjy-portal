@@ -258,7 +258,7 @@ export default function RingLayout({
 
       <div className="portal-hud portal-hud--bottom">
         © 2026 LYJY导航系统 ·{' '}
-        <button type="button" onClick={onOpenVersion} className="text-sky-300 hover:text-sky-200">V6.0</button>
+        <button type="button" onClick={onOpenVersion} className="text-sky-300 hover:text-sky-200">V6.5</button>
       </div>
 
       <div className="fixed bottom-4 right-6 z-40 flex flex-col gap-2">

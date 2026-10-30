@@ -166,7 +166,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
       <footer className="absolute bottom-6 text-center">
         <div className="text-gray-400 text-sm bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-500/20">
           <p>© 2026 LYJY导航系统 <span className="mx-2">|</span>{' '}
-            <button type="button" onClick={onOpenVersion} className="text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">V6.0</button>
+            <button type="button" onClick={onOpenVersion} className="text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">V6.5</button>
           </p>
         </div>
       </footer>
