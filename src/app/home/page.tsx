@@ -63,9 +63,19 @@ const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
  */
 const buildHomeReleases = (onOpenGlassInfo: () => void): Release[] => [
   {
+    version: 'V4.2',
+    date: '2026.10.30',
+    latest: true,
+    items: [
+      'AI 工具库全面重构：改为「国内 / 海外 + 用途」分类型的模型榜单，按 2026 年 10 月真实评测排名',
+      '实用工具栏目重做',
+      '天梯榜数据核对更新至 2026 年 10 月',
+      '修复了一些已知问题',
+    ],
+  },
+  {
     version: 'V4.1',
     date: '2026.10.3',
-    latest: true,
     items: [
       <>
         新增
@@ -1471,12 +1481,12 @@ const socialItems: SocialItem[] = [
                     </div>
                     
                     {/* 内容区域 */}
-                    <div className="max-h-[60vh] overflow-y-auto pr-1">
+                    <div className="max-h-[60vh] overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                       <UpdateTimeline releases={homeReleases} />
                     </div>
                     
                     {/* 底部按钮 */}
-                    <div className="p-4 border-t border-gray-200 flex justify-end">
+                    <div className="p-4 flex justify-end">
                       <button 
                         onClick={() => setIsUpdateLogOpen(false)}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 hover:shadow-lg"
@@ -2044,7 +2054,7 @@ const socialItems: SocialItem[] = [
        textShadow: '0 0 20px rgba(251, 146, 60, 0.5)',
      }}
    >
-     V4.1
+     V4.2
    </div>
 
   {/* 液态玻璃说明入口（右下角，位于「返回首页」「更新日志」之上） */}
