@@ -1,5 +1,14 @@
 # 依赖
 node_modules/
+
+# 超过 GitHub 100MB 单文件限制的安装包（本地可下载，不随 git 部署；线上另用网盘/LFS）
+public/downloads/campus-assistant.exe
+public/downloads/papermark.exe
+public/downloads/campus-assistant-folder.zip
+public/downloads/papermark-setup.exe
+public/downloads/campus-assistant.zip
+public/downloads/papermark.zip
+public/downloads/papermark-setup.zip
 .pnp
 .pnp.js
 
@@ -38,3 +47,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# AI 助手工作目录（会话笔记/记忆，不属于项目代码）
+.workbuddy-ai/

@@ -1,0 +1,272 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { ChartLine, Headset, History, LayoutGrid, Sparkles } from 'lucide-react';
+import { flattenServices, serviceCategories, type ServiceItem } from '@/data/services';
+import GalaxyRing from './GalaxyRing';
+import ServiceNode from './ServiceNode';
+import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
+import { uniformAngles } from './ringAngles';
+
+const RING_RADIUS = 46;
+
+function polar(deg: number, radius: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: 50 + radius * Math.cos(rad), y: 50 + radius * Math.sin(rad) };
+}
+
+type RingLayoutProps = {
+  dynamicNumber: number;
+  onOpenStats: () => void;
+  onOpenVersion: () => void;
+  onSwitchLayout: () => void;
+  onOpenNextPreview: () => void;
+};
+
+export default function RingLayout({
+  dynamicNumber,
+  onOpenStats,
+  onOpenVersion,
+  onSwitchLayout,
+  onOpenNextPreview,
+}: RingLayoutProps) {
+  const [hideInactive, setHideInactive] = useState(false);
+  // 「已关停/筹备中」= soon/unavailable。原版入口的隐藏交给 ServiceEntries 的 hideOriginal，
+  // 不在此移除整个节点，避免把 search/toolbox 的 Pro 版也一起关掉。
+  const isInactive = (s: ServiceItem) => Boolean(s.soon || s.unavailable);
+  const services = useMemo(
+    () => (hideInactive ? flattenServices().filter((s) => !isInactive(s)) : flattenServices()),
+    [hideInactive]
+  );
+  const visibleCategories = useMemo(
+    () =>
+      serviceCategories
+        .map((c) => ({ ...c, services: hideInactive ? c.services.filter((s) => !isInactive(s)) : c.services }))
+        .filter((c) => c.services.length > 0),
+    [hideInactive]
+  );
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // 节点角度：17 个均匀分布
+  const angles = useMemo(() => uniformAngles(services.length), [services.length]);
+
+  // 中心详情面板跟随悬停的节点。
+  // 注意：鼠标从节点移向中心面板（点「进入网站」）时会先离开节点，
+  // 所以不能立刻收回 —— 离开后等 1.5 秒再收回，期间移到面板上会重置计时。
+  const [hovered, setHovered] = useState<ServiceItem | null>(null);
+  const idleTimer = useRef<number | null>(null);
+
+  const clearIdle = () => {
+    if (idleTimer.current) {
+      window.clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    }
+  };
+  const startIdle = () => {
+    clearIdle();
+    idleTimer.current = window.setTimeout(() => setHovered(null), 1500);
+  };
+  const handleHover = (service: ServiceItem | null) => {
+    clearIdle();
+    if (service) setHovered(service);
+    else startIdle();
+  };
+
+  useEffect(() => () => clearIdle(), []);
+
+  // 刚进页面时鼠标可能正好落在某个节点上（或手一抖划过），
+  // 这时不该弹出效果 —— 先静默 1 秒再启用悬停。
+  const [hoverEnabled, setHoverEnabled] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setHoverEnabled(true), 1000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // 每个分类在圆环上对应一段彩色弧线，弧线中点外侧放分类名。
+  // 弧线端点直接取该分类首尾节点的真实角度（方案 C/D 分组后也自动对齐）。
+  const segments = useMemo(() => {
+    const gap = angles.length > 1 ? Math.abs(angles[1] - angles[0]) * 0.45 : 3;
+    let cursor = 0;
+    return visibleCategories.map((category) => {
+      const startIdx = cursor;
+      cursor += category.services.length;
+      const endIdx = cursor - 1;
+      const from = (angles[startIdx] ?? -90) - gap;
+      const to = (angles[endIdx] ?? -90) + gap;
+      const a = polar(from, RING_RADIUS);
+      const b = polar(to, RING_RADIUS);
+      const label = polar((from + to) / 2, RING_RADIUS + 7.5);
+      return {
+        id: category.id,
+        name: category.name,
+        color: accents[category.color] ?? accents.blue,
+        d: `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${RING_RADIUS} ${RING_RADIUS} 0 ${Math.abs(to - from) > 180 ? 1 : 0} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`,
+        labelLeft: `${label.x}%`,
+        labelTop: `${label.y}%`,
+      };
+    });
+  }, [angles, visibleCategories]);
+
+  const nodeState = (categoryId?: string) => {
+    if (!activeCategory) return 'idle' as const;
+    return categoryId === activeCategory ? 'active' : 'dim';
+  };
+
+  return (
+    <div className="portal-ring-page">
+      <div className="portal-hud portal-hud--top">
+        <span className="portal-hud-dot" />
+        SYS {String(dynamicNumber).padStart(4, '0')}
+      </div>
+
+      <div className="portal-legend" onMouseLeave={() => setActiveCategory(null)}>
+        {visibleCategories.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            className={`portal-legend-item ${activeCategory === category.id ? 'portal-legend-item--on' : ''}`}
+            style={accentStyle(category.color)}
+            onMouseEnter={() => setActiveCategory(category.id)}
+            onFocus={() => setActiveCategory(category.id)}
+            onBlur={() => setActiveCategory(null)}
+          >
+            <span className="portal-legend-icon">
+              <ServiceIcon icon={category.icon} size={13} />
+            </span>
+            <span className="portal-legend-name">{category.name}</span>
+            <span className="portal-legend-count">{category.services.length}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setHideInactive((v) => !v)}
+          aria-pressed={hideInactive}
+          className={`portal-legend-item ${hideInactive ? 'portal-legend-item--on' : ''}`}
+          style={{ marginTop: '0.45rem' }}
+          title="隐藏已关停或筹备中的服务节点"
+        >
+          <span className="portal-legend-name">{hideInactive ? '显示已关停/筹备中' : '隐藏已关停/筹备中'}</span>
+        </button>
+      </div>
+
+      <div className="portal-ring-stage">
+        <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.4 }} aria-hidden="true">
+          <GalaxyRing />
+        </motion.div>
+
+        <svg className="portal-arcs" viewBox="0 0 100 100" aria-hidden="true">
+          {segments.map((segment) => (
+            <path
+              key={segment.id}
+              d={segment.d}
+              stroke={segment.color}
+              strokeWidth={activeCategory === segment.id ? 0.9 : 0.4}
+              strokeOpacity={activeCategory && activeCategory !== segment.id ? 0.18 : 0.7}
+            />
+          ))}
+        </svg>
+
+        {segments.map((segment) => (
+          <span
+            key={`label-${segment.id}`}
+            className={`portal-arc-label ${activeCategory === segment.id ? 'portal-arc-label--on' : ''}`}
+            style={{ left: segment.labelLeft, top: segment.labelTop, color: segment.color }}
+          >
+            {segment.name}
+          </span>
+        ))}
+
+        <div className="absolute inset-0">
+          {services.map((service, index) => (
+            <ServiceNode
+              key={service.id}
+              service={service}
+              index={index}
+              angle={angles[index] ?? -90 + index * (360 / services.length)}
+              state={
+                hovered
+                  ? hovered.id === service.id
+                    ? 'active'
+                    : 'dim'
+                  : nodeState(service.categoryId)
+              }
+              onHoverChange={handleHover}
+              hoverEnabled={hoverEnabled}
+            />
+          ))}
+        </div>
+
+        {/* 中心核心区：
+            方案 E 下悬停任意节点时，标题会「瞬移」到左上角，
+            中间腾出来固定展示该节点的详情（位置不随节点变化）。 */}
+        <div
+          className={`portal-ring-core ${
+            `portal-core-dock ${hovered ? 'is-docked' : ''}`
+          }`}
+        >
+          <span className="portal-core-halo" aria-hidden="true" />
+          <span className="portal-core-ring" aria-hidden="true" />
+          <p className="portal-core-eyebrow">Unified Portal</p>
+          <h1 className="portal-core-title">LYJY导航系统</h1>
+          <span className="portal-core-rule" aria-hidden="true" />
+          <p className="portal-core-desc">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
+          <button type="button" onClick={onOpenNextPreview} className="portal-nudge">
+            <Sparkles size={14} />敬请期待更多功能
+          </button>
+        </div>
+
+        {/* 传送门闪光：每次悬停新节点都重新播放 */}
+        {hovered && <span key={hovered.id} className="portal-teleport-flash" aria-hidden="true" />}
+
+        {/* 中心详情面板：固定在同一位置，内容跟随悬停的节点 */}
+        <div
+          className={`portal-center-panel ${hovered ? 'is-on' : ''}`}
+          onMouseEnter={clearIdle}
+          onMouseLeave={startIdle}
+        >
+          {hovered && (
+            <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
+              {hovered.categoryName && (
+                <div
+                  className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+                  style={{ color: 'var(--service-accent)' }}
+                >
+                  {hovered.categoryName}
+                </div>
+              )}
+              <div className="text-base font-semibold text-white">{hovered.name}</div>
+              <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
+              <ServiceBadges service={hovered} />
+              {/* 主入口 + 尝鲜版入口并排 */}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                {hovered.pro ? <ServiceEntries service={hovered} hideOriginal={hideInactive} /> : <ServiceAction service={hovered} />}
+              </div>
+              {hovered.upgradeHref && (
+                <Link
+                  href={hovered.upgradeHref}
+                  className="mt-2 block text-[10px] text-slate-500 hover:text-slate-300"
+                >
+                  {hovered.oldLabel ?? '返回旧版'}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="portal-hud portal-hud--bottom">
+        © 2026 LYJY导航系统 ·{' '}
+        <button type="button" onClick={onOpenVersion} className="text-sky-300 hover:text-sky-200">V6.5</button>
+      </div>
+
+      <div className="fixed bottom-4 right-6 z-40 flex flex-col gap-2">
+        <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
+        <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
+        <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><History size={20} /></button>
+        <button type="button" onClick={onSwitchLayout} className="portal-fab" aria-label="返回旧布局"><LayoutGrid size={20} /></button>
+      </div>
+    </div>
+  );
+}

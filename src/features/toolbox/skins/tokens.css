@@ -1,0 +1,404 @@
+/* ============================================================
+   格式转换工具箱 · 皮肤系统
+   ------------------------------------------------------------
+   只作用于 [data-skin] 子树，绝不写全局 :root —— globals.css 是全站共享的。
+
+   ⚠️ 设计约束（来自 impeccable 技能）：
+   每个皮肤必须是**不同的设计语言**，而不只是换颜色。
+   所以 token 里包含字体、边框粗细、阴影、圆角、间距节奏、纹理 ——
+   组件读这些 token，因此同一份组件树能呈现完全不同的气质。
+
+   刻意避开的「AI 味」：青色+深色、紫蓝渐变、霓虹点缀、默认深色发光、
+   纯黑 #000 / 纯白 #fff、毛玻璃滥用、把等宽当「技术感」。
+
+   B / C 是早期版本（深色科幻），保留作对照；
+   D~H 是重新设计的 5 个方向。
+   ============================================================ */
+
+/* ---------- 基础：所有皮肤共用的排版与重置 ---------- */
+[data-skin] {
+  color: var(--foreground);
+  background-color: var(--background);
+  background-image: var(--tb-bg-gradient, none);
+  background-attachment: fixed;
+  font-family: var(--tb-font-body);
+  font-feature-settings: 'tnum' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-skin] h1,
+[data-skin] h2,
+[data-skin] h3,
+[data-skin] h4 {
+  font-family: var(--tb-font-display);
+  letter-spacing: var(--tb-tracking, -0.01em);
+}
+
+/* 纹理层：G 用细噪点纸感，H 用制图网格 */
+[data-skin]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--tb-texture, none);
+  background-size: var(--tb-texture-size, auto);
+  opacity: var(--tb-texture-opacity, 0);
+}
+
+/* ============================================================
+   皮肤 A 组 · 渐变家族（贴合本站原有语言）
+   ============================================================ */
+
+/* ---------- I · 柔光极光 ---------- */
+[data-skin='i'] {
+  --radius: 1.125rem;
+  --background: #fbfaff;
+  --foreground: #2b2440;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-foreground: #2b2440;
+  --popover: #ffffff;
+  --popover-foreground: #2b2440;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #f3e8ff;
+  --secondary-foreground: #5b21b6;
+  --muted: #f5f2ff;
+  --muted-foreground: #7b7396;
+  --accent: #f3e8ff;
+  --accent-foreground: #5b21b6;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: rgba(124, 58, 237, 0.14);
+  --input: rgba(124, 58, 237, 0.16);
+  --ring: #a78bfa;
+
+  --tb-accent-2: #ec4899;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 28px -10px rgba(124, 58, 237, 0.22);
+  --tb-panel-radius: 1.125rem;
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 255, 255, 0.82);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(124, 58, 237, 0.14);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 12% 8%, rgba(196, 181, 253, 0.75) 0px, transparent 55%),
+    radial-gradient(at 88% 4%, rgba(251, 207, 232, 0.7) 0px, transparent 50%),
+    radial-gradient(at 78% 92%, rgba(167, 243, 208, 0.6) 0px, transparent 55%),
+    radial-gradient(at 16% 88%, rgba(191, 219, 254, 0.65) 0px, transparent 52%),
+    linear-gradient(180deg, #fdfcff 0%, #f7f4ff 100%);
+  --tb-title-gradient: linear-gradient(92deg, #7c3aed 0%, #db2777 48%, #f59e0b 100%);
+}
+
+/* ---------- K · 薄荷汽水 ---------- */
+[data-skin='k'] {
+  --radius: 1rem;
+  --background: #f7fdfc;
+  --foreground: #14343a;
+  --card: rgba(255, 255, 255, 0.85);
+  --card-foreground: #14343a;
+  --popover: #ffffff;
+  --popover-foreground: #14343a;
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --secondary: #ccfbf1;
+  --secondary-foreground: #115e59;
+  --muted: #effcf9;
+  --muted-foreground: #6b8f8b;
+  --accent: #ccfbf1;
+  --accent-foreground: #115e59;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: rgba(13, 148, 136, 0.16);
+  --input: rgba(13, 148, 136, 0.18);
+  --ring: #2dd4bf;
+
+  --tb-accent-2: #0ea5e9;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 28px -10px rgba(13, 148, 136, 0.2);
+  --tb-panel-radius: 1rem;
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 255, 255, 0.85);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(13, 148, 136, 0.16);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 14% 6%, rgba(153, 246, 228, 0.85) 0px, transparent 55%),
+    radial-gradient(at 86% 6%, rgba(186, 230, 253, 0.8) 0px, transparent 50%),
+    radial-gradient(at 80% 92%, rgba(165, 243, 252, 0.65) 0px, transparent 55%),
+    radial-gradient(at 18% 90%, rgba(209, 250, 229, 0.8) 0px, transparent 52%),
+    linear-gradient(180deg, #fbfffe 0%, #f0fdfa 100%);
+  --tb-title-gradient: linear-gradient(92deg, #0d9488 0%, #0ea5e9 55%, #14b8a6 100%);
+}
+
+/* ---------- M · 暮色渐变 ---------- */
+[data-skin='m'] {
+  --radius: 1.125rem;
+  --background: #16112b;
+  --foreground: #ede9fe;
+  --card: rgba(255, 255, 255, 0.07);
+  --card-foreground: #ede9fe;
+  --popover: #241b40;
+  --popover-foreground: #ede9fe;
+  --primary: #a78bfa;
+  --primary-foreground: #1e1235;
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: #ddd6fe;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #a99fc9;
+  --accent: rgba(255, 255, 255, 0.1);
+  --accent-foreground: #ede9fe;
+  --destructive: #fb7185;
+  --destructive-foreground: #2a0d14;
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #a78bfa;
+
+  --tb-accent-2: #f0abfc;
+  --tb-font-display: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-archivo), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 10px 34px -14px rgba(0, 0, 0, 0.6);
+  --tb-panel-radius: 1.125rem;
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 255, 255, 0.07);
+  --tb-panel-blur: 16px;
+  --tb-rule: 1px solid rgba(255, 255, 255, 0.14);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 10% 6%, rgba(139, 92, 246, 0.55) 0px, transparent 55%),
+    radial-gradient(at 90% 10%, rgba(217, 70, 239, 0.4) 0px, transparent 52%),
+    radial-gradient(at 78% 92%, rgba(56, 189, 248, 0.28) 0px, transparent 55%),
+    radial-gradient(at 14% 90%, rgba(244, 114, 182, 0.3) 0px, transparent 52%),
+    linear-gradient(180deg, #1a1433 0%, #120e24 100%);
+  --tb-title-gradient: linear-gradient(92deg, #c4b5fd 0%, #f0abfc 50%, #7dd3fc 100%);
+}
+
+/* ============================================================
+   皮肤 B 组 · 有机纸感（修好并调成橙色）
+   ------------------------------------------------------------
+   上一版这个皮肤被我的区间切分误删了，样式完全没生效，
+   渲染成白底黑字 —— 所以看着「变黑」了。这里重建，并按要求偏橙。
+   ============================================================ */
+[data-skin='g'] {
+  --radius: 1.5rem;
+  --background: #fdf4e7;
+  --foreground: #4a3220;
+  --card: rgba(255, 250, 242, 0.88);
+  --card-foreground: #4a3220;
+  --popover: #fffaf2;
+  --popover-foreground: #4a3220;
+  --primary: #d97706; /* 明确的橙 */
+  --primary-foreground: #fffaf2;
+  --secondary: #fbe6cc;
+  --secondary-foreground: #92400e;
+  --muted: #f9ebd8;
+  --muted-foreground: #8a6a4c;
+  --accent: #fbe6cc;
+  --accent-foreground: #92400e;
+  --destructive: #b91c1c;
+  --destructive-foreground: #fffaf2;
+  --border: rgba(217, 119, 6, 0.18);
+  --input: rgba(217, 119, 6, 0.2);
+  --ring: #f59e0b;
+
+  --tb-accent-2: #a16207; /* 深琥珀，做次级强调 */
+  --tb-font-display: var(--font-fraunces), 'PingFang SC', Georgia, serif;
+  --tb-font-body: var(--font-karla), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.008em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 26px -12px rgba(180, 110, 30, 0.28);
+  --tb-panel-radius: 1.5rem 0.75rem 1.5rem 0.75rem; /* 四角不等，手作感 */
+  --tb-clip: none;
+  --tb-panel-bg: rgba(255, 250, 242, 0.88);
+  --tb-panel-blur: 12px;
+  --tb-rule: 1px solid rgba(217, 119, 6, 0.18);
+  --tb-panel-pad: 1.5rem;
+  --tb-bg-gradient:
+    radial-gradient(at 8% 4%, rgba(253, 216, 160, 0.9) 0px, transparent 55%),
+    radial-gradient(at 92% 8%, rgba(254, 215, 170, 0.85) 0px, transparent 50%),
+    radial-gradient(at 76% 94%, rgba(252, 211, 158, 0.7) 0px, transparent 55%),
+    radial-gradient(at 18% 92%, rgba(254, 235, 205, 0.95) 0px, transparent 52%),
+    linear-gradient(180deg, #fffcf6 0%, #fdf3e3 100%);
+  --tb-title-gradient: linear-gradient(92deg, #d97706 0%, #f59e0b 50%, #b45309 100%);
+  /* 纸纹噪点 */
+  --tb-texture: radial-gradient(rgba(150, 105, 55, 0.06) 1px, transparent 1px);
+  --tb-texture-size: 3px 3px;
+  --tb-texture-opacity: 1;
+}
+
+/* ============================================================
+   皮肤 C 组 · 学习自用户提供的三份设计提示词
+   ============================================================ */
+
+/* ---------- O · 液态玻璃（学自「天气仪表盘」那份）----------
+   要点：全幅背景图（这里用多层深色渐变模拟大气）、
+   磨砂玻璃面板（半透明白 + backdrop-blur + 饱和提升）、
+   一道掠过的镜面高光、白字、Inter。
+   ------------------------------------------------------------ */
+[data-skin='o'] {
+  --radius: 1.5rem;
+  --background: #0a1a24;
+  --foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.2);
+  --card-foreground: #ffffff;
+  --popover: rgba(12, 30, 42, 0.92);
+  --popover-foreground: #ffffff;
+  --primary: rgba(255, 255, 255, 0.92);
+  --primary-foreground: #0a1a24;
+  --secondary: rgba(255, 255, 255, 0.15);
+  --secondary-foreground: #ffffff;
+  --muted: rgba(255, 255, 255, 0.12);
+  --muted-foreground: rgba(255, 255, 255, 0.66);
+  --accent: rgba(255, 255, 255, 0.2);
+  --accent-foreground: #ffffff;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #0a1a24;
+  --border: rgba(255, 255, 255, 0.2);
+  --input: rgba(255, 255, 255, 0.18);
+  --ring: rgba(255, 255, 255, 0.7);
+
+  --tb-accent-2: #7dd3c0;
+  --tb-font-display: var(--font-inter), 'PingFang SC', system-ui, sans-serif;
+  --tb-font-body: var(--font-inter), 'PingFang SC', system-ui, sans-serif;
+  --tb-tracking: -0.02em;
+  --tb-border-w: 1px;
+  --tb-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+  --tb-panel-radius: 1.5rem;
+  --tb-clip: none;
+  /* 玻璃：半透明白渐变（上亮下暗）+ 强模糊 + 饱和提升 */
+  --tb-panel-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.26) 24%,
+    rgba(255, 255, 255, 0.25) 78%,
+    rgba(255, 255, 255, 0.23) 100%
+  );
+  --tb-panel-blur: 26px;
+  --tb-rule: 1px solid rgba(255, 255, 255, 0.2);
+  --tb-panel-pad: 1.5rem;
+  /* 模拟那张暴雨照：深青绿到墨蓝的大气渐变 */
+  --tb-bg-gradient:
+    radial-gradient(at 22% 12%, rgba(58, 120, 110, 0.55) 0px, transparent 58%),
+    radial-gradient(at 82% 6%, rgba(30, 78, 96, 0.6) 0px, transparent 55%),
+    radial-gradient(at 68% 88%, rgba(18, 52, 68, 0.7) 0px, transparent 58%),
+    radial-gradient(at 12% 86%, rgba(40, 92, 88, 0.5) 0px, transparent 55%),
+    linear-gradient(170deg, #0e2a33 0%, #071821 60%, #04121b 100%);
+  --tb-title-gradient: linear-gradient(92deg, #ffffff 0%, #a8e6dc 55%, #ffffff 100%);
+}
+
+/* ============================================================
+   组件读取的设计语言 token
+   ============================================================ */
+
+.tb-panel {
+  background: var(--tb-panel-bg);
+  border: var(--tb-border-w) solid var(--border);
+  border-radius: var(--tb-panel-radius);
+  clip-path: var(--tb-clip);
+  box-shadow: var(--tb-shadow);
+  padding: var(--tb-panel-pad, 1.25rem);
+  /* 渐变家族用毛玻璃（这是本站原有的语言）；扁平家族在各自 token 里把 blur 设为 0 */
+  backdrop-filter: blur(var(--tb-panel-blur, 0px));
+}
+
+.tb-title {
+  font-family: var(--tb-font-display);
+  letter-spacing: var(--tb-tracking, -0.01em);
+  font-weight: 700;
+}
+
+.tb-label {
+  font-family: var(--tb-font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.tb-hr {
+  height: 0;
+  border: 0;
+  border-top: var(--tb-rule);
+}
+
+/* 按钮：各皮肤形态差异很大，统一在这里定义 */
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: var(--tb-border-w) solid var(--border);
+  border-radius: var(--tb-panel-radius);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8125rem;
+  font-family: var(--tb-font-body);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+
+.tb-btn:hover {
+  background: var(--accent);
+}
+
+.tb-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+/* 标签页 */
+.tb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8125rem;
+  font-family: var(--tb-font-body);
+  border: var(--tb-border-w) solid transparent;
+  border-radius: var(--tb-panel-radius);
+  color: var(--muted-foreground);
+  transition: all 0.15s ease;
+}
+
+.tb-tab:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.tb-tab-active {
+  color: var(--foreground);
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--tb-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-btn,
+  .tb-tab {
+    transition: none;
+  }
+}
+
+/* 大标题：渐变字（本站原有的招牌处理，保留并做得更精细） */
+.tb-hero-title {
+  font-family: var(--tb-font-display);
+  font-weight: 800;
+  letter-spacing: var(--tb-tracking, -0.02em);
+  line-height: 1.1;
+  background-image: var(--tb-title-gradient, none);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
