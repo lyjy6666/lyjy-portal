@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { serviceCategories, type ServiceItem } from '@/data/services';
 import { isNavigable } from '@/lib/serviceNav';
-import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle } from './shared';
+import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
 import { useAlertSeen } from './useAlertSeen';
 import { markAlertSeen } from '@/lib/portalAlert';
@@ -56,7 +56,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
             open(service);
           }
         }}
-        className={`flex items-center justify-between w-full py-2.5 px-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
+        className={`flex h-full items-center justify-between gap-3 w-full py-2.5 px-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
           navigable ? 'cursor-pointer' : ''
         }`}
       >
@@ -69,21 +69,28 @@ function ServiceRow({ service }: { service: ServiceItem }) {
               </span>
             )}
           </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-white text-sm font-medium truncate">{service.name}</span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <span className="break-words text-sm font-medium text-white">{service.name}</span>
               <ServiceBadges service={service} />
             </div>
-            <span className="text-[11px] text-slate-400/80 truncate mt-0.5">{service.desc}</span>
+            <span className="mt-0.5 line-clamp-2 break-words text-[11px] leading-relaxed text-slate-400/80">{service.desc}</span>
           </div>
         </div>
-        <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1">
+        <div className="ml-1 flex shrink-0 flex-col items-end gap-1">
           {service.soon || service.unavailable ? (
-            <span className="bg-slate-500/60 text-slate-300 text-xs px-2.5 py-1 rounded-full">筹备中</span>
+            <span className="whitespace-nowrap rounded-full bg-slate-500/60 px-2.5 py-1 text-xs text-slate-300">
+              {service.unavailable ? '已下线' : '筹备中'}
+            </span>
           ) : service.pro ? (
-            <ServiceEntries service={service} inline />
+            <a
+              href={service.pro.href}
+              className={`${c.btn} inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs text-white`}
+            >
+              <Sparkles size={12} /> Pro 版
+            </a>
           ) : (
-            <ServiceAction service={service} className={`${c.btn} text-white text-xs px-2.5 py-1 rounded-full inline-flex items-center whitespace-nowrap`} />
+            <ServiceAction service={service} className={`${c.btn} inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs text-white`} />
           )}
           {service.upgradeHref && <a href={service.upgradeHref} className="text-[10px] text-slate-500 hover:text-slate-300">{service.oldLabel ?? '返回旧版'}</a>}
         </div>

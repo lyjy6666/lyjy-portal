@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChartLine, Headset, History, LayoutGrid, Sparkles, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChartLine, Headset, History, LayoutGrid, Sparkles } from 'lucide-react';
 import { flattenServices, serviceCategories, type ServiceItem } from '@/data/services';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
@@ -47,9 +47,7 @@ export default function RingLayout({
         .filter((c) => c.services.length > 0),
     [hideInactive]
   );
-  const [showGuide, setShowGuide] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const timerRef = useRef<number | null>(null);
 
   // 节点角度：17 个均匀分布
   const angles = useMemo(() => uniformAngles(services.length), [services.length]);
@@ -85,30 +83,6 @@ export default function RingLayout({
     const t = window.setTimeout(() => setHoverEnabled(true), 1000);
     return () => window.clearTimeout(t);
   }, []);
-
-  useEffect(() => {
-    if (localStorage.getItem('portalLayoutSeen')) return;
-    const openTimer = window.setTimeout(() => setShowGuide(true), 800);
-    return () => window.clearTimeout(openTimer);
-  }, []);
-
-  useEffect(() => {
-    if (!showGuide) return;
-    // 引导弹窗 10 秒后自动消失，避免遮挡操作
-    timerRef.current = window.setTimeout(() => {
-      setShowGuide(false);
-      localStorage.setItem('portalLayoutSeen', '1');
-    }, 10_000);
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    };
-  }, [showGuide]);
-
-  const closeGuide = () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    setShowGuide(false);
-    localStorage.setItem('portalLayoutSeen', '1');
-  };
 
   // 每个分类在圆环上对应一段彩色弧线，弧线中点外侧放分类名。
   // 弧线端点直接取该分类首尾节点的真实角度（方案 C/D 分组后也自动对齐）。
@@ -293,35 +267,6 @@ export default function RingLayout({
         <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><History size={20} /></button>
         <button type="button" onClick={onSwitchLayout} className="portal-fab" aria-label="返回旧布局"><LayoutGrid size={20} /></button>
       </div>
-
-      <AnimatePresence>
-        {showGuide && (
-          <motion.div
-            data-popup-layer
-            className="portal-guide-pop"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          >
-            <button type="button" onClick={closeGuide} className="absolute right-2 top-2 text-slate-500 hover:text-slate-300" aria-label="关闭提示">
-              <X size={14} />
-            </button>
-            <p className="text-sm font-medium text-white">不习惯当前布局吗？</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-400">点右侧的列表按钮随时切回旧版，双向可逆。</p>
-            <button
-              type="button"
-              onClick={() => {
-                closeGuide();
-                onSwitchLayout();
-              }}
-              className="portal-guide-action"
-            >
-              返回旧布局
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
