@@ -1,6 +1,7 @@
 'use client';
 
-import { AudioLines, Clapperboard, GraduationCap, Rocket, Sparkles, Timer } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AudioLines, Bell, Clapperboard, GraduationCap, Rocket, Sparkles, Timer } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /** 主打栏目（确定上线）——最醒目的大卡片 */
@@ -18,6 +19,8 @@ const SECONDARY = [
   { icon: Clapperboard, title: '影视资源更新', desc: '播放线路与体验优化', tag: '有望更新' },
 ];
 
+const NUDGE_KEY = 'nudgeSentV7';
+
 export default function NextVersionDialog({
   open,
   onOpenChange,
@@ -25,6 +28,48 @@ export default function NextVersionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // 催更状态：idle 未点 / sending 发送中 / sent 已催更 / error 失败可重试
+  const [nudge, setNudge] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  // 每次打开弹窗时读取本地「已催更」记录（每个浏览器只能点一次）
+  useEffect(() => {
+    if (!open) return;
+    try {
+      if (localStorage.getItem(NUDGE_KEY) === '1') setNudge('sent');
+    } catch {
+      /* localStorage 不可用时忽略 */
+    }
+  }, [open]);
+
+  const handleNudge = async () => {
+    if (nudge === 'sending' || nudge === 'sent') return;
+    setNudge('sending');
+    try {
+      const res = await fetch('/api/nudge', { method: 'POST' });
+      if (res.ok) {
+        try {
+          localStorage.setItem(NUDGE_KEY, '1');
+        } catch {
+          /* 忽略 */
+        }
+        setNudge('sent');
+      } else {
+        setNudge('error');
+      }
+    } catch {
+      setNudge('error');
+    }
+  };
+
+  const nudgeLabel =
+    nudge === 'sent'
+      ? '已催更，谢谢你的支持！'
+      : nudge === 'sending'
+        ? '发送中…'
+        : nudge === 'error'
+          ? '催更失败，点击重试'
+          : '催更一下 · 让 V7.0 早点来';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="cs-dialog-pop sm:max-w-[600px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
@@ -83,6 +128,23 @@ export default function NextVersionDialog({
           <Sparkles size={12} />
           以上为开发计划，具体内容与时间以实际上线为准。
         </p>
+
+        {/* 催更按钮：每人一次，点击发邮件到站长邮箱 */}
+        <button
+          type="button"
+          onClick={handleNudge}
+          disabled={nudge === 'sending' || nudge === 'sent'}
+          className={`cs-reveal cs-reveal-4 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
+            nudge === 'sent'
+              ? 'border-white/10 bg-white/5 text-slate-400'
+              : nudge === 'error'
+                ? 'border-rose-400/40 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'
+                : 'border-sky-400/40 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25'
+          }`}
+        >
+          <Bell size={15} className={nudge === 'sent' ? '' : 'text-sky-300'} />
+          {nudgeLabel}
+        </button>
       </DialogContent>
     </Dialog>
   );
