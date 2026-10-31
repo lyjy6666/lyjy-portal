@@ -1284,7 +1284,7 @@ button, a, input, textarea, select {
 @keyframes cs-dialog-pop-in {
   0% {
     opacity: 0;
-    transform: translate(-50%, -46%) scale(0.82);
+    transform: scale(0.82) translateY(16px);
     filter: blur(10px);
   }
   55% {
@@ -1292,19 +1292,19 @@ button, a, input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1) translateY(0);
     filter: blur(0);
   }
 }
 @keyframes cs-dialog-pop-out {
   0% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1) translateY(0);
     filter: blur(0);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -52%) scale(0.92);
+    transform: scale(0.92) translateY(-8px);
     filter: blur(6px);
   }
 }

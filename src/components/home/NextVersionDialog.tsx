@@ -27,7 +27,7 @@ export default function NextVersionDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="cs-dialog-pop sm:max-w-[560px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
+      <DialogContent className="cs-dialog-pop sm:max-w-[600px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
         {/* 顶部高光条 */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
 
@@ -60,16 +60,18 @@ export default function NextVersionDialog({
             </div>
           </div>
 
-          {/* 3 个次级栏目：更小、浅蓝色系 */}
-          <div className="cs-reveal cs-reveal-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {/* 3 个次级栏目：浅蓝色系 */}
+          <div className="cs-reveal cs-reveal-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {SECONDARY.map((p) => (
-              <div key={p.title} className="rounded-xl border border-sky-400/25 bg-sky-500/[0.09] p-3">
-                <div className="flex items-center gap-1.5 text-sky-200/85">
-                  <p.icon size={14} className="shrink-0" />
-                  <span className="truncate text-[11px] font-medium">{p.title}</span>
+              <div key={p.title} className="rounded-xl border border-sky-400/25 bg-sky-500/[0.09] p-4">
+                <div className="flex items-center gap-2 text-sky-100">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-sky-200">
+                    <p.icon size={17} />
+                  </span>
+                  <span className="min-w-0 truncate text-[13px] font-semibold">{p.title}</span>
                 </div>
-                <p className="mt-1 text-[10px] leading-relaxed text-sky-200/50">{p.desc}</p>
-                <span className="mt-2 inline-block rounded-full border border-sky-400/25 px-1.5 py-0.5 text-[9px] text-sky-300/70">
+                <p className="mt-2 text-[11px] leading-relaxed text-sky-200/60">{p.desc}</p>
+                <span className="mt-2.5 inline-block rounded-full border border-sky-400/25 px-2 py-0.5 text-[10px] text-sky-300/80">
                   {p.tag}
                 </span>
               </div>
