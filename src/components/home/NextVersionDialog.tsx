@@ -1,6 +1,6 @@
 'use client';
 
-import { AudioLines, GraduationCap, Rocket, Sparkles } from 'lucide-react';
+import { AudioLines, Clapperboard, GraduationCap, Rocket, Sparkles, Timer } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /** V7.0 下一代更新预告（原 V6.5 更新记录里的「彩蛋预告」搬到这里） */
@@ -16,6 +16,18 @@ const PREVIEWS = [
     title: '语音朗读系统升级',
     desc: '更多音色与更强能力，正在筹备中',
     tag: '有望升级',
+  },
+  {
+    icon: Timer,
+    title: '番茄钟更新',
+    desc: '功能与体验优化，正在计划中',
+    tag: '有望更新',
+  },
+  {
+    icon: Clapperboard,
+    title: '影视资源更新',
+    desc: '播放线路与体验优化，正在计划中',
+    tag: '有望更新',
   },
 ];
 
