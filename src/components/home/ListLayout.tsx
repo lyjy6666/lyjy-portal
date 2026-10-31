@@ -7,6 +7,8 @@ import { serviceCategories, type ServiceItem } from '@/data/services';
 import { isNavigable } from '@/lib/serviceNav';
 import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, handleNudge } from './shared';
 import { useServiceNav } from './useServiceNav';
+import { useAlertSeen } from './useAlertSeen';
+import { markAlertSeen } from '@/lib/portalAlert';
 
 type ListLayoutProps = {
   dynamicNumber: number;
@@ -31,6 +33,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
   const c = colorClasses[service.color] ?? colorClasses.blue;
   const open = useServiceNav();
   const navigable = isNavigable(service);
+  const { mounted, seen } = useAlertSeen(service.id, Boolean(service.alert));
 
   return (
     <motion.div whileHover={{ scale: 1.02, borderColor: c.hover }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
@@ -42,6 +45,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
         onClick={(e) => {
           if (!navigable) return;
           if ((e.target as HTMLElement).closest('a, button')) return;
+          if (service.alert) markAlertSeen(service.id);
           open(service);
         }}
         onKeyDown={(e) => {
@@ -58,7 +62,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className={`relative w-9 h-9 rounded-full ${c.from} flex items-center justify-center ${c.text} flex-shrink-0`}>
             <ServiceIcon icon={service.icon} size={16} />
-            {service.alert && (
+            {service.alert && mounted && !seen && (
               <span className="portal-node-alert" title={service.alert} aria-label={service.alert}>
                 !
               </span>

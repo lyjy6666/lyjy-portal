@@ -6,6 +6,7 @@ import { productFontVars } from '../fonts';
 import HashCopy from './HashCopy';
 import AppPreview from './AppPreview';
 import ScrollPager from './ScrollPager';
+import MarkAlertSeen from '@/components/product/MarkAlertSeen';
 import '../product-themes.css';
 
 export function generateStaticParams() {
@@ -135,7 +136,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       {/* 安全警告栏：Windows Toolbox 旧版本存在严重漏洞，提醒更新（常驻、不可关闭） */}
       {product.slug === 'windows-toolbox' && (
-        <div className="relative z-20 bg-red-600 text-white">
+        <>
+          {/* 进入本页即视为已读，首页图标上的感叹号角标随之消失 */}
+          <MarkAlertSeen id="windows-toolbox" />
+          <div className="relative z-20 bg-red-600 text-white">
           <div className="mx-auto flex max-w-6xl items-start gap-3 px-6 py-2.5 sm:items-center sm:px-10">
             <svg
               width="18"
@@ -158,7 +162,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               {product.version ? `（${product.version}）` : ''}，旧版本请勿继续使用。
             </p>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* 顶栏：透出页面渐变（.pt-header 里做透明 + 背景模糊 + 极淡蒙版） */}

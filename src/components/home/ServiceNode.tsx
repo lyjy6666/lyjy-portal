@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import type { ServiceItem } from '@/data/services';
 import { ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
+import { useAlertSeen } from './useAlertSeen';
+import { markAlertSeen } from '@/lib/portalAlert';
 
 type ServiceNodeProps = {
   service: ServiceItem;
@@ -32,6 +34,7 @@ function ServiceNode({
   const top = `calc(50% + ${radius}% * ${Math.sin(rad).toFixed(4)})`;
   const unavailable = Boolean(service.soon || service.unavailable);
   const open = useServiceNav();
+  const { mounted, seen } = useAlertSeen(service.id, Boolean(service.alert));
 
   // 节点自身不再弹卡片：详情统一由圆环中心的固定面板展示，
   // 这里只把悬停事件上报给 RingLayout。
@@ -67,14 +70,18 @@ function ServiceNode({
           <button
             type="button"
             className="portal-node"
-            onClick={() => open(service)}
+            onClick={() => {
+              // 点进过该服务即视为「已读」，角标下次不再显示
+              if (service.alert) markAlertSeen(service.id);
+              open(service);
+            }}
             onMouseEnter={handleEnter}
             onFocus={handleEnter}
             aria-label={`${service.name}，${service.desc}`}
           >
             <ServiceIcon icon={service.icon} size={22} />
           </button>
-          {service.alert && (
+          {service.alert && mounted && !seen && (
             <span className="portal-node-alert" title={service.alert} aria-label={service.alert}>
               !
             </span>
