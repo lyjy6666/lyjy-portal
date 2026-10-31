@@ -36,7 +36,7 @@ export default function NextVersionDialog({
             <Rocket size={17} className="text-sky-400" />
             下一代更新预告
           </DialogTitle>
-          <p className="text-[11px] tracking-wide text-slate-500">V7.0 · 预计 11 月中后旬 · 筹备中，敬请期待</p>
+          <p className="text-[11px] tracking-wide text-slate-500">V7.0 · 预计 11 月中后旬 · 敬请期待</p>
         </DialogHeader>
 
         <div className="space-y-3 py-1">
