@@ -1272,3 +1272,67 @@ button, a, input, textarea, select {
   line-height: 1;
   color: #f59e0b;
 }
+
+/* ===== 下一代更新预告弹窗：入场/退场 + 内容错峰动画 ===== */
+.cs-dialog-pop[data-state='open'] {
+  animation: cs-dialog-pop-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+.cs-dialog-pop[data-state='closed'] {
+  animation: cs-dialog-pop-out 0.22s ease-in both !important;
+}
+
+@keyframes cs-dialog-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.82);
+    filter: blur(10px);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+}
+@keyframes cs-dialog-pop-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -52%) scale(0.92);
+    filter: blur(6px);
+  }
+}
+
+/* 内容错峰上浮：标题 → 大卡片 → 3 小卡片 → 脚注 */
+.cs-dialog-pop[data-state='open'] .cs-reveal {
+  animation: cs-reveal-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.cs-dialog-pop[data-state='open'] .cs-reveal-1 { animation-delay: 0.08s; }
+.cs-dialog-pop[data-state='open'] .cs-reveal-2 { animation-delay: 0.14s; }
+.cs-dialog-pop[data-state='open'] .cs-reveal-3 { animation-delay: 0.2s; }
+.cs-dialog-pop[data-state='open'] .cs-reveal-4 { animation-delay: 0.26s; }
+
+@keyframes cs-reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-dialog-pop[data-state='open'],
+  .cs-dialog-pop[data-state='closed'],
+  .cs-dialog-pop[data-state='open'] .cs-reveal {
+    animation: none !important;
+  }
+}

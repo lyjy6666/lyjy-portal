@@ -11,7 +11,7 @@ const FEATURED = {
   tag: '确定上线',
 };
 
-/** 3 个次级栏目（有望升级/更新）——更小、颜色更浅 */
+/** 3 个次级栏目（有望升级/更新）——更小、浅蓝色 */
 const SECONDARY = [
   { icon: AudioLines, title: '语音朗读升级', desc: '更多音色与更强能力', tag: '有望升级' },
   { icon: Timer, title: '番茄钟更新', desc: '功能与体验优化', tag: '有望更新' },
@@ -27,11 +27,11 @@ export default function NextVersionDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
+      <DialogContent className="cs-dialog-pop sm:max-w-[560px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
         {/* 顶部高光条 */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
 
-        <DialogHeader>
+        <DialogHeader className="cs-reveal cs-reveal-1">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <Rocket size={17} className="text-sky-400" />
             下一代更新预告
@@ -41,7 +41,7 @@ export default function NextVersionDialog({
 
         <div className="space-y-3 py-1">
           {/* 主打栏目：确定上线（大卡片，最突出） */}
-          <div className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-5">
+          <div className="cs-reveal cs-reveal-2 relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-5">
             <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-sky-400/25 blur-2xl" />
             <div className="relative flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/40">
@@ -60,16 +60,16 @@ export default function NextVersionDialog({
             </div>
           </div>
 
-          {/* 3 个次级栏目：更小、颜色更浅 */}
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {/* 3 个次级栏目：更小、浅蓝色系 */}
+          <div className="cs-reveal cs-reveal-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {SECONDARY.map((p) => (
-              <div key={p.title} className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
-                <div className="flex items-center gap-1.5 text-slate-400">
+              <div key={p.title} className="rounded-xl border border-sky-400/25 bg-sky-500/[0.09] p-3">
+                <div className="flex items-center gap-1.5 text-sky-200/85">
                   <p.icon size={14} className="shrink-0" />
                   <span className="truncate text-[11px] font-medium">{p.title}</span>
                 </div>
-                <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{p.desc}</p>
-                <span className="mt-2 inline-block rounded-full border border-white/[0.08] px-1.5 py-0.5 text-[9px] text-slate-500">
+                <p className="mt-1 text-[10px] leading-relaxed text-sky-200/50">{p.desc}</p>
+                <span className="mt-2 inline-block rounded-full border border-sky-400/25 px-1.5 py-0.5 text-[9px] text-sky-300/70">
                   {p.tag}
                 </span>
               </div>
@@ -77,7 +77,7 @@ export default function NextVersionDialog({
           </div>
         </div>
 
-        <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <p className="cs-reveal cs-reveal-4 flex items-center gap-1.5 text-[11px] text-slate-500">
           <Sparkles size={12} />
           以上为开发计划，具体内容与时间以实际上线为准。
         </p>
