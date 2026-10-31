@@ -91,6 +91,16 @@ export default function PortalHome() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Background />
+
+      {/* 全站顶部常驻安全警告：Windows Toolbox 旧版本存在严重漏洞，提醒更新 */}
+      <div className="fixed inset-x-0 top-0 z-[70] bg-red-600 text-white shadow-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-center gap-2 px-4 py-2">
+          <span className="text-[13px] leading-none" aria-hidden="true">⚠</span>
+          <p className="text-center text-[0.75rem] font-semibold leading-snug">
+            重要通知：Windows Toolbox 旧版本存在严重安全漏洞，请尽快更新至最新版本。
+          </p>
+        </div>
+      </div>
       {!ready ? (
         // 布局偏好只能在客户端读取，先用静态圆环骨架占位，避免首屏跳变
         <div className="portal-ring-page" aria-busy="true">

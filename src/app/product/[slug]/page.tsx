@@ -132,6 +132,35 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     >
       {/* 累积式整段滚动：滚轮转几下才滚一段 */}
       <ScrollPager />
+
+      {/* 安全警告栏：Windows Toolbox 旧版本存在严重漏洞，提醒更新（常驻、不可关闭） */}
+      {product.slug === 'windows-toolbox' && (
+        <div className="relative z-20 bg-red-600 text-white">
+          <div className="mx-auto flex max-w-6xl items-start gap-3 px-6 py-2.5 sm:items-center sm:px-10">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mt-[2px] shrink-0 sm:mt-0"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+            </svg>
+            <p className="text-[0.8125rem] font-semibold leading-snug">
+              重要通知：旧版本存在严重安全漏洞，请立即更新至最新版本
+              {product.version ? `（${product.version}）` : ''}，旧版本请勿继续使用。
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 顶栏：透出页面渐变（.pt-header 里做透明 + 背景模糊 + 极淡蒙版） */}
       <header className="pt-header sticky top-0 z-30">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5 sm:px-10">
