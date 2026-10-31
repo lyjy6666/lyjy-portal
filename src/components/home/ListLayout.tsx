@@ -56,8 +56,13 @@ function ServiceRow({ service }: { service: ServiceItem }) {
         }`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className={`w-9 h-9 rounded-full ${c.from} flex items-center justify-center ${c.text} flex-shrink-0`}>
+          <div className={`relative w-9 h-9 rounded-full ${c.from} flex items-center justify-center ${c.text} flex-shrink-0`}>
             <ServiceIcon icon={service.icon} size={16} />
+            {service.alert && (
+              <span className="portal-node-alert" title={service.alert} aria-label={service.alert}>
+                !
+              </span>
+            )}
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">

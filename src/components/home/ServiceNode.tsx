@@ -74,6 +74,11 @@ function ServiceNode({
           >
             <ServiceIcon icon={service.icon} size={22} />
           </button>
+          {service.alert && (
+            <span className="portal-node-alert" title={service.alert} aria-label={service.alert}>
+              !
+            </span>
+          )}
         </div>
 
         <div className="portal-node-label mt-2 truncate text-center text-[11px] text-slate-300 transition-colors duration-200 group-hover:text-white sm:text-[12px] md:text-[13px]">
