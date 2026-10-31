@@ -6,6 +6,7 @@ import StatisticsModal from '@/components/StatisticsModal';
 import ListLayout from '@/components/home/ListLayout';
 import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
+import NextVersionDialog from '@/components/home/NextVersionDialog';
 import { generateRandomStatsData, type WebsiteStats } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -17,6 +18,7 @@ export default function PortalHome() {
   const [isCompact, setIsCompact] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showNextModal, setShowNextModal] = useState(false);
   const [statsData, setStatsData] = useState<WebsiteStats[]>([]);
   const [dynamicNumber, setDynamicNumber] = useState(0);
 
@@ -83,6 +85,7 @@ export default function PortalHome() {
     dynamicNumber,
     onOpenStats: () => setShowStatsModal(true),
     onOpenVersion: () => setShowVersionModal(true),
+    onOpenNextPreview: () => setShowNextModal(true),
   };
 
   // 极窄屏（<480px）圆环放不下 17 个节点，降级为列表布局；其余宽度一律走圆环
@@ -114,6 +117,7 @@ export default function PortalHome() {
 
       <StatisticsModal isOpen={showStatsModal} onClose={() => setShowStatsModal(false)} data={statsData} />
       <VersionDialog open={showVersionModal} onOpenChange={setShowVersionModal} />
+      <NextVersionDialog open={showNextModal} onOpenChange={setShowNextModal} />
     </div>
   );
 }

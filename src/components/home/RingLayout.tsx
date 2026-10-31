@@ -7,7 +7,7 @@ import { ChartLine, Headset, History, LayoutGrid, Sparkles, X } from 'lucide-rea
 import { flattenServices, serviceCategories, type ServiceItem } from '@/data/services';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
-import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents, handleNudge } from './shared';
+import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
 import { uniformAngles } from './ringAngles';
 
 const RING_RADIUS = 46;
@@ -22,6 +22,7 @@ type RingLayoutProps = {
   onOpenStats: () => void;
   onOpenVersion: () => void;
   onSwitchLayout: () => void;
+  onOpenNextPreview: () => void;
 };
 
 export default function RingLayout({
@@ -29,6 +30,7 @@ export default function RingLayout({
   onOpenStats,
   onOpenVersion,
   onSwitchLayout,
+  onOpenNextPreview,
 }: RingLayoutProps) {
   const [hideInactive, setHideInactive] = useState(false);
   // 「已关停/筹备中」= soon/unavailable。原版入口的隐藏交给 ServiceEntries 的 hideOriginal，
@@ -236,7 +238,7 @@ export default function RingLayout({
           <h1 className="portal-core-title">LYJY导航系统</h1>
           <span className="portal-core-rule" aria-hidden="true" />
           <p className="portal-core-desc">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
-          <button type="button" onClick={handleNudge} className="portal-nudge">
+          <button type="button" onClick={onOpenNextPreview} className="portal-nudge">
             <Sparkles size={14} />敬请期待更多功能
           </button>
         </div>

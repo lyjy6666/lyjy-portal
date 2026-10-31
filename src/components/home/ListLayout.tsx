@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { serviceCategories, type ServiceItem } from '@/data/services';
 import { isNavigable } from '@/lib/serviceNav';
-import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, handleNudge } from './shared';
+import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
 import { useAlertSeen } from './useAlertSeen';
 import { markAlertSeen } from '@/lib/portalAlert';
@@ -15,6 +15,7 @@ type ListLayoutProps = {
   onOpenStats: () => void;
   onOpenVersion: () => void;
   onSwitchLayout: () => void;
+  onOpenNextPreview: () => void;
 };
 
 const colorClasses: Record<string, { bg: string; border: string; text: string; from: string; btn: string; hover: string }> = {
@@ -91,7 +92,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
   );
 }
 
-export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout }: ListLayoutProps) {
+export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
   const [decorationChars, setDecorationChars] = useState<string[]>([]);
   const [decorationStyles, setDecorationStyles] = useState<{ delay: string; duration: string; transform: string }[]>([]);
 
@@ -167,7 +168,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
       </motion.div>
 
       <motion.div className="mt-16 mb-8 text-center" custom={6} initial="hidden" animate="visible" variants={fadeInUpVariant}>
-        <button type="button" onClick={handleNudge} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/40 to-purple-600/40 backdrop-blur-md rounded-full shadow-lg border border-blue-500/30 text-white font-medium text-lg">
+        <button type="button" onClick={onOpenNextPreview} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/40 to-purple-600/40 backdrop-blur-md rounded-full shadow-lg border border-blue-500/30 text-white font-medium text-lg">
           <Sparkles size={18} />敬请期待更多功能
         </button>
       </motion.div>
