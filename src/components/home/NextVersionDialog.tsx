@@ -145,28 +145,28 @@ export default function NextVersionDialog({
           <div className="w-full shrink-0 snap-start space-y-3 py-1">
             <p className="text-[11px] tracking-wide text-slate-500">V7.0 · 预计 11 月中后旬 · 敬请期待</p>
 
-            {/* 确定上线：两张并排的大卡片 */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* 确定上线：两张上下排列的大卡片 */}
+            <div className="space-y-3">
               {CONFIRMED.map((p) => (
                 <div
                   key={p.title}
-                  className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-4"
+                  className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-5"
                 >
-                  <div className="pointer-events-none absolute -right-7 -top-7 h-24 w-24 rounded-full bg-sky-400/25 blur-2xl" />
-                  <div className="relative">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/40">
-                        <p.icon size={22} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[14px] font-bold leading-tight text-white">{p.title}</div>
-                        <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold text-sky-600">
-                          <span className="h-1 w-1 rounded-full bg-sky-500" />
+                  <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-sky-400/25 blur-2xl" />
+                  <div className="relative flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/40">
+                      <p.icon size={24} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-bold text-white">{p.title}</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-sky-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                           确定上线
                         </span>
                       </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-slate-200">{p.desc}</p>
                     </div>
-                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{p.desc}</p>
                   </div>
                 </div>
               ))}
