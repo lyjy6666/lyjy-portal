@@ -1,16 +1,32 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AudioLines, Bell, CalendarHeart, Clapperboard, GraduationCap, Rocket, Sparkles, Timer } from 'lucide-react';
+import {
+  AudioLines,
+  Bell,
+  CalendarHeart,
+  Clapperboard,
+  GraduationCap,
+  MessageSquareText,
+  Rocket,
+  Sparkles,
+  Timer,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-/** 主打栏目（确定上线）——最醒目的大卡片 */
-const FEATURED = {
-  icon: GraduationCap,
-  title: '作业管理系统 Pro 版',
-  desc: '全新重构，新旧两版并存，请放心使用',
-  tag: '确定上线',
-};
+/** 确定上线（大卡片）——两项并列，最醒目 */
+const CONFIRMED = [
+  {
+    icon: GraduationCap,
+    title: '作业管理系统 Pro 版',
+    desc: '全新重构，新旧两版并存，请放心使用',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'AI 聊天',
+    desc: '产品下载 · Windows / 安卓双端',
+  },
+];
 
 /** 3 个次级栏目（有望升级/更新）——更小、浅蓝色 */
 const SECONDARY = [
@@ -129,27 +145,34 @@ export default function NextVersionDialog({
           <div className="w-full shrink-0 snap-start space-y-3 py-1">
             <p className="text-[11px] tracking-wide text-slate-500">V7.0 · 预计 11 月中后旬 · 敬请期待</p>
 
-            {/* 主打栏目：确定上线（大卡片） */}
-            <div className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-5">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-sky-400/25 blur-2xl" />
-              <div className="relative flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/40">
-                  <FEATURED.icon size={24} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[15px] font-bold text-white">{FEATURED.title}</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-sky-600">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-                      {FEATURED.tag}
-                    </span>
+            {/* 确定上线：两张并排的大卡片 */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {CONFIRMED.map((p) => (
+                <div
+                  key={p.title}
+                  className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/25 via-sky-500/10 to-transparent p-4"
+                >
+                  <div className="pointer-events-none absolute -right-7 -top-7 h-24 w-24 rounded-full bg-sky-400/25 blur-2xl" />
+                  <div className="relative">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 text-white shadow-lg shadow-sky-500/40">
+                        <p.icon size={22} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[14px] font-bold leading-tight text-white">{p.title}</div>
+                        <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold text-sky-600">
+                          <span className="h-1 w-1 rounded-full bg-sky-500" />
+                          确定上线
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{p.desc}</p>
                   </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-slate-200">{FEATURED.desc}</p>
                 </div>
-              </div>
+              ))}
             </div>
 
-            {/* 3 个次级栏目 */}
+            {/* 3 个次级栏目：浅蓝色系 */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {SECONDARY.map((p) => (
                 <div key={p.title} className="rounded-xl border border-sky-400/25 bg-sky-500/[0.09] p-4">
