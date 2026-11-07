@@ -43,6 +43,13 @@ export function useServiceNav() {
         return;
       }
 
+      // public/ 下的静态 HTML（如在线小游戏）不是 App Router 页面，
+      // router.push 会被当成路由去匹配然后 404，必须整页跳转让静态服务接手。
+      if (/\.html?$/i.test(target.href)) {
+        window.location.assign(target.href);
+        return;
+      }
+
       router.push(target.href);
     },
     [router]

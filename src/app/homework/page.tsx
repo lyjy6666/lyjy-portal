@@ -28,10 +28,20 @@ interface UserInfo {
 /** 作业管理系统的版本历史（更新记录弹窗用；越靠前越新） */
 const HOMEWORK_RELEASES: Release[] = [
   {
+    version: 'V5.1',
+    date: '2026.11.7',
+    tag: '稳定维护',
+    latest: true,
+    items: [
+      '增加了登录的安全性：登录凭证改为服务端签名校验，避免身份被伪造',
+      '请大家放心，原版也会继续更新：功能优化与体验改进会持续跟进，不会停更',
+      'Pro 版是另一套全新界面，两版并存、账号与作业数据互通，随时可以来回切',
+    ],
+  },
+  {
     version: 'V5.0',
     date: '2026.10.2',
     tag: '重磅更新',
-    latest: true,
     items: [
       '新增「智能排期」：设定完成天数与每个作业的难度，自动均衡分配到每天；某天没空可单独调小当天的可用时间',
       '作业清单新增「按待完成时间」视图：已逾期 / 今天 / 明天 / 3 天内 / 本周内 / 更晚 / 未设截止，轻重缓急一眼看清',
@@ -1896,6 +1906,16 @@ export default function HomeworkPage() {
               <span className="text-sm font-medium text-blue-300">AI 智能作业管理系统</span>
             </div>
           </div>
+
+          {/* Pro 版互链：两版并存、不关停，所以不用 SunsetBanner/Overlay */}
+          <a
+            href="/homework/pro"
+            title="全新重构的 Pro 版：多套换肤、看板与统计、离线可用；两版账号与作业数据互通"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-800/40 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-sky-400/40 hover:text-sky-200"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Pro 版已上线 · 新旧两版并存
+          </a>
         </header>
 
         {/* 主内容区域 - 左右两栏布局 */}

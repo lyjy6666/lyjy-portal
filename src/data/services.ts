@@ -23,6 +23,8 @@ export type ServiceItem = {
   pro?: ProEntry;
   /** 原版关停日期（YYYY-MM-DD）。到期后首页原版入口自动停用，仅保留 Pro 版 */
   sunset?: string;
+  /** 两版并存（无 sunset）时，替代关停提示的次级说明文案 */
+  oldNote?: string;
   badge?: string | string[];
   external?: boolean;
   type?: string;
@@ -83,7 +85,21 @@ export const serviceCategories: ServiceCategory[] = [
         hint: '完全重写的新版：9 个工具、修复全部已知问题',
       },
     },
-    { id: 'homework', name: '作业管理系统', icon: 'fa-graduation-cap', color: 'green', url: '/homework', desc: '语音输入、智能排期、按时间视图、AI 批改', badge: '重磅更新' },
+    {
+      id: 'homework', name: '作业管理系统', icon: 'fa-graduation-cap', color: 'green',
+      url: '/homework/pro',
+      oldUrl: '/homework',
+      desc: '语音输入、智能排期、AI 批改',
+      badge: ['Pro 上线'],
+      pro: {
+        href: '/homework/pro',
+        label: 'Pro 版',
+        tags: [],
+        hint: '作业管理系统 Pro 版：全新重构、多套换肤、看板与统计、离线可用；两版并存、数据互通',
+      },
+      // 刻意不设 sunset：V7.0 预告承诺「新旧两版并存，请放心使用」
+      oldNote: '两版并存 · 数据互通',
+    },
     { id: 'pomodoro', name: '番茄钟', icon: 'fa-stopwatch', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
     { id: 'tts', name: '语音朗读', icon: 'fa-microphone-lines', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
   ] },
@@ -97,6 +113,7 @@ export const serviceCategories: ServiceCategory[] = [
     { id: 'fruit', name: '水果游戏', icon: 'fa-apple-whole', color: 'orange', url: 'https://lyjyfruitgame.netlify.app', desc: '休闲益智类网页小游戏', external: true },
     { id: 'monopoly', name: '大富翁计分器', icon: 'fa-dice', color: 'yellow', url: 'https://lyjymonopoly.netlify.app', desc: '桌游大富翁的多人计分工具', external: true },
     { id: 'grandma', name: '老人训练题', icon: 'fa-brain', color: 'pink', url: 'https://grandma-lyjy.netlify.app', desc: '为老人设计的认知训练题库', external: true },
+    { id: 'vertical-control', name: '垂直管制（电梯调度模拟器）', shortName: '垂直管制', icon: 'fa-gamepad', color: 'yellow', url: '/games/vertical-control/index.html', desc: '手动派梯闯关 + 沙盒算法跑分，打开即玩', badge: '在线玩' },
   ] },
   { id: 'download', name: '产品下载', icon: 'fa-download', color: 'purple', services: [
     { id: 'qianglilock', name: '强力锁', icon: 'fa-shield-halved', color: 'blue', url: '/product/qianglilock', desc: '锁定电脑，更加专注，保护安全', badge: '新增' },
@@ -105,6 +122,8 @@ export const serviceCategories: ServiceCategory[] = [
     { id: 'windows-tool-web', name: 'Windows 工具（网页版）', shortName: 'Windows 工具网页版', icon: 'fa-window-restore', color: 'green', url: '/product/windows-tool-web', desc: '单文件绿色版，内置本地服务器', badge: '单文件' },
     { id: 'campus-assistant', name: '校园助手', shortName: '校园助手', icon: 'fa-graduation-cap', color: 'green', url: '/product/campus-assistant', desc: '一体机课堂叫人朗读工具', badge: '桌面应用' },
     { id: 'papermark', name: '试卷批注助手', shortName: '试卷批注', icon: 'fa-file-pen', color: 'orange', url: '/product/papermark', desc: '试卷手写批注，重开还原', badge: '桌面应用' },
+    { id: 'auto-checkin', name: '自动签到助手', shortName: '自动签到', icon: 'fa-clock', color: 'cyan', url: '/product/auto-checkin', desc: '定时自动点签到，跑完可延迟关机', badge: '源码包' },
+    { id: 'aichat', name: 'AI 聊天', shortName: 'AI 聊天', icon: 'fa-comments', color: 'purple', url: '/product/aichat', desc: '多模型配置的跨平台 AI 聊天工具', badge: 'Win / Android' },
   ] },
 ];
 
@@ -117,3 +136,51 @@ export const flattenServices = () =>
       categoryColor: category.color,
     })),
   );
+
+/** 仅 V7.0 preview 通道可见的新增服务（默认 V6.5 首页不展示） */
+export const PREVIEW_ONLY_IDS = new Set(['vertical-control', 'auto-checkin', 'aichat']);
+
+/**
+ * V6.5 形态的「作业管理系统」：只有原版入口，没有 Pro 版按钮与并存说明。
+ * 用户未尝鲜时，首页不能出现「作业管理系统 PRO 版」。
+ */
+function toLegacyHomework(s: ServiceItem): ServiceItem {
+  return {
+    ...s,
+    url: '/homework',
+    desc: '语音输入、智能排期、AI 批改',
+    pro: undefined,
+    oldUrl: undefined,
+    oldNote: undefined,
+    badge: undefined,
+  };
+}
+
+/**
+ * 按预览通道返回服务清单。
+ * preview=false（默认 V6.5）：过滤三个新增项目 + 作业系统退回原版。
+ * preview=true（已尝鲜 V7.0）：完整清单。
+ */
+export function servicesFor(preview: boolean) {
+  const categories: ServiceCategory[] = preview
+    ? serviceCategories
+    : serviceCategories
+        .map((category) => ({
+          ...category,
+          services: category.services
+            .filter((service) => !PREVIEW_ONLY_IDS.has(service.id))
+            .map((service) => (service.id === 'homework' ? toLegacyHomework(service) : service)),
+        }))
+        .filter((category) => category.services.length > 0);
+
+  const flat = categories.flatMap((category) =>
+    category.services.map((service) => ({
+      ...service,
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.color,
+    })),
+  );
+
+  return { categories, flat };
+}

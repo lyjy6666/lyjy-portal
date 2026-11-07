@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Loader2, Sparkles, AlertCircle, CheckCircle, Lightbulb, ScanText } from 'lucide-react';
+import ProUpsell from '@/components/ProUpsell';
 
 interface AIGraderProps {
   isOpen: boolean;
@@ -190,6 +191,7 @@ export default function AIGrader({ isOpen, onClose }: AIGraderProps) {
             </div>
 
             <div className="p-5 space-y-5">
+              <ProUpsell hint="PRO 版的 AI 批改会结合你的学习画像，薄弱科目的解析更基础、相似题更贴合；识别失败还会自动切换通道重试。" />
               {stage !== 'done' && (
                 <>
                   {/* 学科和学段 */}

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, FilePen, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, type LucideIcon } from 'lucide-react';
+import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, FilePen, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, Clock, MessageCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
 import { isSunset, sunsetLabel } from '@/lib/sunset';
@@ -19,6 +19,7 @@ const icons: Record<string, LucideIcon> = {
   'fa-window-restore': PanelsTopLeft, 'fa-compass': Compass,
   'fa-play': Clapperboard, 'fa-gamepad': Gamepad2, 'fa-download': ArrowDownToLine,
   'fa-file-pen': FilePen,
+  'fa-clock': Clock, 'fa-comments': MessageCircle,
 };
 
 export const accents: Record<string, string> = {
@@ -90,6 +91,9 @@ export function ServiceEntries({ service, inline = false, hideOriginal = false }
   const sunset = isSunset(service);
   const soon = Boolean(service.soon || service.unavailable);
   const oldHref = service.oldUrl ?? service.url;
+  // 已关停的服务只保留「原版已关停」这一个置灰入口，不再叠一行「请使用 Pro 版」；
+  // 两版并存的服务（作业系统）才显示 oldNote。
+  const metaNote = sunset ? '' : (service.oldNote ?? sunsetLabel(service));
 
   // 首页圆环的「隐藏已关停/筹备中」开关开启时，只保留 Pro 版主按钮，
   // 把已关停原版的入口（「进入原版」/「原版已关停」）收起来，但不影响 Pro 版本身。
@@ -106,25 +110,26 @@ export function ServiceEntries({ service, inline = false, hideOriginal = false }
 
   return (
     <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
-      {/* Pro 版：主按钮，最醒目 */}
+      {/* 第一层：Pro 版主按钮，唯一醒目元素 */}
       <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
         <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
         {pro.label}
       </a>
 
-      {/* 原版：次级入口；到期后置灰停用 */}
-      {!soon &&
-        (sunset ? (
-          <span className="portal-old-entry is-off" aria-disabled="true">
-            原版已关停
-          </span>
+      {/* 第二层：原版入口与说明合并成同一行，不再各占一行把面板撑高 */}
+      <div className="portal-entries-meta">
+        {!soon && (sunset ? (
+          <span className="portal-old-entry is-off" aria-disabled="true">原版已关停</span>
         ) : (
-          <a className="portal-old-entry" href={oldHref}>
-            进入原版
-          </a>
+          <a className="portal-old-entry" href={oldHref}>进入原版</a>
         ))}
-
-      <span className="portal-old-note">{sunset ? '请使用 Pro 版' : sunsetLabel(service)}</span>
+        {!soon && metaNote && (
+          <>
+            <span className="portal-meta-sep" aria-hidden="true">·</span>
+            <span className="portal-old-note" data-warn={sunset ? 'true' : undefined}>{metaNote}</span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

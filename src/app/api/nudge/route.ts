@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       text:
         `时间：${time}\n` +
         `IP：${ip}\n\n` +
-        `有用户在导航首页「下一代更新预告」弹窗里点了一次「催更」，期待 V7.0 早日上线。\n`,
+        `有用户在导航首页「下一代更新预告」弹窗里点了一次「催更」，期待更多新功能早日上线。\n`,
     });
 
     return Response.json({ ok: true });

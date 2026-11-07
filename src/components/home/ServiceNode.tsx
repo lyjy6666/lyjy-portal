@@ -28,7 +28,7 @@ function ServiceNode({
   onHoverChange,
   hoverEnabled = true,
 }: ServiceNodeProps) {
-  const radius = 46;
+  const radius = 49;
   const rad = (angle * Math.PI) / 180;
   const left = `calc(50% + ${radius}% * ${Math.cos(rad).toFixed(4)})`;
   const top = `calc(50% + ${radius}% * ${Math.sin(rad).toFixed(4)})`;

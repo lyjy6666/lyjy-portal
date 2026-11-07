@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
-import { serviceCategories, type ServiceItem } from '@/data/services';
+import { servicesFor, type ServiceItem } from '@/data/services';
+import { usePreview } from './PreviewContext';
 import { isNavigable } from '@/lib/serviceNav';
 import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
@@ -100,6 +101,8 @@ function ServiceRow({ service }: { service: ServiceItem }) {
 }
 
 export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
+  const { isPreview } = usePreview();
+  const { categories } = useMemo(() => servicesFor(isPreview), [isPreview]);
   const [decorationChars, setDecorationChars] = useState<string[]>([]);
   const [decorationStyles, setDecorationStyles] = useState<{ delay: string; duration: string; transform: string }[]>([]);
 
@@ -152,7 +155,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjMzY1YTg1MjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVoiIHN0cm9rZT0iIzMwN2Y5ZDEwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] opacity-30" />
         </div>
         <div className="space-y-6 relative">
-          {serviceCategories.map((category, catIndex) => {
+          {categories.map((category, catIndex) => {
             const catColor = colorClasses[category.color] ?? colorClasses.blue;
             return (
               <motion.div key={category.id} custom={catIndex} initial="hidden" animate="visible" variants={fadeInUpVariant}>
@@ -183,7 +186,10 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
       <footer className="absolute bottom-6 text-center">
         <div className="text-gray-400 text-sm bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-500/20">
           <p>© 2026 LYJY导航系统 <span className="mx-2">|</span>{' '}
-            <button type="button" onClick={onOpenVersion} className="text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">V6.5</button>
+            <button type="button" onClick={onOpenVersion} className="relative text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">
+              {isPreview ? 'V7.0 preview' : 'V6.5'}
+              {!isPreview && <span className="portal-version-dot" aria-label="有新版本可尝鲜" />}
+            </button>
           </p>
         </div>
       </footer>

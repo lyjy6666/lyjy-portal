@@ -30,7 +30,7 @@ const SERVICES: ServiceMeta[] = [
   { key: 'homepage',        name: '主页',           short: '主页',     category: 'core',          color: '#60a5fa', glow: 'rgba(96,165,250,0.55)' },
   { key: 'search',          name: '搜索页',         short: '搜索',     category: 'core',          color: '#a78bfa', glow: 'rgba(167,139,250,0.55)' },
   { key: 'toolbox',         name: '格式转换工具箱', short: '工具箱',   category: 'tools',         color: '#22d3ee', glow: 'rgba(34,211,238,0.55)' },
-  { key: 'homeworkSystem',  name: '作业管理系统',   short: '作业',     category: 'tools',         color: '#34d399', glow: 'rgba(52,211,153,0.55)' },
+  { key: 'homeworkSystem',  name: '作业管理系统（含 Pro）', short: '作业', category: 'tools', color: '#34d399', glow: 'rgba(52,211,153,0.55)' },
   { key: 'pomodoro',        name: '番茄钟',         short: '番茄钟',   category: 'tools',         color: '#fb923c', glow: 'rgba(251,146,60,0.55)' },
   { key: 'tts',             name: '语音朗读',       short: '朗读',     category: 'tools',         color: '#f472b6', glow: 'rgba(244,114,182,0.55)' },
   { key: 'movie',           name: '影视资源',       short: '影视',     category: 'entertainment', color: '#f87171', glow: 'rgba(248,113,113,0.55)' },

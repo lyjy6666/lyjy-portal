@@ -27,7 +27,7 @@ export default function GalaxyRing() {
 
     const band = Array.from({ length: 190 }, (_, i) => {
       const angle = (i / 190) * Math.PI * 2 + gaussian() * 0.11;
-      return toStar({ radius: 46 * (1 + gaussian() * 0.085), angle }, i % 9 === 0);
+      return toStar({ radius: 49 * (1 + gaussian() * 0.085), angle }, i % 9 === 0);
     });
     const dust = Array.from({ length: 110 }, () => toStar(build(20 + Math.random() * 74, 0.25), Math.random() < 0.06));
 

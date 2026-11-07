@@ -335,7 +335,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                         </span>
                       </a>
                     ))}
-                    <p className="pt-1 text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>点击将跳转云盘下载</p>
+                    <p className="pt-1 text-[0.6875rem]" style={{ color: 'var(--pt-ink-faint)' }}>
+                      {product.variants?.every((v) => v.downloadUrl.startsWith('/downloads/'))
+                        ? '点击直接下载到本机，文件校验值见下方'
+                        : '点击将跳转云盘下载'}
+                    </p>
                   </div>
                 ) : (
                   <>

@@ -77,3 +77,34 @@ export async function initDb() {
 
   console.log('Database tables initialized');
 }
+
+// ---------------------------------------------------------------------------
+// 作业系统 Pro 版旁路表：懒建表 + 进程内缓存
+//
+// initDb() 全项目无调用点，不能依赖它；这里由 /api/homework/pro/meta 首次请求触发，
+// 保证 Pro 版部署后无需人工跑 SQL 即可使用。
+// 刻意不加外键：线上 tasks 由 scripts/init-db.js 建立且存在 schema 漂移，
+// 孤儿 meta 由 GET 时的 JOIN tasks 过滤，行为等价且零 DDL 风险。
+// ---------------------------------------------------------------------------
+let proMetaReady: Promise<void> | null = null;
+
+export function ensureProMetaTable(): Promise<void> {
+  if (!proMetaReady) {
+    proMetaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS homework_pro_meta (
+          task_id    BIGINT PRIMARY KEY,
+          user_id    BIGINT NOT NULL,
+          meta       JSONB NOT NULL DEFAULT '{}'::jsonb,
+          version    INT NOT NULL DEFAULT 1,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_hpm_user ON homework_pro_meta(user_id)`;
+    })().catch((err) => {
+      proMetaReady = null; // 失败允许下次重试
+      throw err;
+    });
+  }
+  return proMetaReady;
+}

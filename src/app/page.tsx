@@ -7,6 +7,7 @@ import ListLayout from '@/components/home/ListLayout';
 import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
+import { PreviewProvider } from '@/components/home/PreviewContext';
 import { generateRandomStatsData, type WebsiteStats } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -92,6 +93,7 @@ export default function PortalHome() {
   const renderRing = layoutMode === 'ring' && !isCompact;
 
   return (
+    <PreviewProvider>
     <div className="relative min-h-screen overflow-hidden">
       <Background />
 
@@ -119,5 +121,6 @@ export default function PortalHome() {
       <VersionDialog open={showVersionModal} onOpenChange={setShowVersionModal} />
       <NextVersionDialog open={showNextModal} onOpenChange={setShowNextModal} />
     </div>
+    </PreviewProvider>
   );
 }

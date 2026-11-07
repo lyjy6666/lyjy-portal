@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   X, Plus, Trash2, Shuffle, Sparkles, Copy, Check, Calendar, Wand2, AlertTriangle, Info, ChevronDown,
 } from 'lucide-react';
+import ProUpsell from '@/components/ProUpsell';
 
 export interface PlannerItem {
   id: string;
@@ -384,6 +385,10 @@ export default function HomeworkPlanner({ isOpen, onClose, existingTaskNames = [
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        <div className="border-b border-slate-700/60 px-5 py-3">
+          <ProUpsell compact hint="PRO 版：智能排期独立整页 + AI 按年级与薄弱项估时，自动均衡到每一天。" />
         </div>
 
         <div className="grid flex-1 gap-0 overflow-y-auto md:grid-cols-[22rem_1fr]">
