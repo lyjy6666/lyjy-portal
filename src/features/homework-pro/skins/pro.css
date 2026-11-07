@@ -1,0 +1,1025 @@
+/* 作业系统 Pro 版组件类：只读 skins/tokens.css 的 CSS 变量 */
+
+.hw-root {
+  font-family: var(--hw-font-body);
+  letter-spacing: var(--hw-tracking);
+  line-height: var(--hw-leading);
+  min-height: 100vh;
+  background-image: var(--hw-bg-gradient);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.35s var(--hw-ease), color 0.35s var(--hw-ease);
+}
+
+.hw-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--hw-texture);
+  background-size: var(--hw-texture-size);
+  opacity: var(--hw-texture-opacity);
+  z-index: 0;
+}
+
+.hw-font-scope {
+  font-family: var(--hw-font-body);
+  letter-spacing: var(--hw-tracking);
+  line-height: var(--hw-leading);
+  color: var(--foreground);
+  background-color: transparent;
+}
+
+/* ---------------------------------------------------------------- 排版 */
+.hw-title {
+  font-family: var(--hw-font-display);
+  font-weight: var(--hw-title-weight);
+  letter-spacing: var(--hw-tracking);
+  line-height: 1.2;
+}
+.hw-display {
+  font-family: var(--hw-font-display);
+  font-size: var(--hw-title-size);
+  font-weight: var(--hw-title-weight);
+  letter-spacing: var(--hw-tracking);
+  line-height: 1.08;
+}
+.hw-num { font-family: var(--hw-font-num); font-variant-numeric: tabular-nums; }
+.hw-label { font-size: 0.75rem; color: var(--muted-foreground); }
+.hw-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-weight: 700;
+}
+.hw-hr { height: 1px; background: var(--hw-rule); border: none; }
+
+/* ---------------------------------------------------------------- 容器 */
+/* 注意：这里不能加 backdrop-filter。即使值是 blur(0px)，它也会让 .hw-panel
+   成为 fixed 后代的包含块，把「更多工具」菜单的全屏点击遮罩困在面板里，
+   表现成「点菜单外面关不掉」。三套主题的面板底色都是不透明的，模糊本就无意义。 */
+.hw-panel {
+  background: var(--hw-panel-bg);
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  box-shadow: var(--hw-shadow);
+}
+/* fixed 浮层用独立阴影：否则被主题的 --hw-shadow 覆盖，浅色主题下与背景糊成一片 */
+.hw-panel.hw-float { box-shadow: 0 12px 30px rgb(0 0 0 / 0.18); }
+
+.hw-row {
+  min-height: var(--hw-row-h);
+  padding: var(--hw-row-pad);
+  border-bottom: 1px solid var(--hw-rule);
+  transition: background-color 0.18s var(--hw-ease);
+}
+.hw-row:last-child { border-bottom: none; }
+.hw-row:hover { background: var(--muted); }
+.hw-row[data-selected='true'] { background: var(--accent); }
+.hw-row[data-completed='true'] { opacity: 0.6; }
+
+.hw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-chip);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+/* 提高特异性，保证选中态不会被任何主题的 .hw-chip 覆盖 */
+[data-theme] .hw-chip[data-active='true'] { color: var(--primary); border-color: var(--primary); background: var(--accent); }
+/* 到期/逾期语气：看板卡片、清单都要能一眼看出，且不依赖主题 */
+[data-theme] .hw-chip[data-tone='late'] {
+  color: var(--hw-overdue);
+  border-color: var(--hw-overdue);
+  font-weight: 700;
+}
+[data-theme] .hw-chip[data-tone='warn'] {
+  color: var(--hw-overdue);
+  border-color: color-mix(in srgb, var(--hw-overdue) 45%, transparent);
+}
+
+.hw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+  color: var(--card-foreground);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform 0.18s var(--hw-ease), background-color 0.18s var(--hw-ease), opacity 0.18s var(--hw-ease);
+}
+.hw-btn:hover { background: var(--accent); }
+.hw-btn:active { transform: scale(0.97); }
+.hw-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.hw-btn[data-variant='primary'] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.hw-btn[data-variant='primary']:hover { opacity: 0.9; }
+.hw-btn[data-variant='ghost'] { background: transparent; border-color: transparent; }
+.hw-btn[data-variant='ghost']:hover { background: var(--muted); }
+
+.hw-input {
+  padding: 9px 12px;
+  border: var(--hw-border-w) solid var(--input);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+  color: var(--card-foreground);
+  font-family: var(--hw-font-body);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  min-height: 42px;
+  outline: none;
+  /* Pro 三套皮肤都是浅色；锁定配色，系统深色时原生日期控件不会画成深底深字 */
+  color-scheme: light;
+}
+/**
+ * 默认吃满容器，但必须放在 components 层里。
+ * 之前这条 width 是「未分层」的规则，会压过 Tailwind 所有 w-* 工具类：
+ * 下拉框的 w-24 失效后变成 width:100%，把同一行的文本输入框挤成一小格，
+ * 表现成「作业名称输入框比难度下拉框还小，根本没法打字」。
+ */
+@layer components {
+  .hw-input { width: 100%; }
+}
+/* 提高特异性，压过散落在组件里的 text-xs / py-1，保证「小到看不见」不再出现 */
+[data-theme] .hw-input { min-height: 42px; font-size: 0.9375rem; padding-block: 9px; }
+[data-theme] .hw-input::placeholder { font-size: 0.875rem; color: var(--muted-foreground); }
+[data-theme] .hw-input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
+[data-theme] .hw-input::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+[data-theme] textarea.hw-input { min-height: 72px; resize: vertical; }
+/* 日期/时间类输入框至少能看清内容，不再被 w-auto 挤成一条 */
+[data-theme] input[type='date'].hw-input,
+[data-theme] input[type='datetime-local'].hw-input,
+[data-theme] input[type='time'].hw-input { min-width: 168px; }
+.hw-input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
+.hw-input::placeholder { color: var(--muted-foreground); }
+
+.hw-kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--hw-font-num);
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+/* ---------------------------------------------------------------- 语义 */
+.hw-subject-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--hw-subject, var(--border));
+  flex: none;
+}
+.hw-prio {
+  font-size: 0.6875rem; font-weight: 700; padding: 1px 7px;
+  border-radius: var(--hw-radius-chip); border: var(--hw-border-w) solid currentColor;
+  color: var(--hw-prio-normal);
+}
+.hw-prio[data-p='urgent'] { color: var(--hw-prio-urgent); }
+.hw-prio[data-p='high'] { color: var(--hw-prio-high); }
+.hw-prio[data-p='low'] { color: var(--hw-prio-low); }
+.hw-overdue { color: var(--hw-overdue); font-weight: 700; }
+.hw-due-soon { color: var(--hw-due-soon); }
+
+.hw-load-track { height: 6px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.hw-load-fill { height: 100%; background: var(--primary); transition: width 0.4s var(--hw-ease); }
+.hw-load-fill[data-over='true'] { background: var(--hw-overdue); }
+.hw-heat { width: 12px; height: 12px; border-radius: 3px; background: var(--muted); }
+.hw-heat[data-level='1'] { background: color-mix(in srgb, var(--primary) 30%, var(--muted)); }
+.hw-heat[data-level='2'] { background: color-mix(in srgb, var(--primary) 55%, var(--muted)); }
+.hw-heat[data-level='3'] { background: color-mix(in srgb, var(--primary) 78%, var(--muted)); }
+.hw-heat[data-level='4'] { background: var(--primary); }
+
+.hw-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.hw-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.hw-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ================================================== 统一外壳：一条顶栏 / 一条导航 / 一个内容区 */
+/* 所有布局共用这套骨架，差异只在导航位置、内容宽度与右侧速览栏，避免每种布局各写一套控件。 */
+
+.hw-shell { width: 100%; margin-inline: auto; }
+
+.hw-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hw-rule);
+  background: var(--background);
+}
+
+.hw-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--hw-rule);
+  margin-bottom: 20px;
+}
+.hw-nav[data-vertical='true'] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.hw-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s var(--hw-ease), background-color 0.18s var(--hw-ease);
+}
+.hw-nav-item:hover { color: var(--foreground); }
+.hw-nav-item[data-active='true'] { color: var(--primary); border-bottom-color: var(--primary); }
+.hw-nav[data-vertical='true'] .hw-nav-item {
+  border-bottom: 0;
+  border-left: 2px solid transparent;
+  border-radius: var(--hw-radius-panel);
+  padding: 10px 12px;
+  justify-content: flex-start;
+}
+.hw-nav[data-vertical='true'] .hw-nav-item[data-active='true'] {
+  border-left-color: var(--primary);
+  background: var(--accent);
+}
+
+.hw-menu-pop {
+  position: absolute;
+  z-index: 40;
+  min-width: 218px;
+  padding: 6px;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.14);
+}
+.hw-menu-group {
+  padding: 7px 10px 4px;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-weight: 700;
+}
+.hw-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--hw-radius-panel);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.hw-menu-item:hover { background: var(--muted); }
+.hw-menu-sep { height: 1px; margin: 6px 4px; background: var(--hw-rule); }
+
+/* 精简后的快速添加：一行输入 + 一个按钮，高级选项折叠 */
+.hw-addbar { padding: 8px; }
+.hw-addbar-extra {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hw-rule);
+}
+
+.hw-glance-card { padding: 16px; }
+.hw-glance-num { font-family: var(--hw-font-num); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.hw-glance-label { font-size: 0.7rem; color: var(--muted-foreground); }
+
+/* ---------------------------------------------------------------- 输入框可读性与全局间距 */
+/* 搜索框：图标用绝对定位叠在输入区内，padding 由专用类锁定，不再与 Tailwind pl-8 抢优先级 */
+.hw-search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; z-index: 1;
+}
+.hw-search-clear {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; z-index: 1;
+  border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer;
+}
+[data-theme] .hw-input.hw-input-search { padding-left: 36px; padding-right: 36px; }
+[data-theme] .hw-input { caret-color: var(--primary); }
+[data-theme] .hw-input::placeholder {
+  opacity: 1;
+  color: color-mix(in srgb, var(--foreground) 55%, var(--card));
+}
+[data-theme] select.hw-input,
+[data-theme] input[type='number'].hw-input { min-width: 96px; }
+[data-theme] .hw-input.hw-duration-input { width: 120px; min-width: 120px; flex: none; }
+/* 需要「按内容自适应宽度」的输入框（如带长文案的下拉），显式声明，不靠 Tailwind 抢优先级 */
+[data-theme] .hw-input.hw-w-fit { width: fit-content; min-width: 160px; flex: none; }
+
+/* ---------------------------------------------------------------- AI 特色主视觉 */
+/* 用户明确要求「把 AI 特色凸显出来」：整块高亮卡，而不是一行小字 */
+.hw-ai-hero {
+  position: relative;
+  border: 2px solid var(--primary);
+  border-radius: var(--hw-radius-panel);
+  background:
+    radial-gradient(130% 120% at 0% 0%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%),
+    radial-gradient(120% 120% at 100% 100%, color-mix(in srgb, var(--accent) 85%, transparent), transparent 68%),
+    var(--card);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--primary) 20%, transparent);
+  overflow: hidden;
+}
+.hw-ai-hero-compact { border-width: 1.5px; box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 14%, transparent); }
+
+.hw-ai-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem; font-weight: 800; letter-spacing: 0.03em;
+}
+.hw-ai-tag-ghost {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 55%, transparent);
+  border-radius: 999px;
+  color: var(--primary);
+  font-size: 0.6875rem; font-weight: 700;
+}
+.hw-ai-title {
+  font-family: var(--hw-font-display);
+  font-weight: 800;
+  color: var(--foreground);
+  line-height: 1.35;
+}
+.hw-ai-desc { font-size: 0.8125rem; color: var(--muted-foreground); line-height: 1.6; }
+.hw-ai-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  color: color-mix(in srgb, var(--primary) 88%, var(--foreground));
+  font-size: 0.75rem; font-weight: 600;
+}
+.hw-ai-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--card));
+  color: var(--primary);
+  font-size: 0.6875rem; font-weight: 800;
+  white-space: nowrap;
+}
+
+/* 顶部细状态条：只提示「AI 依据是什么」，不抢内容区 */
+.hw-ai-strip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+}
+
+/**
+ * 左上角品牌旁的 AI 标记：用户要求「非常醒目」。
+ * 实心主色渐变 + 缓慢呼吸光晕，三套主题通用（都基于 --primary）。
+ */
+.hw-ai-mark {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px 2px 6px;
+  border: 0;                 /* 作为按钮使用时去掉原生边框 */
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 999px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--primary) 92%, #fff),
+    color-mix(in srgb, var(--primary) 70%, #000));
+  color: var(--primary-foreground);
+  font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.06em;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent),
+              0 4px 12px color-mix(in srgb, var(--primary) 38%, transparent);
+  animation: hw-ai-pulse 3.2s ease-in-out infinite;
+}
+@keyframes hw-ai-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 22%, transparent),
+                         0 4px 12px color-mix(in srgb, var(--primary) 38%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 12%, transparent),
+                         0 6px 16px color-mix(in srgb, var(--primary) 52%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hw-ai-mark { animation: none; }
+}
+
+/* 加载转圈：任何异步操作都要有可见反馈，避免「点了没反应」 */
+.hw-spin { animation: hw-spin 0.9s linear infinite; }
+@keyframes hw-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .hw-spin { animation-duration: 2.4s; }
+}
+
+/* 模式二选一卡：标准 / 快速 */
+.hw-mode-card {
+  position: relative;
+  display: block;
+  padding: 10px 12px;
+  text-align: left;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+  transition: border-color 0.16s var(--hw-ease), background-color 0.16s var(--hw-ease);
+}
+.hw-mode-card:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.hw-mode-card[data-active='true'] {
+  border-color: var(--primary);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+.hw-mode-on {
+  position: absolute; right: 10px; bottom: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.625rem; font-weight: 800;
+}
+.hw-dot {
+  display: inline-block;
+  width: 4px; height: 4px;
+  margin-top: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 70%, transparent);
+}
+
+/* ---------------------------------------------------------------- 学习画像选择器 */
+/* 年级：三张大卡，选中为主色描边 + 勾角标 + 轻微抬升 */
+.hw-grade-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  text-align: left;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+  transition: transform 0.16s var(--hw-ease), border-color 0.16s var(--hw-ease),
+              background-color 0.16s var(--hw-ease), box-shadow 0.16s var(--hw-ease);
+}
+.hw-grade-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  transform: translateY(-1px);
+}
+.hw-grade-card[data-active='true'] {
+  border-color: var(--primary);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--primary) 9%, var(--card));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.hw-grade-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  flex: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--primary);
+}
+.hw-grade-card[data-active='true'] .hw-grade-ico {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.hw-grade-check {
+  position: absolute; right: 8px; top: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* 紧凑胶囊（弹窗/排期页用） */
+.hw-pill-opt {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.8125rem; font-weight: 600;
+  transition: all 0.16s var(--hw-ease);
+}
+.hw-pill-opt:hover { border-color: color-mix(in srgb, var(--primary) 50%, var(--border)); }
+.hw-pill-opt[data-active='true'] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* 薄弱项：网格勾选块 */
+.hw-weak-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+}
+.hw-weak-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 9px;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-chip);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  text-align: left;
+  transition: border-color 0.16s var(--hw-ease), background-color 0.16s var(--hw-ease);
+}
+.hw-weak-item:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.hw-weak-item[data-active='true'] {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--primary);
+  font-weight: 700;
+}
+.hw-weak-box {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  flex: none;
+  border: 1.5px solid color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--primary-foreground);
+}
+.hw-weak-item[data-active='true'] .hw-weak-box {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+/* ---------------------------------------------------------------- 开屏光波介绍 */
+/*
+ * 两段式：
+ *   ① 0.4s：从 AI 按钮那颗胶囊展开成整屏圆角矩形，同时底色/浓度连续加深；
+ *   ② 5s：介绍文字在已经铺满的底上出现，最后 0.45s 淡出。
+ * 「逐渐加深」由「覆盖面积随波扩散」+「同一条 0.4s 时间轴上 opacity 0.12→1」
+ * 共同完成，veil 与 wave 同形状一起展开，波外仍清晰，不会整屏突然一起变白。
+ * 组件只在客户端挂载（SSR 返回 null），CSS animation 不会在水合前偷跑。
+ */
+/* 开屏期间藏掉所有弹窗/提示：登录框、教程、toast 都不许冒出来打断光波 */
+body.hw-intro-active [data-hw-portal],
+body.hw-intro-active [data-sonner-toaster],
+body.hw-intro-active [data-radix-popper-content-wrapper] {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.hw-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background-color: transparent;
+  /* 波铺满后补上圆角四角的缝隙；此时 99% 屏幕已被波覆盖，过渡不会显得突兀 */
+  transition: background-color 0.3s ease-out;
+  cursor: pointer;
+}
+.hw-splash[data-phase='show'],
+.hw-splash[data-phase='out'] {
+  background-color: color-mix(in srgb, var(--primary) 12%, var(--background));
+}
+.hw-splash.is-out {
+  animation: hw-splash-out 0.45s ease-in both;
+  pointer-events: none;
+}
+@keyframes hw-splash-out { to { opacity: 0; } }
+
+/* 底色层与光波**同一个形状一起展开**：波没扫到的区域保持工作台原样清晰，
+   扫过的区域才逐渐加深，覆盖面积和浓度都是连续的，不会整屏一起突然变白。 */
+.hw-splash-veil {
+  position: absolute;
+  left: var(--sp-x, 30px);
+  top: var(--sp-y, 18px);
+  width: var(--sp-w, 70px);
+  height: var(--sp-h, 24px);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--background));
+  opacity: 0.12;
+  animation: hw-splash-morph 0.4s linear forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 光波：起始元素的位置/宽高/圆角完全照抄 AI 按钮，第一帧就是那颗胶囊。
+   圆角 999px（胶囊）→ 120px（大圆角）→ 28px（圆角矩形），全程有圆角。
+   opacity 从 0.12 线性升到 1，配合 veil 渐深，实现「逐渐加深到全覆盖」。 */
+.hw-splash-wave,
+.hw-splash-ring {
+  position: absolute;
+  left: var(--sp-x, 30px);
+  top: var(--sp-y, 18px);
+  width: var(--sp-w, 70px);
+  height: var(--sp-h, 24px);
+  border-radius: 999px;
+  opacity: 0.12;
+  animation: hw-splash-morph 0.4s linear forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes hw-splash-morph {
+  0% {
+    left: var(--sp-x, 30px); top: var(--sp-y, 18px);
+    width: var(--sp-w, 70px); height: var(--sp-h, 24px);
+    border-radius: 999px;
+    opacity: 0.12;
+  }
+  55% { border-radius: 120px; opacity: 0.6; }
+  100% {
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    border-radius: 28px;
+    opacity: 1;
+  }
+}
+
+.hw-splash-wave {
+  /* 不透明底色 + 元素 opacity 渐增：浓度是连续加深的，不是最后叠一层 */
+  background: radial-gradient(circle at 18% 18%,
+    color-mix(in srgb, var(--primary) 26%, var(--background)) 0%,
+    color-mix(in srgb, var(--primary) 16%, var(--background)) 55%,
+    color-mix(in srgb, var(--primary) 10%, var(--background)) 100%);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent),
+    0 0 50px 16px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+.hw-splash-ring {
+  z-index: 2;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--primary) 22%, transparent) 0%,
+    color-mix(in srgb, var(--primary) 8%, transparent) 45%,
+    transparent 70%);
+}
+
+/* 起点亮点：从 AI 按钮闪出，随波扩散淡去 */
+.hw-splash-spark {
+  position: absolute;
+  width: 16px; height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--primary-foreground);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--primary) 55%, transparent),
+              0 0 40px 16px var(--primary);
+  animation: hw-splash-spark 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes hw-splash-spark {
+  0% { opacity: 1; transform: scale(0.4); }
+  40% { opacity: 1; transform: scale(1.4); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+.hw-splash-content {
+  position: relative;
+  z-index: 4;
+  width: min(92vw, 680px);
+  padding: 20px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.45s ease-out, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hw-splash[data-phase='show'] .hw-splash-content,
+.hw-splash[data-phase='out'] .hw-splash-content { opacity: 1; transform: none; }
+
+.hw-splash-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8125rem; font-weight: 900; letter-spacing: 0.08em;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.hw-splash-title {
+  margin: 16px 0 0;
+  font-family: var(--hw-font-display);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+.hw-splash-sub {
+  margin: 6px 0 0;
+  font-size: 0.9375rem; font-weight: 700;
+  color: var(--primary);
+}
+.hw-splash-desc {
+  margin: 12px auto 0;
+  max-width: 520px;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+.hw-splash-features {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin-top: 20px;
+}
+.hw-splash-feat {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--foreground);
+  font-size: 0.8125rem; font-weight: 600;
+}
+.hw-splash-enter {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 26px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.9375rem; font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--primary) 36%, transparent);
+  transition: transform 0.16s var(--hw-ease);
+}
+.hw-splash-enter:hover { transform: translateY(-2px); }
+
+.hw-splash-skip {
+  position: absolute;
+  right: 22px; bottom: 22px;
+  z-index: 5;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+.hw-splash[data-phase='show'] .hw-splash-skip,
+.hw-splash[data-phase='out'] .hw-splash-skip { opacity: 1; }
+
+/* 底部进度线：0.4s 展开 + 5s 介绍 + 0.45s 淡出 */
+.hw-splash-progress {
+  position: absolute; left: 0; bottom: 0;
+  z-index: 5;
+  height: 3px;
+  background: var(--primary);
+  animation: hw-splash-progress 5.85s linear forwards;
+}
+@keyframes hw-splash-progress { from { width: 0; } to { width: 100%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-splash-progress, .hw-splash-spark,
+  .hw-splash-wave, .hw-splash-ring, .hw-splash-veil { animation-duration: 0.01s; }
+  .hw-splash-content, .hw-splash-skip { transition-duration: 0.01s; }
+}
+
+/* ---------------------------------------------------------------- 更新记录 · Pro V1.0 版本框 */
+/* 一个版本一个框，重磅区只是框内的一段高亮区，不另起一个独立卡片 */
+.hw-release-block {
+  padding: 18px;
+  border: var(--hw-border-w) solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+  box-shadow: var(--hw-shadow);
+}
+.hw-release-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hw-rule);
+}
+.hw-release-highlight {
+  margin-top: 14px;
+  padding: 16px;
+  border: 2px solid var(--primary);
+  border-radius: var(--hw-radius-panel);
+  background:
+    radial-gradient(130% 120% at 0% 0%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 62%),
+    radial-gradient(120% 120% at 100% 100%, color-mix(in srgb, var(--accent) 85%, transparent), transparent 68%),
+    var(--card);
+}
+.hw-release-cards {
+  display: grid; gap: 10px;
+  margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.hw-release-card {
+  padding: 12px;
+  border-radius: var(--hw-radius-chip);
+  background: color-mix(in srgb, var(--primary) 9%, var(--card));
+}
+.hw-release-no {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--hw-font-display);
+  font-size: 0.8125rem; font-weight: 900;
+}
+.hw-release-list {
+  margin-top: 10px;
+  display: grid; gap: 7px;
+}
+.hw-release-list li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 0.8125rem; line-height: 1.7;
+  color: var(--muted-foreground);
+}
+/* 预告用虚线框，和已发布的实线版本框一眼区分 */
+.hw-release-preview {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: var(--hw-radius-panel);
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+}
+.hw-release-dot {
+  width: 5px; height: 5px;
+  margin-top: 9px;
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 75%, transparent);
+}
+
+/* ---------------------------------------------------------------- 个人中心 */
+.hw-profile-hero {
+  padding: 14px;
+  border: var(--hw-border-w) solid color-mix(in srgb, var(--primary) 26%, var(--border));
+  border-radius: var(--hw-radius-panel);
+  background:
+    radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--primary) 13%, transparent), transparent 60%),
+    var(--card);
+}
+.hw-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px;
+  flex: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--primary) 90%, #fff),
+    color-mix(in srgb, var(--primary) 72%, #000));
+  color: var(--primary-foreground);
+  font-size: 1.125rem; font-weight: 900;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.hw-profile-stat {
+  padding: 8px 10px;
+  border-radius: var(--hw-radius-chip);
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  text-align: center;
+}
+/* 开关：用纯 CSS，不引第三方控件，三套主题通用 */
+.hw-switch {
+  position: relative;
+  display: inline-flex; align-items: center;
+  width: 44px; height: 24px;
+  border-radius: 999px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  transition: background-color 0.18s var(--hw-ease);
+}
+.hw-switch[data-on='true'] { background: var(--primary); border-color: var(--primary); }
+.hw-switch-dot {
+  position: absolute; left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform 0.18s var(--hw-ease);
+}
+.hw-switch[data-on='true'] .hw-switch-dot { transform: translateX(20px); }
+
+/* 统一节奏：顶栏 / 导航 / 内容区间距一致，不再各处随手写 gap */
+.hw-topbar { gap: 12px; padding: 12px 0; }
+.hw-nav { gap: 4px; margin-bottom: 20px; }
+.hw-addbar { padding: 12px; }
+.hw-panel.hw-float { box-shadow: 0 12px 30px rgb(0 0 0 / 0.18); }
+
+/* 右下角悬浮小圆按钮组 */
+.hw-btn.hw-fab {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- 看板自适应列 */
+.hw-board-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+}
+.hw-board-col { min-width: 0; display: flex; flex-direction: column; }
+.hw-board-col-body {
+  min-width: 0;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hw-board-card {
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  break-inside: avoid;
+  cursor: grab;
+  transition: border-color 0.18s var(--hw-ease);
+}
+.hw-board-card:hover { border-color: var(--primary); }
+.hw-board-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ============================================================== 主题一 · 手账纸感 */
+/* 绝不在通用 .hw-panel 上写 position / 绝对定位伪元素：那会压掉组件自身的
+   fixed / absolute / sticky，让浮层与下拉菜单只在手账纸感下错位。
+   胶带改画在背景层，不溢出、不遮挡内容、不改变定位。 */
+[data-theme='journal'] .hw-panel {
+  border-style: dashed;
+  background-image: linear-gradient(var(--hw-tape-1), var(--hw-tape-1));
+  background-repeat: no-repeat;
+  background-size: 62px 9px;
+  background-position: 26px 0;
+}
+[data-theme='journal'] .hw-chip {
+  border-style: dashed; background: var(--card); transform: rotate(-1deg);
+}
+[data-theme='journal'] .hw-btn { font-family: var(--hw-font-display); }
+[data-theme='journal'] .hw-subject-bar { border-radius: 6px; width: 5px; }
+[data-theme='journal'] .hw-root::after {
+  content: ''; position: fixed; left: 18px; top: 0; bottom: 0; width: 1px;
+  background: rgb(200 120 120 / 0.3); pointer-events: none; z-index: 0;
+}
+
+/* ============================================================== 主题二 · 明快俏皮 */
+[data-theme='playful'] .hw-panel { border-width: 2px; }
+[data-theme='playful'] .hw-btn:active { transform: translateY(3px) scale(0.98); box-shadow: none; }
+[data-theme='playful'] .hw-btn[data-variant='primary'] { box-shadow: 0 5px 0 color-mix(in srgb, var(--primary) 60%, #000); }
+[data-theme='playful'] .hw-chip { font-weight: 700; border-radius: 999px; }
+[data-theme='playful'] .hw-display { color: var(--primary); }
+
+/* ============================================================== 主题三 · 极简晨白 */
+/* 零装饰：不加大标题、不加纹理、不加首字着色，只留清晰的层级 */
+[data-theme='clarity'] .hw-chip { border-color: transparent; background: var(--muted); }
+[data-theme='clarity'] .hw-chip[data-active='true'] { background: var(--accent); color: var(--primary); }
+[data-theme='clarity'] .hw-btn[data-variant='primary'] { box-shadow: 0 2px 8px rgb(47 111 237 / 0.2); }
+[data-theme='clarity'] .hw-eyebrow { letter-spacing: 0.16em; font-weight: 650; }
+[data-theme='clarity'] .hw-nav-item { border-radius: var(--hw-radius-panel) var(--hw-radius-panel) 0 0; }
+
+/* ================================================================ 响应式 */
+@media (max-width: 640px) {
+  [data-theme] { --hw-title-size: clamp(1.6rem, 8vw, 2.2rem); --hw-gap: 12px; --hw-row-pad: 10px; }
+  .hw-btn { padding: 9px 12px; min-height: 42px; }
+  .hw-chip { min-height: 32px; }
+  .hw-display { line-height: 1.16; }
+  /* 不用 overflow-x:auto —— 会裁掉「更多视图」的绝对定位菜单 */
+  .hw-nav { flex-wrap: wrap; }
+  .hw-nav-item { padding-inline: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-root *, .hw-row, .hw-btn, .hw-load-fill { animation: none !important; transition: none !important; }
+}

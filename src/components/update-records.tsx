@@ -10,19 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
-interface UpdateRecord {
-  version: string;
-  date: string;
-  content: string;
-}
-
-const updateRecords: UpdateRecord[] = [
-  {
-    version: 'v1.0',
-    date: '2026.4.3',
-    content: '番茄钟上线了',
-  },
+/** 番茄钟的版本历史（越靠前越新） */
+const POMODORO_RELEASES: Release[] = [
+  { version: 'v1.0', date: '2026.4.3', latest: true, items: ['番茄钟上线了'] },
 ];
 
 export function UpdateRecords() {
@@ -41,30 +33,14 @@ export function UpdateRecords() {
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Clock className="h-5 w-5 text-red-500" />
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Clock className="h-4.5 w-4.5 text-red-500" />
             更新记录
           </DialogTitle>
+          <p className="text-[11px] tracking-wide text-slate-500 dark:text-slate-400">番茄钟 · 版本历史</p>
         </DialogHeader>
-        <div className="space-y-4 mt-4">
-          {updateRecords.map((record) => (
-            <div
-              key={record.version}
-              className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg border border-slate-200 dark:border-slate-700"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                  {record.version}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  {record.date}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {record.content}
-              </p>
-            </div>
-          ))}
+        <div className="py-2">
+          <UpdateTimeline releases={POMODORO_RELEASES} tone="light" />
         </div>
       </DialogContent>
     </Dialog>

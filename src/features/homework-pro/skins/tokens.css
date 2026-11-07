@@ -1,0 +1,196 @@
+/*
+ * 作业系统 Pro 版 · 4 套美学主题 tokens
+ *
+ * 隔离约束：只写 [data-theme] / [data-theme='x']，绝不写 :root / body / *。
+ * globals.css 的 @theme inline 用 var(--background) 引用而非拷贝，
+ * 覆盖同名变量即可让 Tailwind 工具类在 SkinProvider 子树内生效。
+ *
+ * 最终保留 ① 手账纸感 / ② 明快俏皮 / ③ 极简晨白 三套自选主题。
+ * ③ 刻意零纹理、零装饰、低对比，用留白和细线分组，
+ * 专门解决「功能多起来界面显得乱」。
+ */
+
+[data-theme] {
+  --hw-font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --hw-font-display: var(--hw-font-body);
+  --hw-font-num: var(--hw-font-body);
+  --hw-title-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  --hw-title-weight: 650;
+  --hw-tracking: 0;
+  --hw-leading: 1.6;
+  --hw-border-w: 1px;
+  --hw-radius-panel: 8px;
+  --hw-radius-chip: 999px;
+  --hw-shadow: none;
+  --hw-panel-bg: transparent;
+  --hw-panel-blur: 0px;
+  --hw-row-h: 44px;
+  --hw-row-pad: 10px;
+  --hw-gap: 12px;
+  --hw-rule: rgb(0 0 0 / 0.12);
+  --hw-bg-gradient: none;
+  --hw-texture: none;
+  --hw-texture-size: 24px 24px;
+  --hw-texture-opacity: 0;
+  --hw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ================================================================ ① 手账纸感 */
+[data-theme='journal'] {
+  --background: #fbf3e4;
+  --foreground: #5b4636;
+  --card: #fffdf7;
+  --card-foreground: #5b4636;
+  --popover: #fffdf7;
+  --popover-foreground: #5b4636;
+  --primary: #d97706;
+  --primary-foreground: #fffdf7;
+  --secondary: #f3e6cd;
+  --secondary-foreground: #5b4636;
+  --muted: #f3e6cd;
+  --muted-foreground: #8a7358;
+  --accent: #f3e6cd;
+  --accent-foreground: #5b4636;
+  --destructive: #c2544a;
+  --destructive-foreground: #fffdf7;
+  --border: #dcc9a8;
+  --input: #dcc9a8;
+  --ring: #d97706;
+  --radius: 14px;
+
+  --hw-font-display: 'KaiTi', 'STKaiti', 'Kaiti SC', '楷体', cursive;
+  --hw-font-body: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --hw-title-size: clamp(1.9rem, 3.8vw, 2.8rem);
+  --hw-title-weight: 700;
+  --hw-tracking: 0.02em;
+  --hw-leading: 1.85;
+  --hw-border-w: 2px;
+  --hw-radius-panel: 14px;
+  --hw-radius-chip: 14px;
+  --hw-shadow: 3px 3px 0 rgb(91 70 54 / 0.12);
+  --hw-panel-bg: #fffdf7;
+  --hw-row-h: 48px;
+  --hw-row-pad: 11px;
+  --hw-gap: 16px;
+  --hw-rule: rgb(160 130 95 / 0.28);
+  --hw-bg-gradient: none;
+  --hw-texture: repeating-linear-gradient(transparent, transparent 31px, rgb(120 160 190 / 0.16) 31px, rgb(120 160 190 / 0.16) 32px);
+  --hw-texture-size: 100% 32px;
+  --hw-texture-opacity: 0.75;
+  /* 胶带 / 贴纸色 */
+  --hw-tape-1: #f6c96b; --hw-tape-2: #a8d5c2; --hw-tape-3: #f0a8b8; --hw-tape-4: #9ec5e8;
+
+  --hw-prio-urgent: #c2544a; --hw-prio-high: #d97706;
+  --hw-prio-normal: #8a7358; --hw-prio-low: #a89479;
+  --hw-overdue: #c2544a; --hw-due-soon: #d97706;
+  --hw-subject-1: #c2544a; --hw-subject-2: #4a7ab8; --hw-subject-3: #5a9160;
+  --hw-subject-4: #9a6ab0; --hw-subject-5: #d97706; --hw-subject-6: #3f9098;
+  --hw-subject-7: #cf7092; --hw-subject-8: #7a9a3f;
+}
+
+/* ================================================================ ② 明快俏皮 */
+[data-theme='playful'] {
+  --background: #fffffc;
+  --foreground: #17203a;
+  --card: #ffffff;
+  --card-foreground: #17203a;
+  --popover: #ffffff;
+  --popover-foreground: #17203a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2ff;
+  --secondary-foreground: #17203a;
+  --muted: #f1f4fb;
+  --muted-foreground: #5a6480;
+  --accent: #fff4bf;
+  --accent-foreground: #17203a;
+  --destructive: #e0395f;
+  --destructive-foreground: #ffffff;
+  --border: #d5dcf0;
+  --input: #d5dcf0;
+  --ring: #2563eb;
+  --radius: 22px;
+
+  --hw-font-display: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', system-ui, sans-serif;
+  --hw-font-body: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', system-ui, sans-serif;
+  --hw-title-size: clamp(2.1rem, 4.6vw, 3.4rem);
+  --hw-title-weight: 900;
+  --hw-tracking: -0.01em;
+  --hw-leading: 1.65;
+  --hw-border-w: 2px;
+  --hw-radius-panel: 22px;
+  --hw-radius-chip: 999px;
+  --hw-shadow: 0 5px 0 rgb(23 32 58 / 0.14);
+  --hw-panel-bg: #ffffff;
+  --hw-row-h: 56px;
+  --hw-row-pad: 13px;
+  --hw-gap: 18px;
+  --hw-rule: rgb(37 99 235 / 0.16);
+  --hw-bg-gradient: radial-gradient(circle at 8% 4%, rgb(250 204 21 / 0.22), transparent 28%),
+                    radial-gradient(circle at 94% 12%, rgb(244 114 182 / 0.18), transparent 26%);
+  --hw-texture: radial-gradient(rgb(37 99 235 / 0.10) 1.5px, transparent 1.5px);
+  --hw-texture-size: 22px 22px;
+  --hw-texture-opacity: 0.8;
+  --hw-blob-1: #2563eb; --hw-blob-2: #facc15; --hw-blob-3: #f472b6; --hw-blob-4: #34d399;
+
+  --hw-prio-urgent: #e0395f; --hw-prio-high: #f59e0b;
+  --hw-prio-normal: #2563eb; --hw-prio-low: #94a3b8;
+  --hw-overdue: #e0395f; --hw-due-soon: #f59e0b;
+  --hw-subject-1: #e0395f; --hw-subject-2: #2563eb; --hw-subject-3: #16a34a;
+  --hw-subject-4: #9333ea; --hw-subject-5: #f59e0b; --hw-subject-6: #0891b2;
+  --hw-subject-7: #db2777; --hw-subject-8: #65a30d;
+}
+
+/* ================================================================ ③ 极简晨白 */
+[data-theme='clarity'] {
+  --background: #fbfcfe;
+  --foreground: #16202e;
+  --card: #ffffff;
+  --card-foreground: #16202e;
+  --popover: #ffffff;
+  --popover-foreground: #16202e;
+  --primary: #2f6fed;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f4f9;
+  --secondary-foreground: #16202e;
+  --muted: #f1f4f9;
+  --muted-foreground: #6b7688;
+  --accent: #eaf1ff;
+  --accent-foreground: #16202e;
+  --destructive: #d64550;
+  --destructive-foreground: #ffffff;
+  --border: #dfe5ee;
+  --input: #dfe5ee;
+  --ring: #2f6fed;
+  --radius: 10px;
+
+  --hw-font-display: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+  --hw-font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+  --hw-font-num: 'SFMono-Regular', 'Consolas', 'Liberation Mono', Menlo, monospace;
+  --hw-title-size: clamp(1.6rem, 2.9vw, 2.15rem);
+  --hw-title-weight: 650;
+  --hw-tracking: -0.015em;
+  --hw-leading: 1.6;
+  --hw-border-w: 1px;
+  --hw-radius-panel: 10px;
+  --hw-radius-chip: 999px;
+  /* 轻到几乎看不见的阴影：靠间距分层，不靠色块 */
+  --hw-shadow: 0 1px 2px rgb(16 32 56 / 0.04);
+  --hw-panel-bg: #ffffff;
+  --hw-row-h: 52px;
+  --hw-row-pad: 12px;
+  --hw-gap: 16px;
+  --hw-rule: rgb(22 32 46 / 0.09);
+  --hw-bg-gradient: none;
+  --hw-texture: none;
+  --hw-texture-opacity: 0;
+
+  --hw-prio-urgent: #d64550; --hw-prio-high: #d98324;
+  --hw-prio-normal: #6b7688; --hw-prio-low: #9aa5b4;
+  --hw-overdue: #d64550; --hw-due-soon: #d98324;
+  --hw-subject-1: #d64550; --hw-subject-2: #2f6fed; --hw-subject-3: #2f9e6f;
+  --hw-subject-4: #8264c9; --hw-subject-5: #d98324; --hw-subject-6: #218fa3;
+  --hw-subject-7: #c05183; --hw-subject-8: #6a8b35;
+}
+
+/* 主题仅保留 ① ② ③ 三套，编号连续不跳号 */

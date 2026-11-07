@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>LYJY垂直管制 · 电梯调度模拟器</title>
+<style>
+/* ============================================================
+   LYJY垂直管制 / VERTICAL CONTROL
+   设计上下文：休闲玩家 · 手动派梯闯关 + 沙盒算法跑分
+   美学方向：深色工业塔台值班仪表盘 —— 墨蓝底、信号琥珀、
+   硬边直角、刻度尺、打孔票式乘客卡片。刻意避开深色+青霓虹。
+   ============================================================ */
+:root{
+  --ink:#0c1417; --ink-2:#101b20; --panel:#142128; --panel-2:#182830;
+  --rule:#2b3c44; --rule-soft:#1f2f36;
+  --text:#e7eee9; --muted:#93a7ab; --dim:#61767c;
+  --amber:#f0a63b; --amber-dim:#a2702b; --red:#e26852; --green:#8ec49f;
+  --paper:#efe7d5; --paper-2:#e3d8c1; --paper-ink:#1d2a2e;
+  --mono:ui-monospace,"Cascadia Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --sans:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --display:"Bahnschrift","DIN Alternate","Arial Narrow","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ink); color:var(--text); font-family:var(--sans);
+  font-size:13px; line-height:1.5; overflow-x:hidden;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0 39px,rgba(137,169,177,.028) 39px 40px),
+    repeating-linear-gradient(90deg,transparent 0 39px,rgba(137,169,177,.028) 39px 40px);
+}
+body::before{
+  content:""; position:fixed; inset:0 0 auto 0; height:4px; z-index:50; pointer-events:none;
+  background:repeating-linear-gradient(90deg,var(--amber) 0 14px,var(--ink) 14px 28px);
+  opacity:.75;
+}
+button,select,input{font:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button:disabled{cursor:not-allowed;opacity:.4}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+
+.frame{max-width:1600px;margin:0 auto;padding:0 22px 22px;min-height:100vh;display:flex;flex-direction:column}
+.masthead{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 0 12px;margin-bottom:14px;border-bottom:1px solid var(--rule);
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:38px;height:38px;flex:none;display:grid;place-items:center;
+  border:1px solid var(--amber-dim);color:var(--amber);font:800 15px/1 var(--display);
+  letter-spacing:-.06em;position:relative;
+}
+.brand-mark::after{content:"";position:absolute;inset:4px;border:1px solid rgba(240,166,59,.22)}
+.brand-title{font:800 16px/1.1 var(--display);letter-spacing:.22em;text-transform:uppercase}
+.brand-sub{margin-top:3px;color:var(--dim);font:600 9px/1 var(--mono);letter-spacing:.2em}
+.mast-right{display:flex;align-items:center;gap:12px;color:var(--muted);font:600 10px/1 var(--mono);letter-spacing:.1em}
+.mast-status{display:flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--rule)}
+.lamp{width:7px;height:7px;background:var(--dim);border-radius:50%}
+.lamp.on{background:var(--amber);box-shadow:0 0 0 3px rgba(240,166,59,.12)}
+.lamp.pause{background:var(--red);box-shadow:0 0 0 3px rgba(226,104,82,.12)}
+
+.view{display:none;flex:1;min-height:0}
+.view.active{display:flex;flex-direction:column}
+/* 游戏视图锁定视口高度：只有确定高度，flex:1 的 play-grid 才会收缩并让出底部状态栏 */
+body[data-view="play"],body[data-view="driver"]{height:100vh;height:100dvh;overflow:hidden}
+body[data-view="play"] .frame,body[data-view="driver"] .frame{height:100vh;height:100dvh;min-height:0;overflow:hidden;padding-bottom:12px}
+
+/* ---------- 菜单 ---------- */
+.menu-hero{padding:clamp(18px,4vh,48px) 0 26px;max-width:1040px}
+.kicker{margin:0 0 14px;color:var(--amber);font:800 10px/1 var(--mono);letter-spacing:.28em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.kicker::before{content:"";width:26px;height:1px;background:var(--amber)}
+.hero-title{margin:0;font:800 clamp(48px,9vw,104px)/.92 var(--display);letter-spacing:-.045em;text-transform:uppercase}
+.hero-title span{color:var(--amber)}
+.hero-sub{margin:12px 0 0;color:var(--muted);font:600 12px/1 var(--mono);letter-spacing:.3em;text-transform:uppercase}
+.lede{max-width:560px;margin:22px 0 30px;color:var(--muted);font-size:13px;line-height:1.85}
+.lede b{color:var(--text);font-weight:650}
+.mode-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1040px}
+.mode-card{
+  text-align:left;color:var(--text);background:var(--panel);border:1px solid var(--rule);
+  border-left:3px solid var(--amber);padding:18px 20px 17px;transition:background .18s,border-color .18s,transform .18s;
+}
+.mode-card:hover{background:var(--panel-2);border-color:var(--amber-dim);transform:translateY(-2px)}
+.mode-card .num{display:block;color:var(--amber);font:800 10px/1 var(--mono);letter-spacing:.2em}
+.mode-card h3{margin:12px 0 7px;font:750 20px/1.1 var(--display);letter-spacing:.02em}
+.mode-card p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.7}
+.mode-tag{display:inline-block;margin-top:14px;padding:4px 8px;border:1px solid var(--rule);color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.14em}
+.menu-foot{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:24px}
+.spec-band{display:flex;flex-wrap:wrap;margin-top:34px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.spec-band span{padding:11px 16px;border-right:1px solid var(--rule-soft);color:var(--dim);font:600 9px/1.3 var(--mono);letter-spacing:.1em}
+.spec-band b{display:block;margin-top:6px;color:var(--text);font:750 12px/1 var(--mono);letter-spacing:0}
+.record-wall{margin-top:auto;padding:16px 0 0;border-top:1px solid var(--rule)}
+.wall-title{color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.2em;margin-bottom:11px}
+.wall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.wall-cell{padding:9px 11px;border:1px solid var(--rule-soft);background:rgba(20,33,40,.6)}
+.wall-cell span{display:block;color:var(--dim);font:600 9px/1.3 var(--mono);letter-spacing:.08em}
+.wall-cell strong{display:block;margin-top:5px;color:var(--text);font:700 15px/1 var(--mono)}
+.wall-empty{color:var(--dim);font-size:11px}
+
+/* ---------- 通用按钮 ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:32px;padding:0 12px;border:1px solid var(--rule);background:var(--panel-2);
+  color:var(--text);font:650 11px/1 var(--sans);letter-spacing:.02em;transition:background .15s,border-color .15s,color .15s;
+}
+.btn:hover{background:#20343d;border-color:#47606a}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#172227;font-weight:800}
+.btn.primary:hover{background:#ffbb54}
+.btn.ghost{background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--text)}
+.btn.active{border-color:var(--amber);color:var(--amber)}
+.btn.warn{border-color:rgba(226,104,82,.5);color:var(--red)}
+.btn.small{min-height:26px;padding:0 8px;font-size:10px}
+.btn.icon{min-width:32px;padding:0 7px}
+
+/* ---------- 关卡选择 ---------- */
+.section-head{display:flex;align-items:center;gap:16px;padding:4px 0 18px;flex-wrap:wrap}
+.section-head h2{margin:0;font:750 20px/1 var(--display);letter-spacing:.06em}
+.section-head .spacer{flex:1}
+.section-head .note{color:var(--dim);font:600 10px/1 var(--mono);letter-spacing:.12em}
+.level-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-content:start}
+.level-card{
+  text-align:left;color:var(--text);background:var(--panel);border:1px solid var(--rule);
+  padding:16px 17px 15px;position:relative;transition:transform .18s,border-color .18s,background .18s;min-height:170px;
+  display:flex;flex-direction:column;
+}
+.level-card:not(.locked):hover{transform:translateY(-3px);border-color:var(--amber-dim);background:var(--panel-2)}
+.level-card.locked{opacity:.48}
+.level-card.cleared::after{content:"已通关";position:absolute;top:14px;right:14px;color:var(--green);font:700 9px/1 var(--mono);letter-spacing:.1em}
+.level-num{color:var(--amber);font:800 11px/1 var(--mono);letter-spacing:.18em}
+.level-name{margin:12px 0 6px;font:750 19px/1.1 var(--display)}
+.level-tag{display:inline-block;padding:3px 7px;border:1px solid var(--rule);color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.1em}
+.level-brief{margin:11px 0 0;color:var(--muted);font-size:11px;line-height:1.65;flex:1}
+.level-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--rule-soft)}
+.stars{font:700 15px/1 var(--mono);letter-spacing:.14em;color:var(--amber)}
+.stars .off{color:#3b4d55}
+.level-best{color:var(--dim);font:600 10px/1 var(--mono)}
+
+/* ---------- 游戏 HUD ---------- */
+#view-menu{position:relative;overflow:hidden}
+#view-menu::after{
+  content:"LYJY–01";position:absolute;right:4%;bottom:92px;pointer-events:none;white-space:nowrap;
+  font:800 clamp(90px,14vw,190px)/1 var(--display);letter-spacing:-.07em;color:rgba(137,169,177,.035);
+}
+#view-play{gap:10px}
+.hud{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--rule);background:var(--panel)}
+.hud-left{min-width:190px}
+.hud-title{font:750 15px/1.1 var(--display);letter-spacing:.06em}
+.hud-sub{margin-top:4px;color:var(--dim);font:600 9px/1 var(--mono);letter-spacing:.1em}
+.hud-stats{display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap}
+.stat{padding:0 15px;border-left:1px solid var(--rule-soft);min-width:78px}
+.stat-label{display:block;color:var(--dim);font:600 9px/1 var(--mono);letter-spacing:.1em}
+.stat-value{display:block;margin-top:5px;font:750 17px/1 var(--mono);letter-spacing:-.03em}
+.stat-value.amber{color:var(--amber)}
+.stat-value.red{color:var(--red)}
+.hud-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.play-grid{display:grid;grid-template-columns:262px minmax(0,1fr) 300px;grid-template-rows:minmax(0,1fr);gap:10px;flex:1;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--rule);display:flex;flex-direction:column;min-height:0;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--rule);flex:none}
+.panel-title{font:750 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase}
+.panel-tag{color:var(--dim);font:600 9px/1 var(--mono);letter-spacing:.1em}
+.col-left,.col-right{overflow:hidden}
+
+/* ---------- 乘客票卡 ---------- */
+.queue-list{display:flex;flex-direction:column;gap:8px;padding:10px;overflow-y:auto;flex:1;min-height:0}
+.queue-empty{margin:auto;padding:22px 14px;text-align:center;color:var(--dim);font-size:11px;line-height:1.8;border:1px dashed var(--rule)}
+.queue-empty b{display:block;color:var(--muted);font:700 12px/1.6 var(--mono)}
+.ticket{background:var(--paper);color:var(--paper-ink);border:1px solid #c9bda4;border-left:4px solid var(--amber-dim);padding:9px 10px 8px;position:relative}
+.ticket::after{content:"";position:absolute;right:-4px;top:50%;width:8px;height:8px;border-radius:50%;background:var(--panel);transform:translateY(-50%)}
+.ticket.vip{border-left-color:#c2912c;background:#f6ecd0}
+/* 预警用静态高对比；无限脉冲只给最紧急的少数几张，乘客多时不再拖垮合成器 */
+.ticket.warn{border-left-color:var(--red);box-shadow:0 0 0 2px rgba(226,104,82,.13)}
+.ticket.warn-pulse{animation:ticketPulse 1.1s ease-in-out infinite}
+@keyframes ticketPulse{50%{box-shadow:0 0 0 4px rgba(226,104,82,.22)}}
+.queue-more{padding:8px 9px;border:1px dashed var(--rule);color:var(--dim);font:600 10px/1.5 var(--sans);text-align:center;flex:none}
+.ticket-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ticket-id{font:800 10px/1 var(--mono);letter-spacing:.1em;color:#6c6555}
+.ticket-badge{font:800 9px/1 var(--mono);letter-spacing:.1em;color:#8a6420}
+.ticket-route{display:flex;align-items:baseline;gap:6px;margin:7px 0 8px}
+.ticket-route b{font:800 17px/1 var(--mono);letter-spacing:-.04em}
+.ticket-route i{font-style:normal;color:#968a72}
+.ticket-route em{margin-left:auto;font-style:normal;font:800 14px/1 var(--mono);color:#8a6420}
+.ticket-wait{display:flex;align-items:center;gap:7px}
+.wait-bar{flex:1;height:4px;background:#d3c7ad;overflow:hidden}
+.wait-bar i{display:block;height:100%;background:#8a6420;transition:width .3s linear}
+.ticket.warn .wait-bar i{background:var(--red)}
+.wait-text{font:700 9px/1 var(--mono);color:#6c6555;white-space:nowrap}
+.ticket-actions{display:flex;gap:5px;margin-top:8px}
+.chip-btn{flex:1;min-height:25px;border:1px solid #a99d84;background:transparent;color:#26343a;font:750 10px/1 var(--sans)}
+.chip-btn:hover{background:#ddd1b8}
+.chip-btn.primary{background:#1d2a2e;border-color:#1d2a2e;color:var(--paper)}
+.chip-btn.primary:hover{background:#31454c}
+.ticket-hint{display:flex;align-items:center;gap:6px;margin-top:7px;padding-top:6px;border-top:1px dashed #cfc3aa;font-size:9.5px;color:#6c6555}
+.ticket-hint .hint-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ticket-hint b{color:#8a6420}
+.link-btn{border:0;background:transparent;color:#8a6420;font:800 9.5px/1 var(--sans);text-decoration:underline;padding:2px}
+
+/* ---------- 楼宇剖面 ---------- */
+.col-mid{overflow:hidden}
+.building-wrap{flex:1;min-height:0;overflow:auto;padding:10px 12px 14px}
+.building{--floor-h:clamp(30px,5.1vh,44px);--move-ms:2000ms;position:relative;min-width:230px}
+.floor-stack{display:flex;flex-direction:column-reverse;position:relative}
+.floor-row{position:relative;height:var(--floor-h);display:grid;grid-template-columns:50px 1fr;border-top:1px solid var(--rule-soft)}
+.floor-row:last-child{border-bottom:1px solid var(--rule-soft)}
+.floor-label{display:flex;align-items:center;justify-content:flex-end;padding-right:9px;border-right:1px solid var(--rule-soft);font:700 10px/1 var(--mono);color:var(--dim);position:relative;letter-spacing:.06em}
+.floor-label::after{content:"";position:absolute;right:0;top:50%;width:7px;height:1px;background:var(--rule)}
+.floor-row.is-target .floor-label{color:var(--amber);background:rgba(240,166,59,.06)}
+.floor-body{position:relative}
+.waiting{position:absolute;left:8px;top:50%;transform:translateY(-50%);display:flex;gap:3px;z-index:3;max-width:88px;flex-wrap:wrap}
+.pax-dot{width:17px;height:17px;display:grid;place-items:center;border:1px solid #56707a;background:#1d2f37;color:#b9cdd1;font:800 10px/1 var(--mono);cursor:pointer}
+.pax-dot:hover{border-color:var(--amber);color:var(--amber)}
+.pax-dot.vip{border-color:#c2912c;color:var(--amber);background:#342a17}
+.pax-dot.warn{border-color:var(--red);color:var(--red);background:rgba(226,104,82,.12)}
+.pax-dot.warn-pulse{animation:dotPulse 1s ease-in-out infinite}
+.pax-dot.pax-more{width:auto;min-width:20px;padding:0 2px;background:rgba(240,166,59,.1);border-color:var(--amber-dim);color:var(--amber);font-size:9px}
+@keyframes dotPulse{50%{background:rgba(226,104,82,.3)}}
+.shafts{position:absolute;top:0;bottom:0;left:150px;right:0;display:flex;z-index:2;pointer-events:none}
+.shaft{position:relative;flex:1;border-left:1px solid rgba(105,138,150,.14);background:repeating-linear-gradient(180deg,transparent 0 calc(var(--floor-h) - 1px),rgba(105,138,150,.09) calc(var(--floor-h) - 1px) var(--floor-h))}
+.shaft::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(105,138,150,.16)}
+.shaft-head{position:absolute;top:-20px;left:0;right:0;text-align:center;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.12em}
+.cab{
+  position:absolute;bottom:0;left:50%;width:min(72px,calc(100% - 10px));height:calc(var(--floor-h) - 5px);
+  transform:translate(-50%,0);transition:transform var(--move-ms) linear;pointer-events:auto;cursor:pointer;z-index:4;
+}
+.cab-frame{position:absolute;inset:0;border:1px solid var(--amber-dim);background:#1a2b32;overflow:hidden}
+.cab.is-selected .cab-frame{border-color:var(--amber);box-shadow:inset 0 0 0 1px rgba(240,166,59,.35)}
+.cab.is-suggested .cab-frame{outline:2px solid var(--green);outline-offset:2px}
+.cab.is-idle .cab-frame{border-color:#3d5660}
+.door{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(180deg,#2a3f48,#20323a);border:1px solid #3c5660;transition:transform .34s cubic-bezier(.2,.8,.2,1);z-index:2}
+.door-l{left:0;border-right:0}.door-r{right:0;border-left:0}
+.cab.is-open .door-l{transform:translateX(-94%)}
+.cab.is-open .door-r{transform:translateX(94%)}
+.cab-info{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.cab-id{font:800 10px/1 var(--mono);letter-spacing:.08em;color:var(--amber)}
+.cab.is-idle .cab-id{color:#8ca3aa}
+.cab-dir{font:700 9px/1 var(--mono);color:var(--text);margin-top:1px}
+.cab-load{font:700 8px/1 var(--mono);color:var(--muted);margin-top:1px}
+.building-cap{display:flex;justify-content:space-between;gap:10px;margin-top:9px;color:var(--dim);font:600 9px/1.5 var(--mono);letter-spacing:.06em}
+.legend{display:inline-flex;align-items:center;gap:5px}
+.legend::before{content:"";width:8px;height:8px;border:1px solid var(--amber-dim);background:#1a2b32}
+
+/* ---------- 电梯控制卡 ---------- */
+.elev-list{display:flex;flex-direction:column;gap:9px;padding:10px;overflow-y:auto;flex:1;min-height:0}
+.elev-card{border:1px solid var(--rule);background:var(--panel-2);padding:10px 11px;cursor:pointer}
+.elev-card.is-selected{border-color:var(--amber);box-shadow:inset 3px 0 0 var(--amber)}
+.elev-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.elev-name{font:800 12px/1 var(--mono);letter-spacing:.12em;color:var(--amber)}
+.state-chip{padding:3px 7px;border:1px solid var(--rule);color:var(--muted);font:700 9px/1 var(--mono)}
+.state-chip.moving{color:var(--amber);border-color:var(--amber-dim)}
+.state-chip.doors{color:var(--green);border-color:#3c6d55}
+.elev-readout{display:flex;align-items:baseline;gap:10px;margin:9px 0 7px}
+.big-floor{font:800 25px/1 var(--mono);letter-spacing:-.06em}
+.elev-detail{color:var(--muted);font:600 10px/1.4 var(--mono)}
+.load-bar{height:4px;background:#22343c;overflow:hidden;margin-bottom:9px}
+.load-bar i{display:block;height:100%;background:var(--amber);transition:width .25s}
+.subhead{display:flex;align-items:center;justify-content:space-between;margin:8px 0 5px;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.subhead small{font-weight:600;letter-spacing:0;text-transform:none}
+.floor-keys{display:flex;flex-wrap:wrap;gap:4px;max-height:76px;overflow-y:auto}
+.key{min-width:29px;height:24px;border:1px solid var(--rule);background:#0f1c22;color:var(--muted);font:700 10px/1 var(--mono);padding:0 3px}
+.key:hover{border-color:var(--amber);color:var(--amber)}
+.key.is-target{border-color:var(--amber-dim);color:var(--amber);background:rgba(240,166,59,.09)}
+.task-list{display:flex;flex-direction:column;gap:3px}
+.task-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 6px;background:#101d23;border-left:2px solid #40565f;font:600 9.5px/1.3 var(--mono);color:#adbec1}
+.task-row.pickup{border-left-color:var(--amber)}
+.task-row.dropoff{border-left-color:var(--green)}
+.task-x{border:0;background:transparent;color:var(--dim);font:800 13px/1 var(--mono);padding:0 3px}
+.task-x:hover{color:var(--red)}
+.task-empty{color:var(--dim);font-size:10px;padding:4px 0}
+
+/* ---------- 沙盒配置 ---------- */
+.sandbox-config{border-bottom:1px solid var(--rule);padding:10px;flex:none;max-height:44%;overflow-y:auto}
+body[data-mode="campaign"] .sandbox-config{display:none}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cfg-field{min-width:0}
+.cfg-field label{display:block;color:var(--dim);font:600 9px/1 var(--mono);letter-spacing:.08em;margin-bottom:4px}
+.cfg-field select,.cfg-field input{width:100%;height:29px;padding:0 7px;border:1px solid var(--rule);background:#0f1c22;color:var(--text);font:600 11px/1 var(--mono)}
+.cfg-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.trip-row{display:flex;align-items:center;gap:6px;margin-top:9px;padding-top:9px;border-top:1px solid var(--rule-soft)}
+.trip-row select{flex:1;min-width:0;height:28px;padding:0 5px;border:1px solid var(--rule);background:#0f1c22;color:var(--text);font:600 10px/1 var(--mono)}
+.trip-row span{color:var(--dim);font:700 11px/1 var(--mono)}
+.switch{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:10px;cursor:pointer}
+.switch input{accent-color:var(--amber);width:14px;height:14px}
+
+/* ---------- 状态栏 ---------- */
+.statusbar{display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(0,2fr);gap:10px;flex:none}
+.status-block{border:1px solid var(--rule);background:var(--panel);padding:9px 11px;min-width:0}
+.hintbar{min-height:52px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.hint-main{font-size:11.5px;line-height:1.5}
+.hintbar.warn .hint-main{color:var(--red)}
+.hintbar.notice .hint-main{color:var(--amber)}
+.hint-sub{color:var(--dim);font:600 9px/1.4 var(--mono);letter-spacing:.06em}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:6px}
+.metric{padding:6px 8px;background:var(--panel-2);border:1px solid var(--rule-soft)}
+.metric-label{display:block;color:var(--dim);font:600 9px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric-value{display:block;margin-top:4px;font:750 13px/1 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule-soft);display:none}
+body[data-mode="sandbox"] .compare{display:block}
+.compare table{width:100%;border-collapse:collapse;font:600 9.5px/1.4 var(--mono)}
+.compare th{color:var(--dim);text-align:left;font-weight:700;padding:2px 5px;border-bottom:1px solid var(--rule-soft);white-space:nowrap}
+.compare td{padding:3px 5px;color:var(--muted);white-space:nowrap}
+.compare tr.now td{color:var(--amber)}
+.log{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule-soft);max-height:78px;overflow:hidden}
+.log-line{color:var(--dim);font:600 9.5px/1.35 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-line.ok{color:var(--green)}
+.log-line.bad{color:var(--red)}
+
+/* ---------- 弹层 ---------- */
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(5,11,13,.82);display:grid;place-items:center;padding:20px}
+.modal{width:min(620px,100%);max-height:min(86vh,760px);overflow:auto;background:var(--panel);border:1px solid var(--amber-dim);box-shadow:0 28px 80px rgba(0,0,0,.55)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--rule)}
+.modal-title{margin:0;font:750 19px/1.1 var(--display);letter-spacing:.05em}
+.modal-kicker{color:var(--amber);font:700 9px/1 var(--mono);letter-spacing:.2em;margin-bottom:7px}
+.modal-body{padding:18px}
+.modal-foot{position:sticky;bottom:0;z-index:2;display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--rule);background:var(--panel);box-shadow:0 -10px 22px rgba(8,15,18,.65)}
+.result-hero{display:flex;align-items:center;gap:20px;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+.result-stars{font:800 30px/1 var(--mono);letter-spacing:.1em;color:var(--amber)}
+.result-stars .off{color:#3b4d55}
+.result-score{font:800 38px/1 var(--mono);letter-spacing:-.05em;margin-left:auto}
+.result-score small{display:block;color:var(--dim);font:600 9px/1.4 var(--mono);letter-spacing:.14em;text-align:right;margin-top:5px}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:16px 0}
+.result-cell{padding:9px 10px;background:var(--panel-2);border:1px solid var(--rule-soft)}
+.result-cell span{display:block;color:var(--dim);font:600 9px/1.2 var(--mono)}
+.result-cell strong{display:block;margin-top:5px;font:750 15px/1 var(--mono)}
+.breakdown{margin:14px 0}
+.breakdown-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dotted var(--rule-soft);font:600 11px/1.4 var(--mono);color:var(--muted)}
+.breakdown-row b{color:var(--text)}
+.breakdown-row.plus b{color:var(--green)}
+.breakdown-row.minus b{color:var(--red)}
+.advice{margin:14px 0 0;padding:12px 14px;background:rgba(240,166,59,.07);border-left:3px solid var(--amber)}
+.advice h4{margin:0 0 8px;color:var(--amber);font:750 10px/1 var(--mono);letter-spacing:.14em}
+.advice ul{margin:0;padding-left:16px;color:var(--muted);font-size:11px;line-height:1.8}
+.tutorial-step{display:flex;gap:16px;align-items:flex-start}
+.tutorial-num{font:800 44px/1 var(--display);color:var(--amber);letter-spacing:-.06em;min-width:56px}
+.tutorial-step h4{margin:2px 0 8px;font:750 16px/1.2 var(--display)}
+.tutorial-step p{margin:0;color:var(--muted);font-size:12px;line-height:1.85}
+.tutorial-step p b{color:var(--text)}
+.tutorial-dots{display:flex;gap:5px;margin-top:18px}
+.tutorial-dots i{width:22px;height:3px;background:var(--rule)}
+.tutorial-dots i.on{background:var(--amber)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--rule-soft)}
+.settings-row span{font-size:12px}
+.settings-row small{display:block;color:var(--dim);font-size:10px;margin-top:3px}
+.settings-row select{height:30px;padding:0 8px;border:1px solid var(--rule);background:#0f1c22;color:var(--text);font:600 11px/1 var(--mono)}
+.settings-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--amber)}
+
+/* ---------- 浮字 ---------- */
+#fx-root{position:fixed;inset:0;pointer-events:none;z-index:120}
+.floater{position:fixed;transform:translate(-50%,-50%);font:800 17px/1 var(--mono);letter-spacing:-.02em;animation:floatUp 1.15s cubic-bezier(.16,1,.3,1) forwards;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.floater.good{color:var(--green)}
+.floater.bad{color:var(--red)}
+.floater.info{color:var(--amber);font-size:14px}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,-30%) scale(.85)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-190%) scale(1.05)}}
+
+/* ---------- 第三模式：第一人称单梯驾驶 ---------- */
+.driver-grid{display:grid;grid-template-columns:minmax(220px,1fr) minmax(340px,1.45fr) minmax(220px,1fr);grid-template-rows:minmax(0,1fr);gap:10px;flex:1;min-height:0}
+#view-driver .panel{min-width:0}
+.floor-board{flex:1;min-height:0;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px}
+.floor-line{display:grid;grid-template-columns:52px minmax(0,1fr) auto;grid-template-rows:auto auto;gap:3px 8px;align-items:center;padding:6px 8px;border:1px solid var(--rule-soft);background:var(--panel-2);position:relative;flex:none}
+.floor-line.is-here{border-color:var(--amber);box-shadow:inset 3px 0 0 var(--amber)}
+.floor-line.is-target::after{content:"目标";position:absolute;top:4px;right:8px;color:var(--amber);font:700 8px/1 var(--mono);letter-spacing:.1em}
+.floor-go{grid-row:1/3;height:40px;border:1px solid var(--rule);background:#0f1c22;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:800 13px/1 var(--mono)}
+.floor-go small{font:600 7px/1 var(--mono);color:var(--dim);letter-spacing:.08em}
+.floor-go:hover{border-color:var(--amber);color:var(--amber)}
+.is-here .floor-go{border-color:var(--amber-dim);color:var(--amber)}
+.floor-meta{grid-column:2;grid-row:1;display:flex;justify-content:space-between;gap:6px;min-width:0}
+.floor-n{font:750 11px/1.2 var(--sans);color:var(--muted);white-space:nowrap}
+.is-called .floor-n{color:var(--amber)}
+.floor-dirs{font:600 9px/1.2 var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.is-dest .floor-dirs{color:var(--green)}
+.floor-bar{grid-column:2;grid-row:2;height:3px;background:#22343c;overflow:hidden}
+.floor-bar i{display:block;height:100%;background:var(--amber-dim)}
+.floor-wait{grid-column:3;grid-row:1/3;align-self:center;font:600 8px/1.2 var(--mono);color:var(--dim);white-space:nowrap}
+
+.cab-panel{overflow:hidden}
+.cab-scene{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px;overflow-y:auto;
+  background:radial-gradient(ellipse at 50% -10%,rgba(240,166,59,.07),transparent 62%),var(--panel)}
+.cab-top{display:flex;align-items:baseline;gap:14px;padding:9px 13px;border:1px solid var(--rule);background:#0d181d;flex:none}
+.cab-floor-num{font:800 clamp(40px,5.4vw,66px)/1 var(--mono);letter-spacing:-.08em;color:var(--amber)}
+.cab-floor-num::after{content:"F";font-size:.28em;margin-left:7px;letter-spacing:0}
+.cab-dir-lamp{font:800 24px/1 var(--mono);color:var(--text)}
+.cab-load-num{margin-left:auto;font:700 14px/1 var(--mono);color:var(--muted)}
+.cab-doors{position:relative;height:clamp(170px,29vh,270px);border:2px solid #3a505a;background:#0a1216;overflow:hidden;flex:none}
+.hall{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:linear-gradient(180deg,#1b2b33 0%,#223640 62%,#16242b 62%,#101c22 100%)}
+.hall-label{color:var(--muted);font:700 10px/1 var(--mono);letter-spacing:.18em}
+.hall-pax{display:flex;gap:8px;align-items:flex-end;height:50px}
+.hall-pax i{display:block;position:relative;width:13px;height:33px;background:#3b5560;border-radius:6px 6px 2px 2px}
+.hall-pax i::before{content:"";position:absolute;top:-11px;left:2px;width:9px;height:9px;border-radius:50%;background:#4a6772}
+.cabdoor{position:absolute;top:0;bottom:0;width:50%;z-index:2;border:1px solid #435d67;
+  background:linear-gradient(90deg,#25383f,#314a54 45%,#22343c);transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.cabdoor-l{left:0}.cabdoor-r{right:0}
+.cab-doors.is-open .cabdoor-l{transform:translateX(-97%)}
+.cab-doors.is-open .cabdoor-r{transform:translateX(97%)}
+.door-seam{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--amber-dim);z-index:3;opacity:.6;transition:opacity .2s}
+.cab-doors.is-open .door-seam{opacity:0}
+.cab-console{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;flex:none}
+.drv-btn{min-height:52px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font:750 12px/1.2 var(--sans);transition:background .15s,border-color .15s,color .15s}
+.drv-btn small{font:600 8px/1 var(--mono);color:var(--dim)}
+.drv-btn:hover{background:#20343d;border-color:var(--amber);color:var(--amber)}
+.drv-btn.up{border-left:3px solid var(--green)}
+.drv-btn.down{border-right:3px solid var(--red)}
+.cab-inner{border-top:1px solid var(--rule);padding-top:9px;flex:none}
+.inner-pax{display:flex;flex-wrap:wrap;gap:5px;min-height:28px}
+.inner-pax span{display:grid;place-items:center;min-width:38px;height:26px;padding:0 5px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);font:700 10px/1 var(--mono)}
+.inner-pax span.vip{border-color:#c2912c;color:var(--amber)}
+.inner-empty{color:var(--dim);font-size:10px;line-height:26px}
+.driver-side{flex:1;min-height:0;overflow-y:auto;padding:10px}
+.dest-list{display:flex;flex-direction:column;gap:4px}
+.dest-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--panel-2);border:1px solid var(--rule-soft);font:600 10px/1.3 var(--mono)}
+.dest-row b{color:var(--green)}
+.dest-row span{margin-left:auto;color:var(--muted)}
+.dest-row button{border:1px solid var(--rule);background:transparent;color:var(--amber);font:700 9px/1 var(--mono);padding:4px 6px}
+.dest-row button:hover{border-color:var(--amber)}
+#view-driver .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+#view-driver .log{max-height:none}
+.driver-tip{margin-top:12px;padding:10px;border:1px dashed var(--rule);color:var(--dim);font-size:10px;line-height:1.85}
+.driver-tip b{color:var(--amber)}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:1180px){
+  .play-grid{grid-template-columns:238px minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .col-right{grid-column:1/-1;max-height:270px}
+  .elev-list{flex-direction:row;flex-wrap:wrap}
+  .elev-card{flex:1 1 240px}
+  .statusbar{grid-template-columns:1fr}
+  .mode-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .driver-grid{grid-template-columns:minmax(0,1fr) minmax(300px,1.3fr);grid-template-rows:minmax(0,1fr) auto}
+  #view-driver .driver-grid > :nth-child(3){grid-column:1/-1;max-height:210px}
+}
+@media(max-width:760px){
+  .frame{padding:0 12px 14px}
+  .masthead{padding:12px 0 10px;flex-wrap:wrap}
+  .mast-right{width:100%;justify-content:space-between}
+  .mode-cards{grid-template-columns:1fr}
+  .hero-title{font-size:clamp(38px,11.5vw,70px)}
+  .driver-grid{display:flex;flex-direction:column;overflow-y:auto}
+  #view-driver .driver-grid > :nth-child(3){max-height:none}
+  .floor-board{max-height:230px}
+  .cab-doors{height:190px}
+  .hud{gap:9px}
+  .hud-left{min-width:0;flex:1}
+  .hud-stats{order:3;width:100%;border-top:1px solid var(--rule-soft);padding-top:9px}
+  .stat:first-child{border-left:0;padding-left:0}
+  .play-grid{display:flex;flex-direction:column}
+  .col-mid{order:1}.col-right{order:2;max-height:none}.col-left{order:3}
+  .col-left .queue-list{max-height:280px}
+  .building{--floor-h:clamp(28px,6vh,38px)}
+  .shafts{left:126px}
+  .waiting{max-width:68px}
+  .statusbar{grid-template-columns:1fr}
+  .wall-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:420px){
+  .stat{padding:0 9px;min-width:60px}
+  .stat-value{font-size:14px}
+  .hud-controls{width:100%}
+  .shafts{left:104px}
+  .waiting{max-width:46px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+body.reduced *,body.reduced *::before,body.reduced *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+</style>
+</head>
+<body data-mode="menu" data-view="menu">
+<div class="frame">
+  <header class="masthead">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">LY</div>
+      <div>
+        <div class="brand-title">LYJY垂直管制</div>
+        <div class="brand-sub">VERTICAL CONTROL · DISPATCH SIMULATOR V1.0</div>
+      </div>
+    </div>
+    <div class="mast-right">
+      <span id="mastMode">待机 / STANDBY</span>
+      <span class="mast-status"><i class="lamp" id="mastLamp"></i><span id="mastStatus">待机</span></span>
+    </div>
+  </header>
+
+  <!-- ============ 首页 ============ -->
+  <section class="view active" id="view-menu">
+    <div class="menu-hero">
+      <p class="kicker">TOWER OPERATIONS / SHIFT 01</p>
+      <h1 class="hero-title">LYJY<span>垂直管制</span></h1>
+      <p class="hero-sub">ELEVATOR DISPATCH · SIMULATOR &amp; GAME</p>
+      <p class="lede">一栋楼，几部梯，不断涌入的乘客。<b>由你决定每部电梯下一站去哪里</b>——让等待时间短一点，让抱怨少一点，让值班记录好看一点。</p>
+      <div class="mode-cards">
+        <button class="mode-card" type="button" data-act="go-levels">
+          <span class="num">MODE 01 / CAREER</span>
+          <h3>值班闯关</h3>
+          <p>五段班次逐级加压。手动派梯、抢在乘客失去耐心前接走他们，按候梯时间、完成量与能耗结算星级。</p>
+          <span class="mode-tag">5 关 · 星级 · 最高分</span>
+        </button>
+        <button class="mode-card" type="button" data-act="start-sandbox">
+          <span class="num">MODE 02 / SANDBOX</span>
+          <h3>自由沙盒</h3>
+          <p>自定义楼层、梯数、容量与客流，切换三种自动调度策略，用同一种子比较平均候梯与运行能耗。</p>
+          <span class="mode-tag">参数 · 算法 · 对照表</span>
+        </button>
+        <button class="mode-card" type="button" data-act="start-driver">
+          <span class="num">MODE 03 / CAB VIEW</span>
+          <h3>第一人称 · 单人驾驶</h3>
+          <p>整栋楼只有你这一部梯。看清每层等了多少人，按 ↑ / ↓ 亲自开梯；到站自动开门把人塞满，再把他们送到目的层。</p>
+          <span class="mode-tag">单梯 · 逐层 · 自动接客</span>
+        </button>
+      </div>
+      <div class="menu-foot">
+        <button class="btn primary" type="button" data-act="continue" id="continueBtn">继续上一关</button>
+        <button class="btn" type="button" data-act="settings">设置</button>
+        <button class="btn ghost" type="button" data-act="toggle-mute" id="menuMuteBtn">声音：开</button>
+        <button class="btn ghost" type="button" data-act="help">操作说明</button>
+      </div>
+      <div class="spec-band">
+        <span>楼宇规模 <b>04–14 F</b></span>
+        <span>梯群编组 <b>01–04 部</b></span>
+        <span>调度策略 <b>03 种</b></span>
+        <span>仿真步长 <b>1s / TICK</b></span>
+        <span>结果可复现 <b>SEEDED PRNG</b></span>
+      </div>
+    </div>
+    <div class="record-wall">
+      <div class="wall-title">值班记录 / SHIFT RECORD</div>
+      <div class="wall-grid" id="recordWall"></div>
+    </div>
+  </section>
+
+  <!-- ============ 关卡选择 ============ -->
+  <section class="view" id="view-levels">
+    <div class="section-head">
+      <button class="btn ghost small" type="button" data-act="go-menu">← 返回</button>
+      <h2>值班任务表</h2>
+      <span class="spacer"></span>
+      <span class="note" id="levelProgress"></span>
+    </div>
+    <div class="level-grid" id="levelGrid"></div>
+  </section>
+
+  <!-- ============ 游戏 / 沙盒 共用 ============ -->
+  <section class="view" id="view-play">
+    <header class="hud">
+      <div class="hud-left">
+        <div class="hud-title" id="hudTitle">—</div>
+        <div class="hud-sub" id="hudSub">—</div>
+      </div>
+      <div class="hud-stats">
+        <div class="stat"><span class="stat-label">模拟时间</span><strong class="stat-value tnum" id="hudTime">00:00</strong></div>
+        <div class="stat"><span class="stat-label">实时得分</span><strong class="stat-value amber tnum" id="hudScore">0</strong></div>
+        <div class="stat"><span class="stat-label">星级进度</span><strong class="stat-value tnum" id="hudStars">◇◇◇</strong></div>
+        <div class="stat"><span class="stat-label">连击</span><strong class="stat-value tnum" id="hudCombo">—</strong></div>
+      </div>
+      <div class="hud-controls">
+        <button class="btn small" type="button" data-act="toggle-pause" id="btnPause">暂停</button>
+        <button class="btn small" type="button" data-act="single-step" id="btnStep">单步</button>
+        <button class="btn small" type="button" data-act="cycle-speed" id="btnSpeed">1×</button>
+        <button class="btn small ghost" type="button" data-act="toggle-mute" id="btnMute">有声</button>
+        <button class="btn small ghost" type="button" data-act="restart">重开</button>
+        <button class="btn small ghost" type="button" data-act="help">?</button>
+        <button class="btn small ghost" type="button" data-act="go-menu">退出</button>
+      </div>
+    </header>
+
+    <div class="play-grid">
+      <aside class="panel col-left">
+        <div class="panel-head"><span class="panel-title">候梯队列</span><span class="panel-tag" id="queueCount">0 位等待</span></div>
+        <div class="sandbox-config" id="sandboxConfig">
+          <div class="cfg-grid">
+            <div class="cfg-field"><label for="cfgFloors">楼层数</label><select id="cfgFloors"></select></div>
+            <div class="cfg-field"><label for="cfgCars">电梯数</label><select id="cfgCars"></select></div>
+            <div class="cfg-field"><label for="cfgInterval">客流间隔 / 秒</label><select id="cfgInterval"></select></div>
+            <div class="cfg-field"><label for="cfgCapacity">每梯容量</label><select id="cfgCapacity"></select></div>
+            <div class="cfg-field"><label for="cfgSpeed">每层耗时 / tick</label><select id="cfgSpeed"></select></div>
+            <div class="cfg-field"><label for="cfgSeed">随机种子</label><input id="cfgSeed" type="number" min="1" max="99999" value="2026"></div>
+          </div>
+          <div class="cfg-actions">
+            <div class="cfg-field" style="flex:1"><label for="algoSelect">自动调度策略</label><select id="algoSelect"></select></div>
+          </div>
+          <div class="cfg-actions">
+            <button class="btn primary small" type="button" data-act="sandbox-apply">应用并重置</button>
+            <button class="btn small" type="button" data-act="toggle-traffic" id="trafficBtn" aria-pressed="true">自动客流：开</button>
+            <button class="btn small ghost" type="button" data-act="record-compare">记录本轮</button>
+          </div>
+          <div class="trip-row">
+            <select id="tripFrom" aria-label="起点楼层"></select><span>→</span><select id="tripTo" aria-label="目的楼层"></select>
+            <button class="btn small" type="button" data-act="sandbox-add-trip">加行程</button>
+          </div>
+        </div>
+        <div class="queue-list" id="queueList"></div>
+        <div class="queue-empty" id="queueEmpty" hidden><b>候梯区清空</b>暂时没有等待的乘客。<br>保持电梯待命即可。</div>
+      </aside>
+
+      <main class="panel col-mid">
+        <div class="panel-head"><span class="panel-title">楼宇剖面</span><span class="panel-tag" id="buildingTag">—</span></div>
+        <div class="building-wrap"><div class="building" id="building"></div></div>
+      </main>
+
+      <aside class="panel col-right">
+        <div class="panel-head"><span class="panel-title">梯群控制</span><span class="panel-tag" id="elevTag">—</span></div>
+        <div class="elev-list" id="elevList"></div>
+      </aside>
+    </div>
+
+    <footer class="statusbar">
+      <div class="status-block hintbar" id="hintbar">
+        <div class="hint-main" id="hintMain">—</div>
+        <div class="hint-sub" id="hintSub">—</div>
+      </div>
+      <div class="status-block">
+        <div class="metrics" id="metrics"></div>
+        <div class="compare" id="compare"></div>
+        <div class="log" id="log"></div>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ============ 第三模式：第一人称单梯驾驶 ============ -->
+  <section class="view" id="view-driver">
+    <header class="hud">
+      <div class="hud-left">
+        <div class="hud-title">单人驾驶 · CAB VIEW</div>
+        <div class="hud-sub" id="drvSub">一部梯，一整栋楼</div>
+      </div>
+      <div class="hud-stats">
+        <div class="stat"><span class="stat-label">值班时间</span><strong class="stat-value tnum" id="drvTime">00:00</strong></div>
+        <div class="stat"><span class="stat-label">实时得分</span><strong class="stat-value amber tnum" id="drvScore">0</strong></div>
+        <div class="stat"><span class="stat-label">已送达</span><strong class="stat-value tnum" id="drvDone">0</strong></div>
+        <div class="stat"><span class="stat-label">流失</span><strong class="stat-value red tnum" id="drvLost">0</strong></div>
+      </div>
+      <div class="hud-controls">
+        <button class="btn small" type="button" data-act="toggle-pause" id="drvPause">暂停</button>
+        <button class="btn small" type="button" data-act="single-step" id="drvStep">单步</button>
+        <button class="btn small" type="button" data-act="cycle-speed" id="drvSpeed">1×</button>
+        <button class="btn small ghost" type="button" data-act="toggle-mute" id="drvMute">有声</button>
+        <button class="btn small ghost" type="button" data-act="driver-finish">结束值班</button>
+        <button class="btn small ghost" type="button" data-act="go-menu">退出</button>
+      </div>
+    </header>
+
+    <div class="driver-grid">
+      <aside class="panel">
+        <div class="panel-head"><span class="panel-title">楼层呼叫板</span><span class="panel-tag" id="drvWaitTag">0 位候梯</span></div>
+        <div class="floor-board" id="drvFloors"></div>
+      </aside>
+
+      <main class="panel cab-panel">
+        <div class="panel-head"><span class="panel-title">轿厢视角 / INSIDE THE CAR</span><span class="panel-tag" id="drvStateTag">待命</span></div>
+        <div class="cab-scene">
+          <div class="cab-top">
+            <div class="cab-floor-num" id="drvFloorNum">01</div>
+            <div class="cab-dir-lamp" id="drvDir">—</div>
+            <div class="cab-load-num" id="drvLoad">0 / 8</div>
+          </div>
+          <div class="cab-doors" id="drvDoors">
+            <div class="hall" id="drvHall"></div>
+            <div class="cabdoor cabdoor-l"></div>
+            <div class="cabdoor cabdoor-r"></div>
+            <div class="door-seam"></div>
+          </div>
+          <div class="cab-console">
+            <button class="drv-btn up" type="button" data-act="drv-up">▲ 上行一层<small>W / ↑</small></button>
+            <button class="drv-btn open" type="button" data-act="drv-stop">◧ 本层开门<small>空格</small></button>
+            <button class="drv-btn down" type="button" data-act="drv-down">▼ 下行一层<small>S / ↓</small></button>
+          </div>
+          <div class="cab-inner">
+            <div class="subhead"><span>舱内乘客 · 目的层</span><small id="drvInnerCount">0 人</small></div>
+            <div class="inner-pax" id="drvInner"></div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="panel">
+        <div class="panel-head"><span class="panel-title">运行记录</span><span class="panel-tag">DRIVER LOG</span></div>
+        <div class="driver-side">
+          <div class="subhead"><span>待送达楼层</span><small>经过即自动下客</small></div>
+          <div class="dest-list" id="drvDests"></div>
+          <div class="subhead"><span>本班指标</span></div>
+          <div class="metrics" id="drvMetrics"></div>
+          <div class="subhead"><span>值班日志</span></div>
+          <div class="log" id="drvLog"></div>
+          <div class="driver-tip">↑ / ↓（或 W / S）逐层开梯，连按可叠加目标；点左侧楼层可直接前往。<b>每经过一层都会自动开门</b>，先把到站的乘客放下，再把该层候梯的人塞满轿厢。数字键 1–9 / 0 直达楼层，P 暂停，空格本层开门。</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<div id="modal-root"></div>
+<div id="fx-root"></div>
+<div id="live-region" class="sr-only" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ============================================================
+   1. CONFIG — 所有可调数值集中在此
+   ============================================================ */
+const CFG = {
+  TICK_MS: 1000, SPEEDS: [1, 2, 4], DOOR_TICKS: 2,
+  WARN_WAIT: 16, LOSE_WAIT: 34, VIP_WAIT_MUL: .55, VIP_SCORE_MUL: 2,
+  LOST_PENALTY: 80, VIP_LOST_PENALTY: 220,
+  COMBO_WINDOW: 8, COMBO_CAP: 10,
+  ENERGY_PER_FLOOR: 1, ENERGY_LOAD: .12, ENERGY_PER_DOOR: .5,
+  FRAME_CLAMP_MS: 250, STEP_GUARD: 8,
+  MAX_TICKETS: 24, MAX_DOTS_PER_FLOOR: 6, MAX_FLOATERS: 10, MAX_PULSE: 3,
+  DRIVER_LOSE_WAIT: 50, DRIVER_WARN_WAIT: 24
+};
+
+const ALGOS = { nearest: "最近优先", fcfs: "先来先服务", scan: "方向扫描" };
+
+const LEVELS = [
+  { id:1, name:"入职演练", tag:"入门", floors:6, elevators:2, capacity:6, ticksPerFloor:2,
+    baseInterval:6.0, duration:90, seed:1001, events:[], targets:{t1:900,t2:1600,t3:2300},
+    doneTarget:8, lostCap:10, brief:"熟悉选梯与派梯。乘客不多，先把每一次接送跑通。" },
+  { id:2, name:"早高峰", tag:"低层上行", floors:8, elevators:2, capacity:8, ticksPerFloor:2,
+    baseInterval:6.2, duration:110, seed:1002,
+    events:[{type:"rush",from:0,to:38,origins:[1,2],dirBias:"up",rateMul:1.3}],
+    targets:{t1:800,t2:1400,t3:2100}, doneTarget:9, lostCap:20,
+    brief:"客流放缓、换上大容量轿厢。前 38 秒大堂有上行小高峰，顺路捎带就能稳住。" },
+  { id:3, name:"中层会议", tag:"中段爆发", floors:10, elevators:3, capacity:8, ticksPerFloor:2,
+    baseInterval:4.4, duration:120, seed:1003,
+    events:[{type:"burst",from:40,to:75,origins:[5,6],rateMul:1.9}],
+    targets:{t1:1900,t2:3200,t3:4700}, doneTarget:15, lostCap:16,
+    brief:"会议散场时 5–6 层集中叫梯，三部梯需要分头覆盖高低区。" },
+  { id:4, name:"VIP 急客", tag:"优先级", floors:12, elevators:3, capacity:8, ticksPerFloor:2,
+    baseInterval:4.1, duration:130, seed:1004,
+    events:[{type:"vip",from:0,to:130,chance:.12}],
+    targets:{t1:2400,t2:3300,t3:5200}, doneTarget:18, lostCap:16,
+    brief:"金色票卡是 VIP：耐心更短，但完成分翻倍。用「优先」插队。" },
+  { id:5, name:"晚高峰 · 终局", tag:"综合", floors:14, elevators:4, capacity:10, ticksPerFloor:1,
+    baseInterval:3.5, duration:150, seed:1005,
+    events:[{type:"rush",from:60,to:150,origins:[10,11,12,13,14],dirBias:"down",rateMul:1.5},
+            {type:"burst",from:85,to:105,origins:[7,8],rateMul:1.55},
+            {type:"vip",from:0,to:150,chance:.08}],
+    targets:{t1:3200,t2:5000,t3:7200}, doneTarget:24, lostCap:30,
+    brief:"高层下行叠加中段爆发。四部梯、更快的运行速度，节奏也更快。" }
+];
+
+const SANDBOX_DEFAULT = {
+  floors:10, elevators:3, capacity:8, ticksPerFloor:2, baseInterval:5,
+  seed:2026, events:[], duration:0, targets:null, doneTarget:0, lostCap:Infinity,
+  name:"自由沙盒", brief:"", id:null
+};
+/* 第三模式：整栋楼只有一部梯，全自动上下客，玩家只负责决定往上还是往下 */
+const DRIVER_DEFAULT = {
+  floors:10, elevators:1, capacity:8, ticksPerFloor:2, baseInterval:4.6,
+  seed:6060, duration:0, targets:null, doneTarget:0, lostCap:Infinity,
+  events:[{ type:"vip", from:0, to:999999, chance:.06 }],
+  name:"单人驾驶", brief:"", id:null
+};
+
+const TUTORIAL_STEPS = [
+  { h:"选一部电梯", p:"点击楼宇剖面里的<b>轿厢</b>，或右侧的<b>电梯卡</b>，也可以直接按数字键 <b>1 / 2 / 3</b>。被选中的电梯会有琥珀色描边。" },
+  { h:"把乘客交给它", p:"左侧每张<b>纸票</b>是一位等待的乘客。点「派给 E1」下达接客指令，指令进入该梯的任务队列。电梯到站时会<b>顺路捎带</b>同方向、还没派单的乘客，不必把每张票都点一遍。" },
+  { h:"别让人等太久", p:"票卡变红说明乘客快没耐心了（超过 <b>34 秒</b>会离开并扣分）。<b>优先</b>按钮可把指令插到队首；<b>建议</b>只提示最合适的电梯，不会替你做决定。" },
+  { h:"分数从哪来", p:"越快接走、连续完成（<b>8 秒内连击</b>）分数越高；空跑会折算能耗扣分。班次结束时按总分给 1–3 星，成绩保存在本机。" }
+];
+
+/* ============================================================
+   2. UTIL
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad2 = n => String(n).padStart(2, "0");
+const pad3 = n => String(n).padStart(3, "0");
+const fLabel = f => pad2(f) + "F";
+const tLabel = s => pad2(Math.floor(s / 60)) + ":" + pad2(s % 60);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function REDUCED(){ return window.matchMedia("(prefers-reduced-motion: reduce)").matches || !!S.settings.forceReducedMotion; }
+
+/* ============================================================
+   3. STORAGE
+   ============================================================ */
+const SAVE_KEY = "lift2.save.v1";
+const SAVE_VERSION = 1;
+function defaultSave(){
+  return {
+    version: SAVE_VERSION,
+    progress: { unlockedLevel:1, levels:{}, sandboxCompare:{}, driver:{ bestScore:0, bestDone:0, plays:0 } },
+    settings: { muted:false, forceReducedMotion:false, defaultSpeed:1 },
+    tutorial: { introSeen:false },
+    savedAt: 0
+  };
+}
+function num(v, d, a, b){ const n = Number(v); return Number.isFinite(n) ? clamp(n, a, b) : d; }
+function sanitize(o){
+  const out = defaultSave();
+  if(!o || typeof o !== "object" || Array.isArray(o)) return out;
+  const p = o.progress || {};
+  out.progress.unlockedLevel = num(p.unlockedLevel, 1, 1, LEVELS.length);
+  const dr = p.driver || {};
+  out.progress.driver = { bestScore:num(dr.bestScore, 0, 0, 1e9),
+    bestDone:num(dr.bestDone, 0, 0, 1e6), plays:num(dr.plays, 0, 0, 1e6) };
+  if(p.levels && typeof p.levels === "object"){
+    for(const lv of LEVELS){
+      const r = p.levels[String(lv.id)];
+      if(!r || typeof r !== "object") continue;
+      out.progress.levels[String(lv.id)] = {
+        bestScore: num(r.bestScore, 0, 0, 1e9),
+        stars: num(r.stars, 0, 0, 3),
+        cleared: !!r.cleared,
+        plays: num(r.plays, 0, 0, 1e6)
+      };
+    }
+  }
+  if(p.sandboxCompare && typeof p.sandboxCompare === "object"){
+    for(const k of Object.keys(ALGOS)){
+      const r = p.sandboxCompare[k];
+      if(r && typeof r === "object" && Number.isFinite(Number(r.done)))
+        out.progress.sandboxCompare[k] = { done:Number(r.done), avgWait:Number(r.avgWait)||0,
+          maxWait:Number(r.maxWait)||0, distance:Number(r.distance)||0, energy:Number(r.energy)||0,
+          lost:Number(r.lost)||0, tick:Number(r.tick)||0 };
+    }
+  }
+  const s = o.settings || {};
+  out.settings.muted = !!s.muted;
+  out.settings.forceReducedMotion = !!s.forceReducedMotion;
+  out.settings.defaultSpeed = CFG.SPEEDS.includes(Number(s.defaultSpeed)) ? Number(s.defaultSpeed) : 1;
+  const t = o.tutorial || {};
+  out.tutorial.introSeen = !!t.introSeen;
+  return out;
+}
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return defaultSave();
+    return sanitize(JSON.parse(raw));   // 损坏 / 旧版本 / 缺字段统一走 sanitize
+  }catch(err){ return defaultSave(); }
+}
+function saveGame(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: SAVE_VERSION, progress: S.progress, settings: S.settings,
+      tutorial: S.tutorial, savedAt: Date.now()
+    }));
+  }catch(err){ /* 隐私模式 / file:// 限制：内存态仍可玩 */ }
+}
+
+/* ============================================================
+   4. STATE
+   ============================================================ */
+const SAVE = loadSave();
+const S = {
+  view:"menu", mode:"menu", running:false, paused:false, wasPaused:false, speed:1,
+  tick:0, accMs:0, lastTs:0, uid:0, rng:mulberry32(1),
+  cfg:null, levelId:null,
+  building:{ floors:6, elevators:[], passengers:[] }, paxById:new Map(),
+  selectedElevatorId:1, suggestedEid:null,
+  events:[], log:[], notice:{ text:"", until:0 },
+  stats:null, combo:{ count:0, lastTick:-999, max:0 },
+  score:0, parts:null,
+  spawn:{ acc:0, enabled:true },
+  result:null, modal:null,
+  progress:SAVE.progress, settings:SAVE.settings, tutorial:SAVE.tutorial,
+  auto:{ algo:"nearest", on:true },
+  driver:{ stops:0 }, drvInfo:null, floorList:[],
+  hintsOn:true, inputMode:"elevator", dirty:true, floorH:40,
+  hintCache:{ tick:-99, count:-1, text:"", kind:"info", pid:null },
+  sandboxParams:{ ...SANDBOX_DEFAULT }
+};
+
+function newUid(){ return ++S.uid; }
+function blankStats(){
+  return { waitSum:0, waitCount:0, maxWait:0, rideSum:0, rideCount:0,
+    spawned:0, done:0, lost:0, distance:0, longWait:0, lostList:[], active:0, waiting:0 };
+}
+function blankParts(){ return { base:0, speed:0, combo:0, vip:0, lost:0, energy:0, bonus:0, longWait:0 }; }
+function byId(id){ return S.paxById.get(Number(id)); }
+function byElev(id){ return S.building.elevators.find(e => e.id === Number(id)); }
+
+function newElevator(cfg, index){
+  const spread = cfg.elevators > 1
+    ? Math.round(1 + (cfg.floors - 1) * index / (cfg.elevators - 1)) : 1;
+  return {
+    id:index + 1, logicalFloor:spread, state:"idle", dir:0,
+    moveTicksLeft:0, doorTicksLeft:0, targetFloor:null,
+    queue:[], passengers:[], capacity:cfg.capacity, ticksPerFloor:cfg.ticksPerFloor,
+    distance:0, doorCycles:0, doneTrips:0, loadSum:0, loadTicks:0
+  };
+}
+function newPassenger(origin, dest, vip, manual){
+  const p = {
+    id:newUid(), origin, dest, dir:dest > origin ? 1 : -1,
+    state:"waiting", assignedElevator:null, waitTicks:0, rideTicks:0,
+    spawnTick:S.tick, vip:!!vip, manual:!!manual
+  };
+  S.building.passengers.push(p);
+  S.paxById.set(p.id, p);
+  return p;
+}
+/* 关键：送达 / 流失的乘客必须立即回收。否则数组与 paxById 会随游玩时长无限增长，
+   而内核每 tick 有 6~8 处全数组遍历，是「乘客一多就卡」的根因。 */
+function compactPassengers(){
+  const arr = S.building.passengers;
+  let w = 0;
+  for(let i = 0; i < arr.length; i++){
+    const p = arr[i];
+    if(p.state === "done" || p.state === "lost"){ S.paxById.delete(p.id); continue; }
+    arr[w++] = p;
+  }
+  arr.length = w;
+}
+function setText(node, v){ if(node && node.textContent !== v) node.textContent = v; }
+function resetWorld(cfg){
+  S.pauseGuard = false;
+  S.cfg = { ...cfg };
+  S.floorList = Array.from({ length:cfg.floors }, (_, i) => i + 1);
+  S.tick = 0; S.accMs = 0; S.lastTs = performance.now(); S.uid = 0;
+  S.rng = mulberry32(cfg.seed || 1);
+  S.building = {
+    floors:cfg.floors,
+    elevators:Array.from({ length:cfg.elevators }, (_, i) => newElevator(cfg, i)),
+    passengers:[]
+  };
+  S.paxById = new Map();
+  S.selectedElevatorId = 1; S.suggestedEid = null;
+  S.stats = blankStats(); S.parts = blankParts();
+  S.combo = { count:0, lastTick:-999, max:0 };
+  S.score = 0; S.spawn = { acc:0, enabled:true };
+  S.events = []; S.log = []; S.result = null; S.notice = { text:"", until:0 };
+  S.driver = { stops:0 }; S.drvInfo = null;
+  S.hintCache = { tick:-99, count:-1, text:"", kind:"info", pid:null };
+  S.inputMode = "elevator";
+  S.running = true; S.paused = false; S.speed = S.settings.defaultSpeed;
+  for(const id of ["queueList", "elevList", "metrics", "drvFloors", "drvInner", "drvDests", "drvMetrics"]){
+    const el = document.getElementById(id);
+    if(el){ el._kids = new Map(); el.replaceChildren(); }
+  }
+  for(const id of ["log", "drvLog", "compare"]){
+    const el = document.getElementById(id);
+    if(el){ el._html = ""; el.replaceChildren(); }
+  }
+  logLine("值班开始 · " + (cfg.name || "自由仿真"), "");
+  S.dirty = true;
+}
+
+/* ============================================================
+   5. AUDIO — Web Audio 实时合成，零音频文件
+   ============================================================ */
+let actx = null;
+function ensureAudio(){
+  if(actx){ if(actx.state === "suspended") actx.resume().catch(() => {}); return; }
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    actx = new AC();
+    if(actx.state === "suspended") actx.resume().catch(() => {});
+  }catch(err){ actx = null; }
+}
+function tone(freq, dur, type, vol, delay, endFreq){
+  if(!actx) return;
+  const t0 = actx.currentTime + (delay || 0);
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type || "sine";
+  o.frequency.setValueAtTime(freq, t0);
+  if(endFreq) o.frequency.exponentialRampToValueAtTime(Math.max(40, endFreq), t0 + dur);
+  g.gain.setValueAtTime(.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || .07, t0 + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t0); o.stop(t0 + dur + .03);
+}
+function playSfx(type, d){
+  if(S.settings.muted || !actx) return;
+  try{
+    d = d || {};
+    switch(type){
+      case "click": tone(420, .045, "square", .025); break;
+      case "pickup": tone(620, .08, "triangle", .055, 0, 780); tone(780, .07, "triangle", .04, .09); break;
+      case "dropoff": tone(880, .14, "sine", .06, 0, 620); break;
+      case "lost": tone(210, .28, "sawtooth", .05, 0, 110); break;
+      case "combo": {
+        const n = clamp(d.count || 2, 2, 12);
+        tone(523.25 * Math.pow(2, (n - 2) / 12), .1, "triangle", .045);
+        break;
+      }
+      case "win": [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, "triangle", .06, i * .09)); break;
+      case "fail": [392, 330, 262].forEach((f, i) => tone(f, .2, "sine", .055, i * .13)); break;
+    }
+  }catch(err){ /* 音频不可用时静默 */ }
+}
+function toggleMute(){
+  S.settings.muted = !S.settings.muted;
+  saveGame(); renderMenu(); S.dirty = true;
+}
+
+/* ============================================================
+   6. SIM — 确定性仿真内核（唯一写入 stats / events）
+   ============================================================ */
+function emit(type, payload){ S.events.push({ type, payload:payload || {}, tick:S.tick }); }
+function logLine(text, kind){
+  S.log.unshift({ text, kind:kind || "", tick:S.tick });
+  if(S.log.length > 5) S.log.length = 5;
+  const lr = document.getElementById("live-region");
+  if(lr) lr.textContent = text;
+}
+function loseBase(){ return S.mode === "driver" ? CFG.DRIVER_LOSE_WAIT : CFG.LOSE_WAIT; }
+function warnBase(){ return S.mode === "driver" ? CFG.DRIVER_WARN_WAIT : CFG.WARN_WAIT; }
+function loseLimit(p){ return p.vip ? Math.floor(loseBase() * CFG.VIP_WAIT_MUL) : loseBase(); }
+function warnLimit(p){ return p.vip ? Math.floor(warnBase() * CFG.VIP_WAIT_MUL) : warnBase(); }
+
+function spawnIntervalAt(tick){
+  let mul = 1;
+  for(const ev of (S.cfg.events || [])){
+    if((ev.type === "rush" || ev.type === "burst") && tick >= ev.from && tick <= ev.to) mul *= (ev.rateMul || 1);
+  }
+  return Math.max(1.2, S.cfg.baseInterval / mul);
+}
+function pickOriginDest(tick){
+  const f = S.cfg.floors;
+  let bias = null;
+  for(const ev of (S.cfg.events || [])){
+    if((ev.type === "rush" || ev.type === "burst") && tick >= ev.from && tick <= ev.to
+       && ev.origins && ev.origins.length && S.rng() < .72){ bias = ev; break; }
+  }
+  const origin = bias
+    ? clamp(bias.origins[Math.floor(S.rng() * bias.origins.length)], 1, f)
+    : 1 + Math.floor(S.rng() * f);
+  let dest;
+  if(bias && bias.dirBias === "up" && origin < f) dest = origin + 1 + Math.floor(S.rng() * (f - origin));
+  else if(bias && bias.dirBias === "down" && origin > 1) dest = 1 + Math.floor(S.rng() * (origin - 1));
+  else { dest = 1 + Math.floor(S.rng() * f); while(dest === origin) dest = 1 + Math.floor(S.rng() * f); }
+  if(dest === origin) dest = origin === f ? origin - 1 : origin + 1;
+  return { origin, dest };
+}
+function isVipThisSpawn(tick){
+  for(const ev of (S.cfg.events || [])){
+    if(ev.type === "vip" && tick >= ev.from && tick <= ev.to && S.rng() < ev.chance) return true;
+  }
+  return false;
+}
+function spawnPassengers(){
+  if(!S.spawn.enabled) return;
+  if(S.mode === "campaign" && S.tick > S.cfg.duration) return;
+  S.spawn.acc += 1;
+  const iv = spawnIntervalAt(S.tick);
+  if(S.spawn.acc < iv) return;
+  S.spawn.acc -= iv;
+  const { origin, dest } = pickOriginDest(S.tick);
+  const vip = isVipThisSpawn(S.tick);
+  const p = newPassenger(origin, dest, vip, false);
+  S.stats.spawned++;
+  emit("spawn", { pid:p.id, vip });
+}
+function removeTask(e, predicate){
+  const i = e.queue.findIndex(predicate);
+  if(i >= 0){ e.queue.splice(i, 1); return true; }
+  return false;
+}
+function purgePickup(pid){
+  for(const e of S.building.elevators) removeTask(e, t => t.type === "pickup" && t.passengerId === Number(pid));
+}
+function checkTimeouts(){
+  for(const p of S.building.passengers){
+    if(p.state !== "waiting") continue;
+    p.waitTicks++;                                   // 唯一自增处
+    if(p.waitTicks > loseLimit(p)){
+      p.state = "lost";
+      if(p.assignedElevator !== null){                 // 只清自己那部梯，别全梯群扫队列
+        const own = byElev(p.assignedElevator);
+        if(own) removeTask(own, t => t.type === "pickup" && t.passengerId === p.id);
+      }
+      p.assignedElevator = null;
+      onPassengerLost(p);
+      emit("lost", { pid:p.id, vip:p.vip, floor:p.origin });
+    }
+  }
+}
+function openDoors(e){
+  e.state = "doors"; e.doorTicksLeft = CFG.DOOR_TICKS; e.doorCycles++;
+  emit("doors", { eid:e.id, floor:e.logicalFloor });
+}
+function shouldStopHere(e){ return e.queue.some(t => t.floor === e.logicalFloor); }
+function advanceElevators(){
+  for(const e of S.building.elevators){
+    if(e.state === "doors"){
+      e.doorTicksLeft--;
+      if(e.doorTicksLeft <= 0){ e.doorTicksLeft = 0; e.state = "idle"; }
+      continue;                                       // 本 tick 不再移动
+    }
+    if(e.state === "idle"){
+      // 清理失效任务（乘客已流失 / 已送达）
+      e.queue = e.queue.filter(t =>
+        t.type === "goto" || (byId(t.passengerId) && byId(t.passengerId).state === (t.type === "pickup" ? "waiting" : "riding")));
+      if(!e.queue.length){ e.dir = 0; e.targetFloor = null; continue; }
+      e.targetFloor = e.queue[0].floor;
+      if(e.targetFloor === e.logicalFloor){ openDoors(e); continue; }
+      e.dir = Math.sign(e.targetFloor - e.logicalFloor);
+      e.state = "moving";
+      e.moveTicksLeft = e.ticksPerFloor;
+      continue;
+    }
+    if(e.state === "moving"){
+      e.moveTicksLeft--;
+      if(e.moveTicksLeft > 0) continue;
+      e.logicalFloor += e.dir;
+      e.distance++; S.stats.distance++;
+      e.moveTicksLeft = e.ticksPerFloor;
+      if(shouldStopHere(e) || e.targetFloor === e.logicalFloor) openDoors(e);
+      else e.state = "idle";                          // 下一 tick 重新取队首
+    }
+  }
+}
+function boardAlight(e){
+  // A) 先下客
+  for(const pid of [...e.passengers]){
+    const p = byId(pid);
+    if(!p || p.state !== "riding"){ const i = e.passengers.indexOf(pid); if(i >= 0) e.passengers.splice(i, 1); continue; }
+    if(p.dest === e.logicalFloor){
+      const i = e.passengers.indexOf(pid);
+      if(i >= 0) e.passengers.splice(i, 1);
+      p.state = "done";
+      removeTask(e, t => t.type === "dropoff" && t.passengerId === pid);
+      e.doneTrips++;
+      const gain = onPassengerDone(p);
+      emit("dropoff", { eid:e.id, pid:p.id, vip:p.vip, floor:p.dest, amount:gain });
+    }
+  }
+  // B) 清掉当前层的 goto 任务，避免反复开门
+  e.queue = e.queue.filter(t => !(t.type === "goto" && t.floor === e.logicalFloor));
+  // C) 再上客：只收集本层等待者；顺路捎带的人没有 pickup 任务，不必全梯群扫队列
+  const here = [];
+  for(const p of S.building.passengers)
+    if(p.state === "waiting" && p.origin === e.logicalFloor) here.push(p);
+  for(const p of here){
+    if(e.passengers.length >= e.capacity) break;
+    // 已派给本梯的乘客优先；同向且尚未指派的乘客可「顺路捎带」，但不得抢别梯锁定的人
+    if(p.assignedElevator !== null && p.assignedElevator !== e.id) continue;
+    if(e.passengers.length > 0 && e.dir !== 0 && p.dir !== e.dir) continue;
+    const drop = { taskId:newUid(), type:"dropoff", floor:p.dest, passengerId:p.id };
+    if(p.assignedElevator === e.id){
+      const idx = e.queue.findIndex(t => t.type === "pickup" && t.passengerId === p.id);
+      if(idx >= 0) e.queue.splice(idx, 1, drop); else e.queue.unshift(drop);
+      for(const other of S.building.elevators)
+        if(other !== e) removeTask(other, t => t.type === "pickup" && t.passengerId === p.id);
+    }else e.queue.unshift(drop);
+    if(e.passengers.length === 0) e.dir = p.dir;
+    e.passengers.push(p.id);
+    p.state = "riding"; p.assignedElevator = null;
+    emit("pickup", { eid:e.id, pid:p.id, vip:p.vip, floor:p.origin });
+  }
+  // 满员 / 方向不符导致本层没能接走的乘客：把任务挪到队尾，避免电梯原地反复开门
+  const stuck = e.queue.filter(t => t.type === "pickup" && t.floor === e.logicalFloor);
+  if(stuck.length){
+    e.queue = e.queue.filter(t => !(t.type === "pickup" && t.floor === e.logicalFloor));
+    e.queue.push(...stuck);
+  }
+}
+function processDoors(){
+  for(const e of S.building.elevators){
+    if(e.state === "doors" && e.doorTicksLeft === CFG.DOOR_TICKS) boardAlight(e);
+  }
+}
+function onPassengerDone(p){
+  const st = S.stats;
+  st.done++; st.waitSum += p.waitTicks; st.waitCount++;
+  st.maxWait = Math.max(st.maxWait, p.waitTicks);
+  st.rideSum += p.rideTicks; st.rideCount++;
+  if(p.waitTicks > CFG.WARN_WAIT) st.longWait++;
+  if(S.tick - S.combo.lastTick <= CFG.COMBO_WINDOW) S.combo.count++;
+  else S.combo.count = 1;
+  S.combo.lastTick = S.tick;
+  S.combo.max = Math.max(S.combo.max, S.combo.count);
+  const speedBonus = Math.max(0, loseBase() - p.waitTicks) * 2;
+  const comboBonus = Math.min(S.combo.count, CFG.COMBO_CAP) * 15;
+  const baseGain = 100 + speedBonus + comboBonus;
+  let gain = baseGain;
+  S.parts.base += 100; S.parts.speed += speedBonus; S.parts.combo += comboBonus;
+  if(p.vip){
+    gain = baseGain * CFG.VIP_SCORE_MUL + 150;   // 完成分翻倍 + 急客固定奖
+    S.parts.vip += baseGain + 150;                // 前三项已记一份，这里补上增量，保证明细可加总
+  }
+  S.score += Math.round(gain);
+  if(S.combo.count >= 2) emit("combo", { count:S.combo.count });
+  return Math.round(gain);
+}
+function onPassengerLost(p){
+  const st = S.stats;
+  st.lost++;
+  if(st.lostList.length < 200) st.lostList.push({ origin:p.origin, dest:p.dest, waitTicks:p.waitTicks, vip:p.vip });
+  S.combo.count = 0;
+  const pen = p.vip ? CFG.VIP_LOST_PENALTY : CFG.LOST_PENALTY;
+  S.score -= pen; S.parts.lost -= pen;
+}
+function updateStats(){
+  const st = S.stats;
+  let waiting = 0, riding = 0;
+  for(const p of S.building.passengers){
+    if(p.state === "waiting") waiting++;
+    else if(p.state === "riding") riding++;
+  }
+  st.waiting = waiting; st.active = waiting + riding;
+  for(const e of S.building.elevators){ e.loadSum += e.passengers.length; e.loadTicks++; }
+}
+function computeEnergy(){
+  let energy = 0;
+  for(const e of S.building.elevators){
+    const avgLoad = e.loadTicks ? e.loadSum / e.loadTicks : 0;
+    energy += e.distance * (CFG.ENERGY_PER_FLOOR + CFG.ENERGY_LOAD * avgLoad) + e.doorCycles * CFG.ENERGY_PER_DOOR;
+  }
+  return energy;
+}
+function checkLevelEnd(){
+  if(S.mode !== "campaign") return;
+  const noActive = S.stats.active === 0;
+  if(S.tick >= S.cfg.duration && (noActive || S.tick >= S.cfg.duration + 30)) finishLevel();
+}
+function finishLevel(){
+  S.running = false; S.paused = false;
+  const st = S.stats, t = S.cfg.targets;
+  const energy = computeEnergy();
+  const energyPen = Math.floor(energy * .5);
+  const bonus = st.done >= S.cfg.doneTarget ? 300 : 0;
+  const longPen = st.longWait * 20;
+  const total = Math.max(0, Math.round(S.score - energyPen + bonus - longPen));
+  S.parts.energy = -energyPen; S.parts.bonus = bonus; S.parts.longWait = -longPen;
+  const stars = total >= t.t3 ? 3 : total >= t.t2 ? 2 : total >= t.t1 ? 1 : 0;
+  const cleared = stars >= 1 && st.lost <= S.cfg.lostCap;
+  const result = {
+    levelId:S.levelId, name:S.cfg.name, total, stars, cleared, energy,
+    score:S.score, energyPen, bonus, longPen, tick:S.tick,
+    done:st.done, lost:st.lost, spawned:st.spawned, maxWait:st.maxWait,
+    avgWait:st.waitCount ? st.waitSum / st.waitCount : null,
+    avgRide:st.rideCount ? st.rideSum / st.rideCount : null,
+    distance:st.distance, longWait:st.longWait, maxCombo:S.combo.max,
+    lostList:st.lostList.slice(), parts:{ ...S.parts }
+  };
+  S.result = result;
+  recordResult(result);
+  emit(cleared ? "win" : "fail", {});
+  logLine(cleared ? `班次完成 · ${total} 分 · ${stars} 星` : `班次未达标 · ${total} 分`, cleared ? "ok" : "bad");
+  S.dirty = true;
+  openResult(result);
+}
+function recordResult(r){
+  const key = String(r.levelId);
+  const rec = S.progress.levels[key] || (S.progress.levels[key] = { bestScore:0, stars:0, cleared:false, plays:0 });
+  rec.plays++;
+  if(r.total > rec.bestScore) rec.bestScore = r.total;
+  rec.stars = Math.max(rec.stars, r.stars);
+  if(r.cleared){
+    rec.cleared = true;
+    S.progress.unlockedLevel = clamp(Math.max(S.progress.unlockedLevel, r.levelId + 1), 1, LEVELS.length);
+  }
+  saveGame();
+}
+function step(n){
+  for(let i = 0; i < n && S.running; i++) singleTick();
+  S.dirty = true;
+}
+function singleTick(){
+  S.tick++;
+  spawnPassengers();        // 1 生成
+  checkTimeouts();          // 2 超时（唯一 waitTicks 自增）
+  advanceElevators();       // 3 移动 / 进站
+  processDoors();           // 4 开门首 tick 上下客
+  for(const e of S.building.elevators) for(const pid of e.passengers){
+    const p = byId(pid); if(p && p.state === "riding") p.rideTicks++;   // 5 唯一 rideTicks 自增
+  }
+  if(S.mode === "sandbox" && S.auto.on) autoDispatch(S.auto.algo);       // 6 严格二选一
+  updateStats();            // 7
+  checkLevelEnd();          // 8
+  compactPassengers();      // 9 回收已完成 / 已流失乘客，活跃集合保持有界
+}
+
+/* ============================================================
+   7. DISPATCH — 队列唯一写入方
+   ============================================================ */
+function pushTask(e, task, priority){
+  if(priority) e.queue.unshift(task); else e.queue.push(task);
+}
+function assignPickup(eid, pid, opt){
+  opt = opt || {};
+  const p = byId(pid), e = byElev(eid);
+  if(!p || p.state !== "waiting") return { ok:false, reason:"该乘客已不在等待" };
+  if(!e) return { ok:false, reason:"请先选择一部电梯" };
+  if(p.assignedElevator !== null && p.assignedElevator !== e.id) return reassign(pid, e.id, opt);
+  if(p.assignedElevator === e.id && !opt.priority) return { ok:true, reason:"已在队列中" };
+  if(p.assignedElevator === e.id && opt.priority){
+    const i = e.queue.findIndex(t => t.type === "pickup" && t.passengerId === p.id);
+    if(i > 0){ const [t] = e.queue.splice(i, 1); e.queue.unshift(t); }
+    return { ok:true, reason:"已提到队首" };
+  }
+  pushTask(e, { taskId:newUid(), type:"pickup", floor:p.origin, passengerId:p.id }, !!opt.priority);
+  p.assignedElevator = e.id;
+  if(!opt.silent) emit("assigned", { eid:e.id, pid:p.id });
+  return { ok:true, reason:"已加入队列" };
+}
+function reassign(pid, newEid, opt){
+  const p = byId(pid);
+  if(!p || p.state !== "waiting") return { ok:false, reason:"该乘客已不在等待" };
+  const oldE = byElev(p.assignedElevator), newE = byElev(newEid);
+  if(!newE) return { ok:false, reason:"目标电梯不存在" };
+  if(oldE && oldE.state === "doors" && oldE.logicalFloor === p.origin)
+    return { ok:false, reason:"该乘客正在上车，无法改派" };
+  if(oldE) removeTask(oldE, t => t.type === "pickup" && t.passengerId === p.id);
+  p.assignedElevator = null;
+  return assignPickup(newEid, pid, { ...(opt || {}), silent:true });
+}
+function assignGoto(eid, floor){
+  const e = byElev(eid);
+  if(!e) return { ok:false, reason:"请先选择一部电梯" };
+  floor = clamp(Math.round(floor), 1, S.cfg.floors);
+  pushTask(e, { taskId:newUid(), type:"goto", floor });
+  emit("assigned", { eid:e.id, floor });
+  return { ok:true, reason:`E${e.id} 前往 ${fLabel(floor)}` };
+}
+function cancelTask(eid, taskId){
+  const e = byElev(eid);
+  if(!e) return;
+  const t = e.queue.find(x => x.taskId === Number(taskId));
+  if(!t) return;
+  if(t.type === "dropoff" && e.passengers.includes(t.passengerId)){
+    toast("舱内还有乘客，不能取消送达任务"); return;
+  }
+  if(t.type === "pickup"){
+    const p = byId(t.passengerId);
+    if(p && p.assignedElevator === e.id) p.assignedElevator = null;
+  }
+  removeTask(e, x => x.taskId === t.taskId);
+  S.dirty = true;
+}
+function costFor(e, p){
+  let c = Math.abs(e.logicalFloor - p.origin) * e.ticksPerFloor;
+  c += e.queue.length * 3;
+  c += e.passengers.length * 2;
+  if(e.passengers.length >= e.capacity) c += 999;
+  if(e.state === "doors") c -= 1;
+  if(e.dir !== 0 && e.dir !== p.dir && e.passengers.length > 0) c += 5;
+  return c;
+}
+function suggestElevator(pid){
+  const p = byId(pid);
+  if(!p) return { eid:S.selectedElevatorId || 1, eta:0, reason:"" };
+  let best = null;
+  for(const e of S.building.elevators){
+    const c = costFor(e, p);
+    if(!best || c < best.cost) best = { e, cost:c };
+  }
+  const e = best.e;
+  const eta = Math.abs(e.logicalFloor - p.origin) * e.ticksPerFloor + e.queue.length * 2 + 1;
+  return { eid:e.id, eta, cost:best.cost, reason:`队列 ${e.queue.length} 项` };
+}
+function sortQueueScan(e){
+  const f = e.logicalFloor, dir = e.dir || 1;
+  const rank = t => {
+    const d = t.floor - f;
+    return d * dir >= 0 ? Math.abs(d) : 100 + Math.abs(d);
+  };
+  e.queue.sort((a, b) => rank(a) - rank(b) || a.taskId - b.taskId);
+}
+function autoDispatch(algo){
+  // passengers 天然按 id / spawnTick 递增，无需每次 filter + sort
+  const waiting = [];
+  for(const p of S.building.passengers)
+    if(p.state === "waiting" && p.assignedElevator === null) waiting.push(p);
+  if(!waiting.length) return;
+  if(algo === "fcfs"){
+    const idle = S.building.elevators.filter(e => e.queue.length === 0 && e.passengers.length === 0);
+    for(const e of idle){
+      const p = waiting.shift();
+      if(!p) break;
+      assignPickup(e.id, p.id, { silent:true });
+    }
+  }else if(algo === "nearest"){
+    for(const p of waiting){
+      let best = null;
+      for(const e of S.building.elevators){
+        const c = costFor(e, p);
+        if(!best || c < best.cost) best = { e, cost:c };
+      }
+      assignPickup(best.e.id, p.id, { silent:true });
+    }
+  }else{
+    const touched = new Set();
+    for(const p of waiting){
+      let best = null;
+      for(const e of S.building.elevators){
+        let c = costFor(e, p);
+        if(e.dir !== 0 && e.dir === p.dir){
+          const ahead = e.dir > 0 ? p.origin > e.logicalFloor : p.origin < e.logicalFloor;
+          if(ahead) c -= 6;
+        }
+        if(!best || c < best.cost) best = { e, cost:c };
+      }
+      assignPickup(best.e.id, p.id, { silent:true });
+      touched.add(best.e);
+    }
+    for(const e of touched) sortQueueScan(e);   // 每部梯只排一次，别每个乘客都排
+  }
+}
+
+/* ============================================================
+   8. LEVELS / FLOW
+   ============================================================ */
+function startLevel(id){
+  const lv = LEVELS.find(l => l.id === id);
+  if(!lv || id > S.progress.unlockedLevel){ toast("该班次尚未解锁"); return; }
+  hideModal(true);
+  S.mode = "campaign"; S.levelId = id;
+  document.body.dataset.mode = "campaign";
+  resetWorld(lv);
+  setView("play");
+  buildBuilding();
+  if(!S.tutorial.introSeen) openTutorial();
+  S.dirty = true;
+}
+function readParams(){
+  const g = id => Number(document.getElementById(id).value);
+  const seed = clamp(Math.round(g("cfgSeed") || 2026), 1, 99999);
+  return {
+    ...SANDBOX_DEFAULT,
+    floors:clamp(g("cfgFloors"), 4, 20), elevators:clamp(g("cfgCars"), 1, 6),
+    baseInterval:clamp(g("cfgInterval"), 1, 12), capacity:clamp(g("cfgCapacity"), 2, 14),
+    ticksPerFloor:clamp(g("cfgSpeed"), 1, 3), seed,
+    algo:document.getElementById("algoSelect").value
+  };
+}
+function syncParamsToInputs(p){
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = String(v); };
+  set("cfgFloors", p.floors); set("cfgCars", p.elevators); set("cfgInterval", p.baseInterval);
+  set("cfgCapacity", p.capacity); set("cfgSpeed", p.ticksPerFloor); set("cfgSeed", p.seed);
+  set("algoSelect", p.algo || S.auto.algo);
+  fillTripOptions(p.floors);
+}
+function startSandbox(params){
+  hideModal(true);
+  const p = params || { ...S.sandboxParams };
+  S.sandboxParams = { ...p };
+  S.mode = "sandbox"; S.levelId = null;
+  S.auto.algo = p.algo || S.auto.algo;
+  S.auto.on = true;
+  document.body.dataset.mode = "sandbox";
+  resetWorld({ ...p, events:[] });
+  syncParamsToInputs(S.sandboxParams);
+  setView("play");
+  buildBuilding();
+  S.dirty = true;
+}
+function restart(){
+  if(S.mode === "campaign") startLevel(S.levelId);
+  else startSandbox({ ...S.sandboxParams });
+}
+function addManualTrip(){
+  const a = Number($("#tripFrom").value), b = Number($("#tripTo").value);
+  if(!a || !b || a === b){ toast("起点与目的楼层需要不同"); return; }
+  const p = newPassenger(a, b, false, true);
+  S.stats.spawned++;
+  logLine(`手动加入 #${p.id} · ${fLabel(a)} → ${fLabel(b)}`, "");
+  emit("spawn", { pid:p.id, vip:false });
+  S.dirty = true;
+}
+function recordCompare(){
+  const st = S.stats;
+  S.progress.sandboxCompare[S.auto.algo] = {
+    done:st.done, avgWait:st.waitCount ? +(st.waitSum / st.waitCount).toFixed(1) : 0,
+    maxWait:st.maxWait, distance:st.distance, energy:+computeEnergy().toFixed(1),
+    lost:st.lost, tick:S.tick
+  };
+  saveGame();
+  toast(`已记录「${ALGOS[S.auto.algo]}」本轮指标`);
+  S.dirty = true;
+}
+function toast(text){
+  S.notice = { text, until:performance.now() + 2200 };
+  S.dirty = true;
+}
+function setPaused(b){
+  if(S.view !== "play") return;
+  S.paused = !!b;
+  S.dirty = true;
+}
+function singleStep(){
+  if(S.view === "play" && S.paused && S.running){ step(1); }
+}
+function cycleSpeed(dir){
+  const i = CFG.SPEEDS.indexOf(S.speed);
+  const n = dir ? (i + dir + CFG.SPEEDS.length) % CFG.SPEEDS.length : (i + 1) % CFG.SPEEDS.length;
+  S.speed = CFG.SPEEDS[n];
+  updateMoveMs();
+  S.dirty = true;
+}
+function updateMoveMs(){
+  const b = $("#building");
+  if(b && S.cfg) b.style.setProperty("--move-ms", Math.round(S.cfg.ticksPerFloor * CFG.TICK_MS / S.speed) + "ms");
+}
+function selectElevator(id){
+  if(!byElev(id)) return;
+  S.selectedElevatorId = Number(id);
+  S.dirty = true;
+}
+function cycleElevator(delta){
+  const list = S.building.elevators, n = list.length;
+  const i = Math.max(0, list.findIndex(e => e.id === S.selectedElevatorId));
+  S.selectedElevatorId = list[(i + delta + n) % n].id;
+  S.dirty = true;
+}
+
+/* ============================================================
+   9. RENDER — buildOnce 常驻节点 + render 局部更新
+   ============================================================ */
+const E = {};
+function cacheDom(){
+  ["mastStatus","mastLamp","mastMode","continueBtn","menuMuteBtn","recordWall","levelGrid","levelProgress",
+   "hudTitle","hudSub","hudTime","hudScore","hudStars","hudCombo","btnPause","btnStep","btnSpeed","btnMute",
+   "queueCount","queueList","queueEmpty","buildingTag","building","elevList","elevTag",
+   "hintbar","hintMain","hintSub","metrics","compare","log","trafficBtn",
+   "modal-root","fx-root","live-region","cfgFloors","cfgCars","cfgInterval","cfgCapacity","cfgSpeed",
+   "cfgSeed","algoSelect","tripFrom","tripTo"].forEach(id => { E[id] = document.getElementById(id); });
+}
+function syncKeyed(container, items, keyFn, createFn, updateFn){
+  if(!container._kids) container._kids = new Map();
+  const seen = new Set();
+  items.forEach((item, i) => {
+    const key = String(keyFn(item));
+    seen.add(key);
+    let node = container._kids.get(key);
+    if(!node){ node = createFn(item); node.dataset.key = key; container._kids.set(key, node); container.appendChild(node); }
+    node.style.order = String(i);
+    updateFn(node, item, i);
+  });
+  for(const [k, node] of container._kids){
+    if(!seen.has(k)){ node.remove(); container._kids.delete(k); }
+  }
+}
+function measureFloorH(){
+  const row = $("#building .floor-row");
+  if(row && row.offsetHeight) S.floorH = row.offsetHeight;
+  updateMoveMs();
+}
+function fillTripOptions(floors){
+  const opts = Array.from({ length:floors }, (_, i) => `<option value="${i + 1}">${fLabel(i + 1)}</option>`).join("");
+  E.tripFrom.innerHTML = opts; E.tripTo.innerHTML = opts;
+  E.tripFrom.value = "1"; E.tripTo.value = String(Math.min(floors, 6));
+}
+function fillConfigOptions(){
+  const opts = (arr, unit) => arr.map(v => `<option value="${v}">${v}${unit}</option>`).join("");
+  E.cfgFloors.innerHTML = opts([4,6,8,10,12,14,16,20], " 层");
+  E.cfgCars.innerHTML = opts([1,2,3,4,5,6], " 部");
+  E.cfgInterval.innerHTML = opts([2,3,4,5,6,8,10,12], " s");
+  E.cfgCapacity.innerHTML = opts([2,4,6,8,10,12,14], " 人");
+  E.cfgSpeed.innerHTML = opts([1,2,3], " tick");
+  E.algoSelect.innerHTML = Object.entries(ALGOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  syncParamsToInputs(SANDBOX_DEFAULT);
+  E.algoSelect.value = "nearest";
+}
+function buildBuilding(){
+  const b = E.building;
+  const f = S.cfg.floors, cars = S.building.elevators;
+  const rows = [];
+  for(let i = 1; i <= f; i++){
+    rows.push(`<div class="floor-row" data-floor="${i}">
+      <div class="floor-label">${fLabel(i)}</div>
+      <div class="floor-body"><div class="waiting" data-floor="${i}"></div></div>
+    </div>`);
+  }
+  const shafts = cars.map(e => `<div class="shaft" data-eid="${e.id}">
+      <div class="cab" data-eid="${e.id}">
+        <div class="cab-frame">
+          <div class="door door-l"></div><div class="door door-r"></div>
+          <div class="cab-info"><span class="cab-id">E${pad2(e.id)}</span><span class="cab-dir">·</span><span class="cab-load">0/${e.capacity}</span></div>
+        </div>
+      </div>
+    </div>`).join("");
+  b.innerHTML = `<div class="floor-stack">
+      ${rows.join("")}
+      <div class="shafts">${shafts}</div>
+    </div>
+    <div class="building-cap"><span class="legend">轿厢 · 开门时左右滑开</span><span>${f} 层 / ${cars.length} 部梯 / 每层 ${S.cfg.ticksPerFloor} tick</span></div>`;
+  E.cabs = new Map($$(".cab", b).map(n => {
+    n._dir = $(".cab-dir", n); n._load = $(".cab-load", n);   // 缓存子节点引用，别每帧 querySelector
+    return [Number(n.dataset.eid), n];
+  }));
+  E.waitRows = new Map($$(".waiting", b).map(n => { n._kids = new Map(); return [Number(n.dataset.floor), n]; }));
+  E.floorRows = new Map($$(".floor-row", b).map(n => [Number(n.dataset.floor), n]));
+  measureFloorH();
+}
+
+function setView(name){
+  $$(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  S.view = name;
+  document.body.dataset.view = name;
+  if(name === "menu"){ S.running = false; renderMenu(); }
+  if(name === "levels"){ S.running = false; renderLevels(); }
+  if(name === "play") document.body.dataset.mode = S.mode;
+  S.dirty = true;
+}
+function starsText(n){ return `<span class="${n >= 1 ? "" : "off"}">★</span><span class="${n >= 2 ? "" : "off"}">★</span><span class="${n >= 3 ? "" : "off"}">★</span>`; }
+function renderMenu(){
+  const recs = LEVELS.map(lv => ({ lv, r:S.progress.levels[String(lv.id)] })).filter(x => x.r && x.r.plays);
+  E.recordWall.innerHTML = recs.length
+    ? recs.map(({ lv, r }) => `<div class="wall-cell"><span>SHIFT ${pad2(lv.id)} · ${esc(lv.name)}</span><strong>${r.bestScore}</strong></div>`).join("")
+    : `<div class="wall-empty">还没有值班记录。先从 SHIFT 01 开始。</div>`;
+  E.continueBtn.disabled = S.progress.unlockedLevel <= 1;
+  E.continueBtn.textContent = S.progress.unlockedLevel > 1 ? `继续 SHIFT ${pad2(S.progress.unlockedLevel)}` : "继续上一关";
+  E.menuMuteBtn.textContent = "声音：" + (S.settings.muted ? "关" : "开");
+  E.mastMode.textContent = "待机 / STANDBY";
+}
+function renderLevels(){
+  const prog = S.progress;
+  E.levelProgress.textContent = `已解锁 ${prog.unlockedLevel} / ${LEVELS.length} 班次`;
+  E.levelGrid.innerHTML = LEVELS.map(lv => {
+    const locked = lv.id > prog.unlockedLevel;
+    const r = prog.levels[String(lv.id)];
+    return `<button class="level-card ${locked ? "locked" : ""} ${r && r.cleared ? "cleared" : ""}" type="button"
+        data-act="start-level" data-level="${lv.id}" ${locked ? "disabled" : ""}>
+      <span class="level-num">SHIFT ${pad2(lv.id)}</span>
+      <div class="level-name">${esc(lv.name)}</div>
+      <span class="level-tag">${locked ? "通关上一班解锁" : esc(lv.tag)}</span>
+      <p class="level-brief">${esc(lv.brief)}</p>
+      <div class="level-foot"><span class="stars">${starsText(r ? r.stars : 0)}</span>
+        <span class="level-best">${r && r.plays ? "最高 " + r.bestScore : "尚无记录"}</span></div>
+    </button>`;
+  }).join("");
+}
+function renderHUD(){
+  const campaign = S.mode === "campaign";
+  setText(E.hudTitle, campaign ? `SHIFT ${pad2(S.levelId)} · ${S.cfg.name}` : "SANDBOX · 自由仿真");
+  const activeEvent = (S.cfg.events || []).find(ev => S.tick >= ev.from && S.tick <= ev.to);
+  setText(E.hudSub, campaign
+    ? (activeEvent ? eventLabel(activeEvent) : `目标 ${S.cfg.targets.t1} / ${S.cfg.targets.t2} / ${S.cfg.targets.t3} 分`)
+    : `策略 ${ALGOS[S.auto.algo]} · 种子 ${S.cfg.seed}`);
+  setText(E.hudTime, campaign ? `${tLabel(S.tick)} / ${tLabel(S.cfg.duration)}` : tLabel(S.tick));
+  setText(E.hudScore, String(Math.round(S.score)));
+  if(campaign){
+    const t = S.cfg.targets;
+    const n = S.score >= t.t3 ? 3 : S.score >= t.t2 ? 2 : S.score >= t.t1 ? 1 : 0;
+    setText(E.hudStars, "◆".repeat(n) + "◇".repeat(3 - n));
+  }else setText(E.hudStars, "—");
+  setText(E.hudCombo, S.combo.count >= 2 ? "×" + S.combo.count : "—");
+  setText(E.btnPause, S.paused ? "继续" : "暂停");
+  E.btnStep.disabled = !S.paused || !S.running;
+  setText(E.btnSpeed, S.speed + "×");
+  setText(E.btnMute, S.settings.muted ? "静音" : "有声");
+  setText(E.mastStatus, !S.running ? "班次结束" : S.paused ? "已暂停" : "运行中");
+  E.mastLamp.className = "lamp" + (!S.running ? "" : S.paused ? " pause" : " on");
+  setText(E.mastMode, campaign ? `值班 / SHIFT ${pad2(S.levelId)}` : "沙盒 / SANDBOX");
+  setText(E.buildingTag, `${S.cfg.floors} 层 · ${S.building.elevators.length} 部梯`);
+  setText(E.elevTag, `容量 ${S.cfg.capacity} 人`);
+  setText(E.trafficBtn, "自动客流：" + (S.spawn.enabled ? "开" : "关"));
+  E.trafficBtn.setAttribute("aria-pressed", String(S.spawn.enabled));
+  E.trafficBtn.classList.toggle("active", S.spawn.enabled);
+}
+function eventLabel(ev){
+  if(ev.type === "vip") return "特殊事件 · VIP 急客出没";
+  if(ev.dirBias === "up") return "特殊事件 · 低层上行高峰";
+  if(ev.dirBias === "down") return "特殊事件 · 高层下行高峰";
+  return "特殊事件 · 中段客流爆发";
+}
+function createTicket(){
+  const n = document.createElement("div");
+  n.className = "ticket";
+  n.innerHTML = `<div class="ticket-top"><span class="ticket-id"></span><span class="ticket-badge"></span></div>
+    <div class="ticket-route"><b data-r="from"></b><i>→</i><b data-r="to"></b><em data-r="dir"></em></div>
+    <div class="ticket-wait"><span class="wait-bar"><i></i></span><span class="wait-text"></span></div>
+    <div class="ticket-actions">
+      <button class="chip-btn primary" type="button" data-act="assign">派梯</button>
+      <button class="chip-btn" type="button" data-act="priority">优先</button>
+    </div>
+    <div class="ticket-hint"><span class="hint-text"></span><button class="link-btn" type="button" data-act="adopt">采纳</button></div>`;
+  n._r = {
+    id:$(".ticket-id", n), badge:$(".ticket-badge", n),
+    from:$("[data-r=from]", n), to:$("[data-r=to]", n), dir:$("[data-r=dir]", n),
+    bar:$(".wait-bar i", n), wait:$(".wait-text", n),
+    assign:$("[data-act=assign]", n), hint:$(".hint-text", n)
+  };
+  return n;
+}
+function updateTicket(n, p, i){
+  n.dataset.pid = String(p.id);
+  const r = n._r, lim = loseLimit(p);
+  const warn = p.waitTicks >= warnLimit(p);
+  n.classList.toggle("vip", p.vip);
+  n.classList.toggle("warn", warn);
+  n.classList.toggle("warn-pulse", warn && i < CFG.MAX_PULSE); // 只让最紧急的几张脉冲，避免几十个无限动画
+  setText(r.id, "#" + pad3(p.id));
+  setText(r.badge, p.vip ? "✦ VIP 急客" : (p.assignedElevator ? "已派 E" + p.assignedElevator : "等待派梯"));
+  setText(r.from, fLabel(p.origin));
+  setText(r.to, fLabel(p.dest));
+  setText(r.dir, p.dir > 0 ? "↑" : "↓");
+  const w = clamp(p.waitTicks / lim * 100, 0, 100).toFixed(0) + "%";
+  if(n._w !== w){ n._w = w; r.bar.style.width = w; }
+  setText(r.wait, `${p.waitTicks}s / ${lim}s`);
+  setText(r.assign, "派给 E" + (S.selectedElevatorId || 1));
+  let hint;
+  if(S.hintsOn){ const sug = suggestElevator(p.id); hint = `建议 <b>E${sug.eid}</b> · 约 ${sug.eta}s`; }
+  else hint = "提示已隐藏（H 开启）";
+  if(n._hint !== hint){ n._hint = hint; r.hint.innerHTML = hint; }  // 别每帧重建 hint 的 DOM
+}
+function createDot(){
+  const n = document.createElement("span");
+  n.className = "pax-dot";
+  n.dataset.act = "assign";
+  return n;
+}
+function updateDot(n, p, i){
+  if(p.more){
+    n.className = "pax-dot pax-more";
+    n.removeAttribute("data-pid");
+    setText(n, "+" + p.more);
+    n.title = `该层还有 ${p.more} 位乘客`;
+    return;
+  }
+  n.className = "pax-dot";
+  n.dataset.pid = String(p.id);
+  setText(n, p.vip ? "✦" : (p.dir > 0 ? "↑" : "↓"));
+  n.classList.toggle("vip", p.vip);
+  const warn = p.waitTicks >= warnLimit(p);
+  n.classList.toggle("warn", warn);
+  n.classList.toggle("warn-pulse", warn && i < 1);
+  n.title = `#${p.id} ${fLabel(p.origin)} → ${fLabel(p.dest)} · 等待 ${p.waitTicks}s`;
+}
+function renderQueue(waiting){
+  setText(E.queueCount, waiting.length + " 位等待");
+  E.queueEmpty.hidden = waiting.length > 0;
+  // 票卡是整页最贵的 DOM（每张十几个节点 + 动画），只渲染最紧急的一批
+  const shown = waiting.slice(0, CFG.MAX_TICKETS);
+  syncKeyed(E.queueList, shown, p => p.id, createTicket, updateTicket);
+  const more = waiting.length - shown.length;
+  let tail = E.queueList.querySelector(".queue-more");
+  if(more > 0){
+    if(!tail){ tail = document.createElement("div"); tail.className = "queue-more"; E.queueList.appendChild(tail); }
+    setText(tail, `还有 ${more} 位乘客未列出 · 可在楼宇剖面点小人派梯`);
+    tail.style.order = String(shown.length + 1);
+  }else if(tail) tail.remove();
+}
+function renderBuilding(waiting){
+  if(!E.cabs) return;
+  const byFloor = new Map();
+  for(const p of waiting){
+    let a = byFloor.get(p.origin);
+    if(!a){ a = []; byFloor.set(p.origin, a); }
+    a.push(p);
+  }
+  for(const [f, row] of E.waitRows){
+    const all = byFloor.get(f) || [];
+    const items = all.slice(0, CFG.MAX_DOTS_PER_FLOOR);
+    if(all.length > items.length) items.push({ id:"more-" + f, more:all.length - items.length });
+    syncKeyed(row, items, p => p.id, createDot, updateDot);
+  }
+  const targetFloors = new Set();
+  const sel = byElev(S.selectedElevatorId);
+  if(sel) for(const t of sel.queue) targetFloors.add(t.floor);
+  for(const [f, row] of E.floorRows) row.classList.toggle("is-target", targetFloors.has(f));
+  for(const e of S.building.elevators){
+    const cab = E.cabs.get(e.id);
+    if(!cab) continue;
+    const tr = `translate(-50%, ${-(e.logicalFloor - 1) * S.floorH}px)`;
+    if(cab._tr !== tr){ cab._tr = tr; cab.style.transform = tr; }
+    cab.classList.toggle("is-selected", e.id === S.selectedElevatorId);
+    cab.classList.toggle("is-suggested", S.hintsOn && e.id === S.suggestedEid);
+    cab.classList.toggle("is-open", e.state === "doors");
+    cab.classList.toggle("is-idle", e.state === "idle");
+    setText(cab._dir, e.state === "doors" ? "◧" : e.dir > 0 ? "↑" : e.dir < 0 ? "↓" : "·");
+    setText(cab._load, `${e.passengers.length}/${e.capacity}`);
+    const title = `E${pad2(e.id)} · ${fLabel(e.logicalFloor)} · ${stateText(e)} · 队列 ${e.queue.length}`;
+    if(cab.title !== title) cab.title = title;
+  }
+}
+function stateText(e){ return e.state === "doors" ? "开门中" : e.state === "moving" ? "运行中" : e.queue.length ? "待发" : "空闲"; }
+function createElevCard(e){
+  const n = document.createElement("div");
+  n.className = "elev-card";
+  n.dataset.eid = String(e.id);
+  n.innerHTML = `<div class="elev-top"><span class="elev-name">E${pad2(e.id)}</span><span class="state-chip"></span></div>
+    <div class="elev-readout"><span class="big-floor"></span><span class="elev-detail"></span></div>
+    <div class="load-bar"><i></i></div>
+    <div class="subhead"><span>楼层指派</span><small>点数字让梯前往</small></div>
+    <div class="floor-keys" data-role="keys"></div>
+    <div class="subhead"><span>任务队列</span><small data-role="count"></small></div>
+    <div class="task-list" data-role="tasks"></div>`;
+  n._r = {
+    chip:$(".state-chip", n), floor:$(".big-floor", n), detail:$(".elev-detail", n),
+    load:$(".load-bar i", n), keys:$("[data-role=keys]", n), tasks:$("[data-role=tasks]", n),
+    count:$("[data-role=count]", n)
+  };
+  return n;
+}
+function createKey(){
+  const n = document.createElement("button");
+  n.type = "button"; n.className = "key"; n.dataset.act = "goto-floor";
+  return n;
+}
+function createTaskRow(){
+  const n = document.createElement("div");
+  n.className = "task-row";
+  n.innerHTML = `<span></span><button class="task-x" type="button" data-act="cancel-task" aria-label="取消任务">×</button>`;
+  n._r = { text:$("span", n), x:$(".task-x", n) };
+  return n;
+}
+function updateElevCard(n, e){
+  const r = n._r;
+  n.classList.toggle("is-selected", e.id === S.selectedElevatorId);
+  setText(r.chip, stateText(e));
+  r.chip.className = "state-chip" + (e.state === "doors" ? " doors" : e.state === "moving" ? " moving" : "");
+  setText(r.floor, fLabel(e.logicalFloor));
+  setText(r.detail, `${e.dir > 0 ? "↑ 上行" : e.dir < 0 ? "↓ 下行" : "↔ 待机"} · 载客 ${e.passengers.length}/${e.capacity}`);
+  const w = clamp(e.passengers.length / e.capacity * 100, 0, 100).toFixed(0) + "%";
+  if(n._w !== w){ n._w = w; r.load.style.width = w; }
+  const targets = new Set();
+  for(const t of e.queue) targets.add(t.floor);
+  syncKeyed(r.keys, S.floorList, f => f, createKey, (btn, f) => {
+    btn.dataset.floor = String(f);
+    setText(btn, pad2(f));
+    btn.classList.toggle("is-target", targets.has(f));
+    btn.setAttribute("aria-label", `E${e.id} 前往 ${fLabel(f)}`);
+  });
+  setText(r.count, e.queue.length + " 项");
+  const tasks = e.queue.slice(0, 8);
+  syncKeyed(r.tasks, tasks, t => t.taskId, createTaskRow, (row, t) => {
+    row.dataset.task = String(t.taskId);
+    row.className = "task-row " + t.type;
+    const label = t.type === "pickup" ? "接客" : t.type === "dropoff" ? "送达" : "前往";
+    setText(row._r.text, `${label} ${fLabel(t.floor)}${t.passengerId ? " · #" + pad3(t.passengerId) : ""}`);
+    row._r.x.dataset.task = String(t.taskId);
+  });
+  if(!e.queue.length && !r.tasks.querySelector(".task-empty")){
+    const d = document.createElement("div"); d.className = "task-empty"; d.textContent = "无待办指令";
+    r.tasks.appendChild(d);
+  }else if(e.queue.length){ const d = r.tasks.querySelector(".task-empty"); if(d) d.remove(); }
+}
+function renderElevators(){ syncKeyed(E.elevList, S.building.elevators, e => e.id, createElevCard, updateElevCard); }
+function createMetric(){
+  const n = document.createElement("div");
+  n.className = "metric";
+  n.innerHTML = `<span class="metric-label"></span><strong class="metric-value"></strong>`;
+  n._r = { l:$(".metric-label", n), v:$(".metric-value", n) };
+  return n;
+}
+function renderMetrics(box){
+  if(!box) return;
+  const st = S.stats;
+  const avgWait = st.waitCount ? (st.waitSum / st.waitCount).toFixed(1) + "s" : "—";
+  const avgRide = st.rideCount ? (st.rideSum / st.rideCount).toFixed(1) + "s" : "—";
+  const items = [
+    { k:"avgWait", l:"平均候梯", v:avgWait },
+    { k:"maxWait", l:"最长候梯", v:st.maxWait ? st.maxWait + "s" : "—" },
+    { k:"avgRide", l:"平均乘梯", v:avgRide },
+    { k:"done", l:"完成行程", v:String(st.done) },
+    { k:"lost", l:"流失乘客", v:String(st.lost) },
+    { k:"distance", l:"运行层数", v:String(st.distance) },
+    { k:"energy", l:"能耗估算", v:computeEnergy().toFixed(0) },
+    { k:"combo", l:"最高连击", v:S.combo.max >= 2 ? "×" + S.combo.max : "—" }
+  ];
+  syncKeyed(box, items, i => i.k, createMetric, (n, i) => { setText(n._r.l, i.l); setText(n._r.v, i.v); });
+}
+function renderCompare(){
+  if(S.mode !== "sandbox"){
+    if(E.compare._html){ E.compare._html = ""; E.compare.replaceChildren(); }
+    return;
+  }
+  const rows = Object.entries(ALGOS).map(([k, label]) => {
+    const r = S.progress.sandboxCompare[k];
+    return `<tr class="${k === S.auto.algo ? "now" : ""}"><td>${label}</td>
+      <td>${r ? r.done : "—"}</td><td>${r ? r.avgWait + "s" : "—"}</td>
+      <td>${r ? r.distance : "—"}</td><td>${r ? r.energy : "—"}</td><td>${r ? r.lost : "—"}</td></tr>`;
+  }).join("");
+  const html = `<div class="subhead"><span>算法对照 · 同一种子</span><small>点「记录本轮」保存</small></div>
+    <table><thead><tr><th>策略</th><th>完成</th><th>均候</th><th>层数</th><th>能耗</th><th>流失</th></tr></thead><tbody>${rows}</tbody></table>`;
+  if(E.compare._html !== html){ E.compare._html = html; E.compare.innerHTML = html; }
+}
+function renderLog(box){
+  if(!box) return;
+  const html = S.log.map(l => `<div class="log-line ${l.kind}">${pad2(Math.floor(l.tick / 60))}:${pad2(l.tick % 60)} · ${esc(l.text)}</div>`).join("");
+  if(box._html !== html){ box._html = html; box.innerHTML = html; }
+}
+function computeHints(waiting){
+  const now = performance.now();
+  if(S.notice.text && now < S.notice.until) return { text:S.notice.text, kind:"notice", pid:null, sub:"" };
+  const list = waiting || collectWaiting();
+  let warns = 0, urgent = null;
+  for(const p of list){                       // 一次遍历同时算预警数与最紧急乘客
+    if(p.waitTicks >= warnLimit(p)) warns++;
+    const pv = (p.vip ? 1 : 0) - (urgent && urgent.vip ? 1 : 0);
+    if(!urgent || pv > 0 || (pv === 0 && p.waitTicks > urgent.waitTicks)) urgent = p;
+  }
+  if(warns) return { text:`⚠ ${warns} 位乘客即将失去耐心，优先处理红色票卡。`, kind:"warn", pid:null, sub:"超时离开会扣分并中断连击" };
+  if(!list.length) return { text:"候梯区清空。可以趁现在把电梯预置到客流集中的楼层。", kind:"info", pid:null, sub:"按 G 再按数字，或点右侧楼层键盘" };
+  if(!S.hintsOn) return { text:"提示已关闭。按 H 重新开启派梯建议。", kind:"info", pid:null, sub:"" };
+  const sug = suggestElevator(urgent.id);
+  return {
+    text:`建议把 #${pad3(urgent.id)}（${fLabel(urgent.origin)} → ${fLabel(urgent.dest)}）交给 E${sug.eid}，约 ${sug.eta}s 抵达。按 Enter 采纳。`,
+    kind:"info", pid:urgent.id, eid:sug.eid,
+    sub:`当前选中 E${S.selectedElevatorId || 1} · Space 暂停 · G+数字 指派楼层`
+  };
+}
+function renderHints(waiting){
+  const h = computeHints(waiting);
+  S.suggestedEid = h.eid || null;
+  E.hintbar.className = "status-block hintbar" + (h.kind === "warn" ? " warn" : h.kind === "notice" ? " notice" : "");
+  if(E.hintMain.textContent !== h.text) E.hintMain.textContent = h.text;
+  if(E.hintSub.textContent !== h.sub) E.hintSub.textContent = h.sub;
+}
+function floater(text, kind, selector){
+  if(REDUCED()) return;
+  const a = selector ? document.querySelector(selector) : null;
+  const r = a ? a.getBoundingClientRect() : { left:window.innerWidth / 2, top:window.innerHeight / 2, width:0, height:0 };
+  const n = document.createElement("div");
+  n.className = "floater " + kind;
+  n.textContent = text;
+  n.style.left = (r.left + r.width / 2) + "px";
+  n.style.top = (r.top + r.height / 2) + "px";
+  const fx = E["fx-root"];
+  while(fx.childElementCount >= CFG.MAX_FLOATERS) fx.firstElementChild.remove();  // 事件风暴时别堆 DOM
+  fx.appendChild(n);
+  n.addEventListener("animationend", () => n.remove());
+  setTimeout(() => n.remove(), 1700);
+}
+function consumeEvents(){
+  if(!S.events.length) return;
+  const list = S.events; S.events = [];
+  for(const ev of list){
+    const d = ev.payload || {};
+    switch(ev.type){
+      case "pickup":
+        playSfx("pickup", d);
+        logLine(`E${d.eid} 在 ${fLabel(d.floor)} 接走 #${d.pid}${d.vip ? "（VIP）" : ""}`, "ok");
+        break;
+      case "dropoff":
+        playSfx("dropoff", d);
+        floater("+" + d.amount, "good", `.cab[data-eid="${d.eid}"]`);
+        logLine(`E${d.eid} 送达 #${d.pid} 至 ${fLabel(d.floor)}`, "ok");
+        break;
+      case "lost":
+        playSfx("lost", d);
+        floater("-" + (d.vip ? CFG.VIP_LOST_PENALTY : CFG.LOST_PENALTY), "bad", null);
+        logLine(`#${d.pid} 在 ${fLabel(d.floor)} 久等离开`, "bad");
+        break;
+      case "combo":
+        playSfx("combo", d);
+        if(d.count >= 3) floater(`连击 ×${d.count}`, "info", null);
+        break;
+      case "win": playSfx("win"); break;
+      case "fail": playSfx("fail"); break;
+      case "assigned": playSfx("click"); break;
+      default: break;
+    }
+  }
+}
+function collectWaiting(){
+  const out = [];
+  for(const p of S.building.passengers) if(p.state === "waiting") out.push(p);
+  out.sort((a, b) => b.waitTicks - a.waitTicks || a.id - b.id);
+  return out;
+}
+function render(){
+  consumeEvents();
+  if(S.view === "driver"){ renderDriver(); return; }
+  if(S.view !== "play" || !S.cfg) return;
+  const waiting = collectWaiting();   // 每帧只遍历 / 排序一次，下面四处复用
+  renderHUD(); renderQueue(waiting); renderHints(waiting); renderBuilding(waiting); renderElevators();
+  renderMetrics(E.metrics); renderCompare(); renderLog(E.log);
+  document.body.classList.toggle("reduced", REDUCED());
+}
+
+/* ============================================================
+   10. MODAL — 引导 / 设置 / 结算
+   ============================================================ */
+function showModal(html, type){
+  S.modal = type;
+  S.wasPaused = S.paused;
+  if(S.view === "play") S.paused = true;
+  E["modal-root"].innerHTML = `<div class="modal-backdrop" data-act="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const first = $(".modal .btn", E["modal-root"]);
+  if(first) first.focus();
+  S.dirty = true;
+}
+function hideModal(force){
+  if(!S.modal && !force) return;
+  E["modal-root"].replaceChildren();
+  const was = S.modal;
+  S.modal = null;
+  if(was !== "result" && S.view === "play" && S.running) S.paused = S.wasPaused;
+  S.dirty = true;
+}
+function modalShell(kicker, title, body, foot){
+  return `<div class="modal-head"><div><div class="modal-kicker">${kicker}</div><h2 class="modal-title">${title}</h2></div>
+    <button class="btn small ghost" type="button" data-act="modal-close">关闭 ✕</button></div>
+    <div class="modal-body">${body}</div><div class="modal-foot">${foot}</div>`;
+}
+function openTutorial(){
+  if(S.tutorial.step === undefined) S.tutorial.step = 0;
+  S.tutorial.step = 0;
+  renderTutorial();
+}
+function renderTutorial(){
+  const i = S.tutorial.step || 0, s = TUTORIAL_STEPS[i];
+  const dots = TUTORIAL_STEPS.map((_, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("");
+  showModal(modalShell("OPERATIONS MANUAL / 值班手册", "开始值班前，先看四件事",
+    `<div class="tutorial-step"><div class="tutorial-num">${pad2(i + 1)}</div>
+      <div><h4>${s.h}</h4><p>${s.p}</p><div class="tutorial-dots">${dots}</div></div></div>`,
+    `<button class="btn ghost small" type="button" data-act="tut-close">跳过说明</button>
+     <span style="flex:1"></span>
+     <button class="btn primary" type="button" data-act="tut-next">${i === TUTORIAL_STEPS.length - 1 ? "开始值班 →" : "下一步 →"}</button>`), "tutorial");
+}
+function openSettings(){
+  showModal(modalShell("SYSTEM / 系统设置", "设置",
+    `<div class="settings-row"><span>音效<small>到站、接客、超时与通关提示音（本机合成）</small></span>
+      <input type="checkbox" id="setMuted" ${S.settings.muted ? "" : "checked"} aria-label="开启音效"></div>
+     <div class="settings-row"><span>减弱动效<small>关闭电梯位移、脉冲与浮动数字</small></span>
+      <input type="checkbox" id="setReduced" ${S.settings.forceReducedMotion ? "checked" : ""} aria-label="减弱动效"></div>
+     <div class="settings-row"><span>默认速度<small>每次开始班次时的运行倍速</small></span>
+      <select id="setSpeed">${CFG.SPEEDS.map(v => `<option value="${v}" ${v === S.settings.defaultSpeed ? "selected" : ""}>${v}×</option>`).join("")}</select></div>`,
+    `<button class="btn ghost small" type="button" data-act="modal-close">取消</button>
+     <button class="btn primary" type="button" data-act="settings-save">保存设置</button>`), "settings");
+}
+function adviceFor(r){
+  const lines = [];
+  const lost = r.lostList;
+  if(lost.length){
+    const byFloor = {};
+    lost.forEach(x => { byFloor[x.origin] = (byFloor[x.origin] || 0) + 1; });
+    const top = Object.entries(byFloor).sort((a, b) => b[1] - a[1])[0];
+    lines.push(`有 ${r.lost} 位乘客久等离开，其中 ${top[1]} 位集中在 ${fLabel(Number(top[0]))}。下一班可提前把一部梯派驻该层（按 G 再按楼层号）。`);
+  }
+  if(lost.some(x => x.vip)) lines.push("流失了 VIP 急客。金色票卡耐心只有一半，见到就用「优先」把指令插到队首。");
+  if(r.longWait > 3) lines.push(`${r.longWait} 位乘客候梯超过 ${CFG.WARN_WAIT} 秒。把同方向、相邻楼层的乘客合并派给同一部电梯，能同时拉低候梯和能耗。`);
+  if(r.distance > r.done * 10 && r.done > 0) lines.push(`本班空跑 ${r.distance} 层，能耗扣了 ${r.energyPen} 分。减少不必要的楼层预置，让电梯顺路捎带。`);
+  if(r.maxCombo >= 4) lines.push(`最高连击 ×${r.maxCombo} 保持得不错：8 秒内连续送达会叠加额外分数。`);
+  if(r.stars === 3) lines.push("节奏很稳。想再榨一点分数，试试开局就把电梯分散到高低区。");
+  if(!lines.length) lines.push("基础操作已经到位。下一班客流更密，记得先看预警再派梯，别让电梯扎堆在同一层。");
+  return lines.map(x => `<li>${esc(x)}</li>`).join("");
+}
+function openResult(r){
+  const p = r.parts;
+  const cells = [
+    ["完成行程", r.done], ["流失乘客", r.lost], ["生成乘客", r.spawned],
+    ["平均候梯", r.avgWait === null ? "—" : r.avgWait.toFixed(1) + "s"],
+    ["最长候梯", r.maxWait + "s"], ["平均乘梯", r.avgRide === null ? "—" : r.avgRide.toFixed(1) + "s"],
+    ["运行层数", r.distance], ["能耗", r.energy.toFixed(0)],
+    ["最高连击", r.maxCombo >= 2 ? "×" + r.maxCombo : "—"], ["班次时长", tLabel(r.tick)]
+  ].map(([l, v]) => `<div class="result-cell"><span>${l}</span><strong>${esc(v)}</strong></div>`).join("");
+  const breakdown = [
+    ["基础完成分", p.base, "plus"], ["候梯速度奖励", p.speed, "plus"], ["连击奖励", p.combo, "plus"],
+    ["VIP 加成", p.vip, "plus"], ["完成量达标奖", p.bonus, "plus"],
+    ["乘客流失扣分", p.lost, "minus"], ["能耗扣分", p.energy, "minus"], ["久候扣分", p.longWait, "minus"]
+  ].map(([l, v, cls]) => `<div class="breakdown-row ${cls}"><span>${l}</span><b>${v >= 0 ? "+" : ""}${Math.round(v)}</b></div>`).join("");
+  const next = r.levelId < LEVELS.length
+    ? `<button class="btn primary" type="button" data-act="next-level" ${!r.cleared ? "disabled" : ""}>下一班次 →</button>` : "";
+  showModal(modalShell(
+    r.cleared ? "SHIFT COMPLETE / 班次完成" : "SHIFT FAILED / 未达标",
+    r.cleared ? `${r.name} · 调度合格` : `${r.name} · 还需再来一次`,
+    `<div class="result-hero"><div><div class="modal-kicker">评价</div><div class="result-stars">${starsText(r.stars)}</div></div>
+       <div class="result-score">${r.total}<small>最终得分 / 1★ ${S.cfg.targets.t1} · 3★ ${S.cfg.targets.t3}</small></div></div>
+     <div class="result-grid">${cells}</div>
+     <div class="subhead"><span>得分明细</span><small>实时分 ${Math.round(r.score)}</small></div>
+     <div class="breakdown">${breakdown}</div>
+     <div class="advice"><h4>值班复盘 / 建议</h4><ul>${adviceFor(r)}</ul></div>`,
+    `<button class="btn" type="button" data-act="retry">重跑本班</button>${next}
+     <button class="btn ghost" type="button" data-act="back-levels">班次表</button>
+     <button class="btn ghost" type="button" data-act="back-menu">返回首页</button>`), "result");
+}
+
+/* ============================================================
+   11. INPUT — 事件委托 + 键盘
+   ============================================================ */
+function onClick(ev){
+  const target = ev.target;
+  if(target.classList && target.classList.contains("modal-backdrop")){
+    if(S.modal !== "result") hideModal();
+    return;
+  }
+  let btn = target.closest("[data-act]");
+  if(!btn){
+    const cab = target.closest(".cab");
+    if(cab){ selectElevator(cab.dataset.eid); playSfx("click"); return; }
+    const card = target.closest(".elev-card");
+    if(card){ selectElevator(card.dataset.eid); playSfx("click"); return; }
+    return;
+  }
+  const act = btn.dataset.act;
+  const pidOf = node => { const n = node.closest("[data-pid]"); return n ? Number(n.dataset.pid) : 0; };
+  switch(act){
+    case "go-menu": hideModal(true); setView("menu"); break;
+    case "go-levels": hideModal(true); setView("levels"); break;
+    case "help": openTutorial(); break;
+    case "settings": openSettings(); break;
+    case "toggle-mute": toggleMute(); playSfx("click"); break;
+    case "continue": startLevel(S.progress.unlockedLevel); break;
+    case "start-level": startLevel(Number(btn.dataset.level)); break;
+    case "start-sandbox": startSandbox(readParams()); break;
+    case "sandbox-apply": startSandbox(readParams()); break;
+    case "sandbox-add-trip": addManualTrip(); break;
+    case "toggle-traffic": S.spawn.enabled = !S.spawn.enabled; toast(S.spawn.enabled ? "自动客流已开启" : "自动客流已关闭"); S.dirty = true; break;
+    case "record-compare": recordCompare(); break;
+    case "toggle-pause": setPaused(!S.paused); break;
+    case "single-step": singleStep(); break;
+    case "cycle-speed": cycleSpeed(0); break;
+    case "restart": restart(); break;
+    case "assign": {
+      const pid = pidOf(btn);
+      if(!pid) break;
+      const r = assignPickup(S.selectedElevatorId, pid, { priority:ev.shiftKey });
+      toast(r.ok ? `已把 #${pid} 交给 E${S.selectedElevatorId}${ev.shiftKey ? "（插队）" : ""}` : r.reason);
+      S.dirty = true;
+      break;
+    }
+    case "priority": {
+      const pid = pidOf(btn);
+      if(!pid) break;
+      const r = assignPickup(S.selectedElevatorId, pid, { priority:true });
+      toast(r.ok ? `#${pid} 已插到 E${S.selectedElevatorId} 队首` : r.reason);
+      S.dirty = true;
+      break;
+    }
+    case "adopt": {
+      const pid = pidOf(btn);
+      if(!pid) break;
+      const sug = suggestElevator(pid);
+      selectElevator(sug.eid);
+      const r = assignPickup(sug.eid, pid);
+      toast(r.ok ? `采纳建议：#${pid} → E${sug.eid}` : r.reason);
+      S.dirty = true;
+      break;
+    }
+    case "goto-floor": {
+      const card = btn.closest(".elev-card");
+      const eid = Number(card.dataset.eid), floor = Number(btn.dataset.floor);
+      const r = assignGoto(eid, floor);
+      selectElevator(eid);
+      toast(r.reason);
+      S.dirty = true;
+      break;
+    }
+    case "cancel-task": {
+      const card = btn.closest(".elev-card");
+      cancelTask(Number(card.dataset.eid), Number(btn.dataset.task));
+      break;
+    }
+    case "modal-close": hideModal(); break;
+    case "modal-backdrop": break;
+    case "tut-next": {
+      S.tutorial.step = (S.tutorial.step || 0) + 1;
+      if(S.tutorial.step >= TUTORIAL_STEPS.length){
+        S.tutorial.introSeen = true; S.tutorial.step = 0; saveGame(); hideModal();
+      }else renderTutorial();
+      break;
+    }
+    case "tut-close":
+      S.tutorial.introSeen = true; S.tutorial.step = 0; saveGame(); hideModal(); break;
+    case "settings-save": {
+      S.settings.muted = !$("#setMuted").checked;
+      S.settings.forceReducedMotion = $("#setReduced").checked;
+      S.settings.defaultSpeed = Number($("#setSpeed").value);
+      saveGame(); hideModal(); renderMenu(); toast("设置已保存");
+      break;
+    }
+    case "retry": hideModal(); startLevel(r_levelId()); break;
+    case "next-level": hideModal(); startLevel(r_levelId() + 1); break;
+    case "back-levels": hideModal(true); setView("levels"); break;
+    case "back-menu": hideModal(true); setView("menu"); break;
+  }
+}
+function r_levelId(){ return S.result ? S.result.levelId : S.levelId || 1; }
+function onChange(ev){
+  if(ev.target.id === "algoSelect" && S.view === "play" && S.mode === "sandbox"){
+    const p = readParams();
+    startSandbox(p);
+    toast(`已切换到「${ALGOS[S.auto.algo]}」，同种子重开一轮`);
+  }
+  if(["cfgFloors","cfgCars","cfgCapacity","cfgSpeed","cfgInterval"].includes(ev.target.id)){
+    // 仅更新行程下拉的可选楼层，参数需点「应用并重置」才生效
+    if(ev.target.id === "cfgFloors") fillTripOptions(Number(ev.target.value));
+  }
+}
+function onKey(ev){
+  if(ev.target.matches("input,select,textarea")) return;
+  if(S.modal){
+    if(ev.key === "Escape") hideModal();
+    return;
+  }
+  if(S.view !== "play") return;
+  const k = ev.key;
+  if(k === "Escape"){ S.selectedElevatorId = 1; S.inputMode = "elevator"; toast("已退出楼层模式"); return; }
+  if(k === " "){ ev.preventDefault(); setPaused(!S.paused); return; }
+  if(k === "."){ singleStep(); return; }
+  if(k === "+" || k === "="){ cycleSpeed(1); return; }
+  if(k === "-" || k === "_"){ cycleSpeed(-1); return; }
+  if(k === "m" || k === "M"){ toggleMute(); return; }
+  if(k === "h" || k === "H"){ S.hintsOn = !S.hintsOn; toast(S.hintsOn ? "派梯建议已开启" : "派梯建议已关闭"); return; }
+  if(k === "g" || k === "G"){ S.inputMode = "floor"; toast("楼层模式：按数字让选中电梯前往该层"); return; }
+  if(k === "Enter"){
+    const h = computeHints();
+    if(h.pid && h.eid){ selectElevator(h.eid); assignPickup(h.eid, h.pid); toast(`已采纳：#${h.pid} → E${h.eid}`); S.dirty = true; }
+    return;
+  }
+  if(k === "ArrowUp" || k === "w" || k === "W"){ ev.preventDefault(); cycleElevator(-1); return; }
+  if(k === "ArrowDown" || k === "s" || k === "S"){ ev.preventDefault(); cycleElevator(1); return; }
+  if(/^F([1-9]|1[0-4])$/.test(k)){ ev.preventDefault(); assignGoto(S.selectedElevatorId, Number(k.slice(1))); return; }
+  if(/^[0-9]$/.test(k)){
+    const n = k === "0" ? 10 : Number(k);
+    if(S.inputMode === "floor"){
+      const r = assignGoto(S.selectedElevatorId, n);
+      toast(r.reason);
+      S.inputMode = "elevator";
+    }else selectElevator(n);
+    S.dirty = true;
+  }
+}
+function bindEvents(){
+  document.addEventListener("pointerdown", ensureAudio);
+  document.addEventListener("keydown", ev => { ensureAudio(); onKey(ev); });
+  document.addEventListener("click", onClick);
+  document.addEventListener("change", onChange);
+  window.addEventListener("resize", () => { measureFloorH(); S.dirty = true; });
+}
+
+/* ============================================================
+   12. LOOP — 全局唯一 rAF + 时间累加器（绝不 setInterval）
+   ============================================================ */
+function frame(ts){
+  if(!S.lastTs) S.lastTs = ts;
+  let dt = ts - S.lastTs;
+  S.lastTs = ts;
+  if(dt < 0) dt = 0;
+  if(dt > CFG.FRAME_CLAMP_MS) dt = CFG.FRAME_CLAMP_MS;
+  if(S.view === "play" && S.running && !S.paused){
+    S.accMs += dt * S.speed;                 // 倍速只改系数，TICK_MS 恒定
+    let guard = 0;
+    while(S.accMs >= CFG.TICK_MS && guard++ < CFG.STEP_GUARD && S.running){
+      step(1);
+      S.accMs -= CFG.TICK_MS;
+    }
+  }
+  if(S.dirty){ render(); S.dirty = false; }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   13. BOOT
+   ============================================================ */
+function init(){
+  cacheDom();
+  fillConfigOptions();
+  bindEvents();
+  document.body.classList.toggle("reduced", REDUCED());
+  renderMenu();
+  S.stats = blankStats(); S.parts = blankParts();
+  S.lastTs = performance.now();
+  requestAnimationFrame(frame);
+}
+init();
+})();
+</script>
+<a href="/" id="lyjy-back" style="position:fixed;right:10px;bottom:10px;z-index:9999;padding:5px 11px;border-radius:999px;font:12px/1.4 system-ui,sans-serif;color:#e2e8f0;text-decoration:none;background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.35);opacity:.62;backdrop-filter:blur(6px)" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.62">← 返回 LYJY 导航</a>
+</body>
+</html>
