@@ -195,7 +195,7 @@ export default function StatisticsModal({ isOpen, onClose, data }: StatisticsMod
           </button>
         </header>
 
-        <div className="relative max-h-[78vh] overflow-y-auto px-6 py-6">
+        <div className="relative max-h-[calc(100dvh-11rem)] overflow-y-auto px-6 py-6">
           {/* 数据卡片 */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[

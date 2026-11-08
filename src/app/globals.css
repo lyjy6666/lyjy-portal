@@ -274,9 +274,13 @@ button, a, input, textarea, select {
   }
 }
 
-@media (max-width: 767px) {
-  .portal-ring-stage {
-    --stage-w: min(94vw, 64vh);
+@media (max-width: 767px), (max-height: 559px) {
+  /* 重复类提高特异性：文件后面还有一条 .portal-ring-stage 会覆盖 CSS 变量 */
+  .portal-ring-stage.portal-ring-stage {
+    --stage-w: min(94vw, 78vh);
+    /* 22 个节点在手机上要排开，列宽/节点直径都要比桌面小 */
+    --node-col-w: clamp(40px, calc(var(--stage-w) * 0.10), 64px);
+    --node-d: clamp(32px, calc(var(--stage-w) * 0.062), 44px);
   }
 }
 

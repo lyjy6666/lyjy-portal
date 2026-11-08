@@ -57,11 +57,11 @@ function ServiceRow({ service }: { service: ServiceItem }) {
             open(service);
           }
         }}
-        className={`flex h-full items-center justify-between gap-3 w-full py-2.5 px-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
+        className={`flex h-full w-full flex-col items-stretch gap-2 py-2.5 px-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
           navigable ? 'cursor-pointer' : ''
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex w-full min-w-0 flex-1 items-center gap-2.5 sm:w-auto">
           <div className={`relative w-9 h-9 rounded-full ${c.from} flex items-center justify-center ${c.text} flex-shrink-0`}>
             <ServiceIcon icon={service.icon} size={16} />
             {service.alert && mounted && !seen && (
@@ -72,13 +72,13 @@ function ServiceRow({ service }: { service: ServiceItem }) {
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-              <span className="break-words text-sm font-medium text-white">{service.name}</span>
+              <span className="line-clamp-2 break-words text-sm font-medium text-white">{service.name}</span>
               <ServiceBadges service={service} />
             </div>
-            <span className="mt-0.5 line-clamp-2 break-words text-[11px] leading-relaxed text-slate-400/80">{service.desc}</span>
+            <span className="mt-0.5 line-clamp-2 break-words text-xs leading-relaxed text-slate-400/80 sm:text-[11px]">{service.desc}</span>
           </div>
         </div>
-        <div className="ml-1 flex shrink-0 flex-col items-end gap-1">
+        <div className="ml-1 flex w-full shrink-0 flex-row justify-end gap-1 sm:w-auto sm:flex-col sm:items-end">
           {service.soon || service.unavailable ? (
             <span className="whitespace-nowrap rounded-full bg-slate-500/60 px-2.5 py-1 text-xs text-slate-300">
               {service.unavailable ? '已下线' : '筹备中'}
@@ -118,25 +118,28 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
     setDecorationStyles(styles);
   }, []);
 
+  // 内容**不能依赖入场动画才可见**：手机上 framer-motion 若因省电/低性能/reduced-motion
+  // 没能跑完，opacity:0 会让整块服务卡片变成一片空白。这里只做位移+缩放滑入，
+  // opacity 始终为 1；动画跑了有动感，没跑也照常显示。
   const fadeInUpVariant = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 1, y: 20, scale: 0.95 },
     visible: (i: number) => ({ opacity: 1, y: 0, scale: 1, transition: { type: 'spring' as const, stiffness: 100 + i * 20, damping: 10 - i * 0.5, delay: 0.2 + i * 0.1, duration: 0.5 } }),
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-4 py-12 z-10">
-      <motion.div className="absolute top-8 right-8 bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-blue-500/50 text-blue-400 flex items-center gap-2" custom={1} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+    <div className="relative flex flex-col items-center justify-center min-h-screen px-3 py-10 pb-16 z-10 sm:px-4 sm:py-12 [@media(max-height:559px)]:py-4!">
+      <motion.div className="portal-top-badge hidden sm:flex [@media(max-height:559px)]:hidden! absolute top-8 right-8 bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-blue-500/50 text-blue-400 items-center gap-2" custom={1} initial="hidden" animate="visible" variants={fadeInUpVariant}>
         <span className="text-sm">系统运行中: {dynamicNumber}</span>
       </motion.div>
 
-      <motion.div className="mb-12 text-center" custom={0} initial="hidden" animate="visible" variants={fadeInUpVariant}>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-white">LYJY导航系统</h1>
+      <motion.div className="mb-12 text-center [@media(max-height:559px)]:mb-3!" custom={0} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-white [@media(max-height:559px)]:text-2xl!">LYJY导航系统</h1>
         <motion.div className="mt-4 h-1 w-32 md:w-48 mx-auto bg-gradient-to-r from-blue-500 to-transparent rounded-full" initial={{ width: 0 }} animate={{ width: '12rem' }} transition={{ duration: 1, delay: 0.7 }} />
       </motion.div>
 
-      <motion.div className="mb-8 text-center max-w-lg px-4" custom={2} initial="hidden" animate="visible" variants={fadeInUpVariant}>
-        <div className="bg-black/30 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10">
-          <p className="text-blue-100 text-lg font-light leading-relaxed">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
+      <motion.div className="mb-8 w-full max-w-lg px-4 text-center [@media(max-height:559px)]:mb-3!" custom={2} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+        <div className="bg-black/30 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10 [@media(max-height:559px)]:p-2!">
+          <p className="text-blue-100 text-base sm:text-lg font-light leading-relaxed">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
         </div>
       </motion.div>
 
@@ -150,7 +153,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         </div>
       </motion.div>
 
-      <motion.div className="w-full max-w-2xl bg-gradient-to-br from-black/60 to-slate-900/60 backdrop-blur-lg rounded-2xl p-6 md:p-8 shadow-2xl border border-blue-500/30" custom={5} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+      <motion.div className="relative w-full min-w-0 max-w-2xl bg-gradient-to-br from-black/60 to-slate-900/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 md:p-8 [@media(max-height:559px)]:p-3! shadow-2xl border border-blue-500/30" custom={5} initial="hidden" animate="visible" variants={fadeInUpVariant}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjMzY1YTg1MjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVoiIHN0cm9rZT0iIzMwN2Y5ZDEwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] opacity-30" />
         </div>
@@ -177,13 +180,13 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         </div>
       </motion.div>
 
-      <motion.div className="mt-16 mb-8 text-center" custom={6} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+      <motion.div className="mt-16 mb-8 text-center [@media(max-height:559px)]:mt-6!" custom={6} initial="hidden" animate="visible" variants={fadeInUpVariant}>
         <button type="button" onClick={onOpenNextPreview} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/40 to-purple-600/40 backdrop-blur-md rounded-full shadow-lg border border-blue-500/30 text-white font-medium text-lg">
           <Sparkles size={18} />敬请期待更多功能
         </button>
       </motion.div>
 
-      <footer className="absolute bottom-6 text-center">
+      <footer className="relative mt-8 mb-20 text-center sm:mb-8">
         <div className="text-gray-400 text-sm bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-500/20">
           <p>© 2026 LYJY导航系统 <span className="mx-2">|</span>{' '}
             <button type="button" onClick={onOpenVersion} className="relative text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">
@@ -194,14 +197,14 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         </div>
       </footer>
 
-      <div className="fixed bottom-4 right-6 z-40 flex flex-col gap-2" style={accentStyle('blue')}>
+      <div className="portal-fabs fixed bottom-4 left-4 right-4 z-40 flex flex-row justify-center gap-2 sm:left-auto sm:right-6 sm:flex-col [@media(max-height:559px)]:left-4! [@media(max-height:559px)]:right-4! [@media(max-height:559px)]:flex-row!" style={accentStyle('blue')}>
         <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
         <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
         <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><Sparkles size={20} /></button>
         <button type="button" onClick={onSwitchLayout} className="portal-fab" aria-label="切换圆环布局"><List size={20} /></button>
       </div>
 
-      <div className="fixed bottom-20 left-6 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-blue-500/30 text-xs text-blue-400 flex items-center gap-1">
+      <div className="portal-online hidden sm:flex [@media(max-height:559px)]:hidden! fixed bottom-20 left-6 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-blue-500/30 text-xs text-blue-400 flex items-center gap-1">
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
         <span>系统在线</span>
       </div>

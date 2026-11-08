@@ -215,8 +215,8 @@ export default function RingLayout({
           <p className="portal-core-eyebrow">Unified Portal</p>
           <h1 className="portal-core-title">LYJY导航系统</h1>
           <span className="portal-core-rule" aria-hidden="true" />
-          <p className="portal-core-desc">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
-          <button type="button" onClick={onOpenNextPreview} className="portal-nudge">
+          <p className="portal-core-desc [@media(max-height:559px)]:hidden!">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
+          <button type="button" onClick={onOpenNextPreview} className="portal-nudge [@media(max-height:559px)]:hidden!">
             <Sparkles size={14} />敬请期待更多功能
           </button>
         </div>
@@ -260,7 +260,7 @@ export default function RingLayout({
         </div>
       </div>
 
-      <div className="portal-hud portal-hud--bottom">
+      <div className="portal-hud portal-hud--bottom [@media(max-width:767px)]:bottom-[4.5rem]! [@media(max-height:559px)]:hidden!">
         © 2026 LYJY导航系统 ·{' '}
         <button type="button" onClick={onOpenVersion} className="relative text-sky-300 hover:text-sky-200">
           {isPreview ? 'V7.0 preview' : 'V6.5'}
@@ -268,7 +268,7 @@ export default function RingLayout({
         </button>
       </div>
 
-      <div className="fixed bottom-4 right-6 z-40 flex flex-col gap-2">
+      <div className="fixed bottom-4 left-4 right-4 z-40 flex flex-row justify-center gap-2 sm:left-auto sm:right-6 sm:flex-col [@media(max-height:559px)]:left-4! [@media(max-height:559px)]:right-4! [@media(max-height:559px)]:flex-row!">
         <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
         <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
         <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><History size={20} /></button>

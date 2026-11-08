@@ -8,6 +8,7 @@ import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
 import { PreviewProvider } from '@/components/home/PreviewContext';
+import MobileDesktopHint from '@/components/home/MobileDesktopHint';
 import { generateRandomStatsData, type WebsiteStats } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -17,6 +18,8 @@ export default function PortalHome() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('ring');
   const [ready, setReady] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  // 用户手动切过布局时尊重选择：手机默认列表，但点切换按钮仍能进圆环
+  const [forceRing, setForceRing] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showNextModal, setShowNextModal] = useState(false);
@@ -28,8 +31,10 @@ export default function PortalHome() {
     const stored = localStorage.getItem('portalLayout');
     if (stored === 'list' || stored === 'ring') setLayoutMode(stored);
 
-    const query = window.matchMedia('(min-width: 480px)');
-    const syncViewport = () => setIsCompact(!query.matches);
+    // 圆环需要足够的宽与高：手机竖屏(<768 宽)和横屏/矮屏(<560 高)都退化成列表。
+    // 节点最多 22 个，矮屏上弧长不足会压字（CSS 里那套间距是按 17 节点算的）。
+    const query = window.matchMedia('(max-width: 767px), (max-height: 559px)');
+    const syncViewport = () => setIsCompact(query.matches);
     syncViewport();
     query.addEventListener('change', syncViewport);
 
@@ -47,6 +52,8 @@ export default function PortalHome() {
 
   useEffect(() => {
     if (localStorage.getItem('oldSiteNoticeShown')) return;
+    // 手机/矮屏不弹旧站提示：sonner 的 bottom-right toast 会盖住底部工具条和弹窗
+    if (window.matchMedia('(max-width: 767px), (max-height: 559px)').matches) return;
     const timer = window.setTimeout(() => {
       toast('如果想前往过去的网站，请访问 lyjyold.netlify.app', {
         position: 'bottom-right',
@@ -78,8 +85,12 @@ export default function PortalHome() {
 
   const switchLayout = (mode: LayoutMode) => {
     setLayoutMode(mode);
+    setForceRing(mode === 'ring');
     localStorage.setItem('portalLayout', mode);
-    toast(mode === 'list' ? '已切换到旧版列表布局，可在右下角切回' : '已切换到圆环布局，可在右下角切回');
+    // 手机/矮屏不弹切换提示：sonner 的顶部 toast 会挡住圆环和标题
+    if (!window.matchMedia('(max-width: 767px), (max-height: 559px)').matches) {
+      toast(mode === 'list' ? '已切换到旧版列表布局，可在右下角切回' : '已切换到圆环布局，可在右下角切回');
+    }
   };
 
   const sharedProps = {
@@ -89,13 +100,15 @@ export default function PortalHome() {
     onOpenNextPreview: () => setShowNextModal(true),
   };
 
-  // 极窄屏（<480px）圆环放不下 17 个节点，降级为列表布局；其余宽度一律走圆环
-  const renderRing = layoutMode === 'ring' && !isCompact;
+  // 窄屏/矮屏默认用列表；但用户手动切到圆环时以选择为准（刷新后回到默认列表）
+  const renderRing = layoutMode === 'ring' && (!isCompact || forceRing);
 
   return (
     <PreviewProvider>
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden">
       <Background />
+      {/* 手机浏览器提示：可关闭；开启浏览器「访问桌面版」后 UA 变化，提示自动消失 */}
+      <MobileDesktopHint />
 
       {!ready ? (
         // 布局偏好只能在客户端读取，先用静态圆环骨架占位，避免首屏跳变

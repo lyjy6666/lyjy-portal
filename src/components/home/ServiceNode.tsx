@@ -54,7 +54,9 @@ function ServiceNode({
         state === 'active' ? 'portal-node-active' : ''
       }`}
       style={{ left, top, ...accentStyle(service.color) }}
-      initial={{ opacity: 0, scale: 0.4 }}
+      // 节点不能依赖入场动画才可见：手机上动画没跑完会停在 opacity:0，
+      // 整个圆环只剩轨道线。initial=false 直接以 animate 状态渲染。
+      initial={false}
       animate={{ opacity: state === 'dim' ? 0.22 : 1, scale: 1 }}
       // 入场才需要错峰延迟；状态变化（悬停高亮）不该再延迟，否则看着迟钝
       transition={{ delay: index * 0.045, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
