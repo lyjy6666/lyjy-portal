@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
 import { resolveService } from '@/lib/serviceNav';
+import { isLimitedOnThisDevice, notifyMobileBlocked } from './mobileGuard';
 
 /**
  * 统一的「打开一个服务」入口。
@@ -21,6 +22,13 @@ export function useServiceNav() {
 
   return useCallback(
     (service: ServiceItem) => {
+      // 兜底硬拦截：所有入口最终都走这里，手机版受限项绝不产生任何导航。
+      // 即使某个组件忘了自己加 guard，也只会弹说明、不会跳转。
+      if (isLimitedOnThisDevice(service)) {
+        notifyMobileBlocked(service);
+        return;
+      }
+
       const target = resolveService(service);
 
       if (target.mode === 'soon') {

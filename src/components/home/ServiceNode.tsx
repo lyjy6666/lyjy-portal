@@ -3,6 +3,8 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { ServiceItem } from '@/data/services';
+import { useIsMobile } from './useIsMobile';
+import { isMobileLimited, notifyMobileBlocked } from './mobileGuard';
 import { ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
 import { useAlertSeen } from './useAlertSeen';
@@ -35,6 +37,9 @@ function ServiceNode({
   const unavailable = Boolean(service.soon || service.unavailable);
   const open = useServiceNav();
   const { mounted, seen } = useAlertSeen(service.id, Boolean(service.alert));
+
+  // 手机受限项（趣味应用 / 非安卓的 Windows 产品）：灰显且点击直接拦截，不给跳转口子
+  const limited = isMobileLimited(service, useIsMobile());
 
   // 节点自身不再弹卡片：详情统一由圆环中心的固定面板展示，
   // 这里只把悬停事件上报给 RingLayout。
@@ -71,8 +76,10 @@ function ServiceNode({
           <span className="portal-node-pulse" />
           <button
             type="button"
-            className="portal-node"
+            className={`portal-node ${limited ? 'bg-slate-600! text-slate-300! border-slate-500/40!' : ''}`}
             onClick={() => {
+              // 手机受限项封死：不导航，只说明原因
+              if (limited) { notifyMobileBlocked(service); return; }
               // 点进过该服务即视为「已读」，角标下次不再显示
               if (service.alert) markAlertSeen(service.id);
               open(service);

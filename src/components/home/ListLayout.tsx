@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { servicesFor, type ServiceItem } from '@/data/services';
+import { useIsMobile } from './useIsMobile';
+import { isMobileLimited, mobileLimitText, notifyMobileBlocked } from './mobileGuard';
 import { usePreview } from './PreviewContext';
 import { isNavigable } from '@/lib/serviceNav';
 import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared';
@@ -31,11 +33,20 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; f
   yellow: { bg: 'from-yellow-600/20 to-yellow-600/10', border: 'border-yellow-500/30', text: 'text-yellow-400', from: 'bg-yellow-500/20', btn: 'bg-yellow-600', hover: 'rgba(234, 179, 8, 0.6)' },
 };
 
-function ServiceRow({ service }: { service: ServiceItem }) {
+function ServiceRow({ service, categoryId, mobile }: { service: ServiceItem; categoryId?: string; mobile: boolean }) {
   const c = colorClasses[service.color] ?? colorClasses.blue;
+  // 手机版受限：趣味应用全部置灰；产品下载里除「有安卓版」的 AI 聊天外，Windows 程序全部置灰
+  const limited = isMobileLimited(service, mobile, categoryId);
+  const limitText = mobileLimitText(service);
   const open = useServiceNav();
   const navigable = isNavigable(service);
   const { mounted, seen } = useAlertSeen(service.id, Boolean(service.alert));
+  // 灰显项封死：整行点击、键盘、右侧按钮都只弹说明，不跳转
+  const block = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    notifyMobileBlocked(service);
+  };
 
   return (
     <motion.div whileHover={{ scale: 1.02, borderColor: c.hover }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
@@ -47,6 +58,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
         onClick={(e) => {
           if (!navigable) return;
           if ((e.target as HTMLElement).closest('a, button')) return;
+          if (limited) { notifyMobileBlocked(service); return; }
           if (service.alert) markAlertSeen(service.id);
           open(service);
         }}
@@ -54,6 +66,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
           if (!navigable) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
+            if (limited) { notifyMobileBlocked(service); return; }
             open(service);
           }
         }}
@@ -76,24 +89,38 @@ function ServiceRow({ service }: { service: ServiceItem }) {
               <ServiceBadges service={service} />
             </div>
             <span className="mt-0.5 line-clamp-2 break-words text-xs leading-relaxed text-slate-400/80 sm:text-[11px]">{service.desc}</span>
+            {limited && <span className="mt-0.5 text-[10px] leading-tight text-amber-300/90">{limitText}</span>}
           </div>
         </div>
         <div className="ml-1 flex w-full shrink-0 flex-row justify-end gap-1 sm:w-auto sm:flex-col sm:items-end">
           {service.soon || service.unavailable ? (
-            <span className="whitespace-nowrap rounded-full bg-slate-500/60 px-2.5 py-1 text-xs text-slate-300">
+            <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs ${limited ? "bg-slate-600/70 text-slate-300" : "bg-slate-500/60 text-slate-300"}`}>
               {service.unavailable ? '已下线' : '筹备中'}
             </span>
           ) : service.pro ? (
             <a
-              href={service.pro.href}
+              href={limited ? undefined : service.pro.href}
+              aria-disabled={limited || undefined}
+              data-mobile-limited={limited || undefined}
+              onClick={limited ? block : undefined}
               className={`${c.btn} inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs text-white`}
             >
               <Sparkles size={12} /> Pro 版
             </a>
           ) : (
-            <ServiceAction service={service} className={`${c.btn} inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs text-white`} />
+            <ServiceAction service={service} className={`${limited ? "bg-slate-600/80 text-slate-300" : `${c.btn} text-white`} inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs`} />
           )}
-          {service.upgradeHref && <a href={service.upgradeHref} className="text-[10px] text-slate-500 hover:text-slate-300">{service.oldLabel ?? '返回旧版'}</a>}
+          {service.upgradeHref && (
+            <a
+              href={limited ? undefined : service.upgradeHref}
+              aria-disabled={limited || undefined}
+              data-mobile-limited={limited || undefined}
+              onClick={limited ? block : undefined}
+              className="text-[10px] text-slate-500 hover:text-slate-300"
+            >
+              {service.oldLabel ?? '返回旧版'}
+            </a>
+          )}
         </div>
       </div>
     </motion.div>
@@ -102,6 +129,7 @@ function ServiceRow({ service }: { service: ServiceItem }) {
 
 export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
   const { isPreview } = usePreview();
+  const mobile = useIsMobile();
   const { categories } = useMemo(() => servicesFor(isPreview), [isPreview]);
   const [decorationChars, setDecorationChars] = useState<string[]>([]);
   const [decorationStyles, setDecorationStyles] = useState<{ delay: string; duration: string; transform: string }[]>([]);
@@ -171,7 +199,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {category.services.map((service) => (
-                    <ServiceRow key={service.id} service={service} />
+                    <ServiceRow key={service.id} service={service} categoryId={category.id} mobile={mobile} />
                   ))}
                 </div>
               </motion.div>

@@ -7,6 +7,8 @@ import HashCopy from './HashCopy';
 import AppPreview from './AppPreview';
 import ScrollPager from './ScrollPager';
 import MarkAlertSeen from '@/components/product/MarkAlertSeen';
+import MobileProductGate from '@/components/product/MobileProductGate';
+import { ANDROID_CAPABLE_IDS } from '@/data/services';
 import '../product-themes.css';
 
 export function generateStaticParams() {
@@ -127,12 +129,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div
+      id="pt-page"
       data-ptheme={theme}
       className={productFontVars}
       style={{ '--pt-header-h': '3.25rem' } as React.CSSProperties}
     >
       {/* 累积式整段滚动：滚轮转几下才滚一段 */}
       <ScrollPager />
+      {/* 手机版硬拦截：没有 Android 版的 Windows 产品，直接输网址也进不来 */}
+      <MobileProductGate allowed={ANDROID_CAPABLE_IDS.has(product.slug)} />
 
       {/* 安全警告栏：Windows Toolbox 旧版本存在严重漏洞，提醒更新（常驻、不可关闭） */}
       {product.slug === 'windows-toolbox' && (

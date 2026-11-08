@@ -9,6 +9,9 @@ import VersionDialog from '@/components/home/VersionDialog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
 import { PreviewProvider } from '@/components/home/PreviewContext';
 import MobileDesktopHint from '@/components/home/MobileDesktopHint';
+import MobileNoticeDialog from '@/components/home/MobileNoticeDialog';
+import MobileBlockNotice from '@/components/home/MobileBlockNotice';
+import { isMobileDevice } from '@/components/home/useIsMobile';
 import { generateRandomStatsData, type WebsiteStats } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -20,6 +23,7 @@ export default function PortalHome() {
   const [isCompact, setIsCompact] = useState(false);
   // 用户手动切过布局时尊重选择：手机默认列表，但点切换按钮仍能进圆环
   const [forceRing, setForceRing] = useState(false);
+  const [ringWarnOpen, setRingWarnOpen] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showNextModal, setShowNextModal] = useState(false);
@@ -83,7 +87,8 @@ export default function PortalHome() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const switchLayout = (mode: LayoutMode) => {
+  // 真正应用布局（跳过确认后调用）
+  const applyLayout = (mode: LayoutMode) => {
     setLayoutMode(mode);
     setForceRing(mode === 'ring');
     localStorage.setItem('portalLayout', mode);
@@ -91,6 +96,15 @@ export default function PortalHome() {
     if (!window.matchMedia('(max-width: 767px), (max-height: 559px)').matches) {
       toast(mode === 'list' ? '已切换到旧版列表布局，可在右下角切回' : '已切换到圆环布局，可在右下角切回');
     }
+  };
+
+  const switchLayout = (mode: LayoutMode) => {
+    // 手机上切圆环前先警告：窗口偏差很大，建议电脑版 / 桌面版
+    if (mode === 'ring' && isMobileDevice()) {
+      setRingWarnOpen(true);
+      return;
+    }
+    applyLayout(mode);
   };
 
   const sharedProps = {
@@ -132,6 +146,18 @@ export default function PortalHome() {
 
       <StatisticsModal isOpen={showStatsModal} onClose={() => setShowStatsModal(false)} data={statsData} />
       <VersionDialog open={showVersionModal} onOpenChange={setShowVersionModal} />
+      {/* 全站唯一的「仅电脑版可访问」提示：所有灰显入口被点中时统一弹这一个 */}
+      <MobileBlockNotice />
+      <MobileNoticeDialog
+        open={ringWarnOpen}
+        title="手机版圆环显示偏差"
+        message="手机版访问圆环，窗口显示会出现严重偏差，强烈建议使用电脑版或访问桌面版。"
+        primaryLabel="取消，继续用列表"
+        onPrimary={() => setRingWarnOpen(false)}
+        secondaryLabel="仍要切换圆环"
+        onSecondary={() => { setRingWarnOpen(false); applyLayout('ring'); }}
+        onClose={() => setRingWarnOpen(false)}
+      />
       <NextVersionDialog open={showNextModal} onOpenChange={setShowNextModal} />
     </div>
     </PreviewProvider>

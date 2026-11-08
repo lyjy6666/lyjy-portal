@@ -466,6 +466,33 @@ body.reduced *,body.reduced *::before,body.reduced *::after{animation-duration:.
 </style>
 </head>
 <body data-mode="menu" data-view="menu">
+<script>
+/* 手机版硬拦截：趣味应用只允许电脑版 / 浏览器「访问桌面版」进入。
+   桌面 UA（含手机切桌面版）不会命中，游戏照常可玩。 */
+(function(){
+  var ua = navigator.userAgent || '';
+  if(!/Android.*Mobile|iPhone|iPod|Windows Phone|IEMobile|Opera Mini|Mobile Safari/i.test(ua)) return;
+  var layer = null;
+  function mount(){
+    document.documentElement.style.overflow = 'hidden';
+    if(layer && layer.isConnected) return;
+    layer = document.createElement('div');
+    layer.setAttribute('role','dialog');
+    layer.setAttribute('aria-modal','true');
+    layer.setAttribute('aria-label','仅电脑版可访问');
+    layer.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:#08131a;color:#e7eee9;font:14px/1.75 system-ui,"PingFang SC","Microsoft YaHei",sans-serif;text-align:center';
+    layer.innerHTML = '<div style="max-width:22rem">'
+      + '<div style="font-size:18px;font-weight:700;color:#f0a63b;margin-bottom:12px">仅电脑版可访问</div>'
+      + '<p style="margin:0 0 10px">该趣味应用在手机版暂不可用，只有电脑版才能进入。</p>'
+      + '<p style="margin:0 0 22px;font-size:12px;color:#93a7ab">也可以在浏览器「更多」里开启「访问桌面版 / 桌面网站」。手机版常见限制：部分网站无法访问、格式出错、乱码等。</p>'
+      + '<a href="/" style="display:inline-block;padding:10px 26px;border-radius:999px;background:#f0a63b;color:#101b20;font-weight:700;text-decoration:none">返回导航首页</a>'
+      + '</div>';
+    document.body.appendChild(layer);
+  }
+  mount();
+  document.addEventListener('DOMContentLoaded', mount);
+})();
+</script>
 <div class="frame">
   <header class="masthead">
     <div class="brand">

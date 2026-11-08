@@ -137,6 +137,9 @@ export const flattenServices = () =>
     })),
   );
 
+/** 有 Android 安装包的产品：手机版不提示「无法安装 Windows 程序」 */
+export const ANDROID_CAPABLE_IDS = new Set(['aichat']);
+
 /** 仅 V7.0 preview 通道可见的新增服务（默认 V6.5 首页不展示） */
 export const PREVIEW_ONLY_IDS = new Set(['vertical-control', 'auto-checkin', 'aichat']);
 
@@ -162,7 +165,7 @@ function toLegacyHomework(s: ServiceItem): ServiceItem {
  * preview=true（已尝鲜 V7.0）：完整清单。
  */
 export function servicesFor(preview: boolean) {
-  const categories: ServiceCategory[] = preview
+  const base: ServiceCategory[] = preview
     ? serviceCategories
     : serviceCategories
         .map((category) => ({
@@ -173,14 +176,20 @@ export function servicesFor(preview: boolean) {
         }))
         .filter((category) => category.services.length > 0);
 
-  const flat = categories.flatMap((category) =>
-    category.services.map((service) => ({
+  // 分类信息必须同时写到 categories[].services 上。
+  // 之前只写在 flat 里，导致列表布局（用 categories）拿到的 service.categoryId 为空，
+  // 手机版灰显判定在子按钮里失效，灰按钮仍渲染成可绕过的 <a href>。
+  const categories: ServiceCategory[] = base.map((category) => ({
+    ...category,
+    services: category.services.map((service) => ({
       ...service,
       categoryId: category.id,
       categoryName: category.name,
       categoryColor: category.color,
     })),
-  );
+  }));
+
+  const flat = categories.flatMap((category) => category.services);
 
   return { categories, flat };
 }

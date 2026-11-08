@@ -1,11 +1,13 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import { Apple, ArrowDownToLine, ArrowRight, AudioLines, Boxes, Brain, Clapperboard, Compass, Copy, Dice5, FilePen, Gamepad2, GraduationCap, House, PackageOpen, RadioTower, Search, ShieldCheck, Sparkles, Timer, Video, Wrench, PanelsTopLeft, Clock, MessageCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ServiceItem } from '@/data/services';
 import { isSunset, sunsetLabel } from '@/lib/sunset';
 import { resolveService } from '@/lib/serviceNav';
+import { useIsMobile } from './useIsMobile';
+import { isMobileLimited, mobileLimitText, notifyMobileBlocked } from './mobileGuard';
 import { useServiceNav } from './useServiceNav';
 
 const icons: Record<string, LucideIcon> = {
@@ -33,10 +35,17 @@ export function ServiceIcon({ icon, size = 22 }: { icon: string; size?: number }
   const Icon = icons[icon] ?? Compass;
   return <Icon size={size} strokeWidth={1.5} aria-hidden="true" />;
 }
-export function ServiceAction({ service, className = 'portal-enter' }: { service: ServiceItem; className?: string }) {
+export function ServiceAction({
+  service,
+  className = 'portal-enter',
+}: {
+  service: ServiceItem;
+  className?: string;
+}) {
   // 与圆环节点、列表整行共用同一个跳转入口，保证行为完全一致
   const open = useServiceNav();
   const target = resolveService(service);
+  const limited = isMobileLimited(service, useIsMobile());
 
   if (target.mode === 'soon') {
     return <span className="portal-unavailable">{target.message ?? '正在筹备中，敬请期待'}</span>;
@@ -50,8 +59,28 @@ export function ServiceAction({ service, className = 'portal-enter' }: { service
     </span>
   );
 
-  // 保留真实 <a href>：中键新标签、复制链接仍然可用；
-  // 普通左键点击则统一交给 open()，与圆圈点击走同一条逻辑。
+  // 手机版受限项彻底封死：连 <a href> 都不渲染。
+  // 只要留着 href，中键 / 长按「在新标签打开」/ 复制链接就能绕过 onClick 拦截。
+  if (limited) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-disabled="true"
+        data-mobile-limited="true"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          notifyMobileBlocked(service);
+        }}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  // 正常项保留真实 <a href>：中键新标签、复制链接仍然可用；
+  // 普通左键点击则统一交给 open()（内部还有一层设备兜底拦截）。
   return (
     <a
       className={className}
@@ -83,9 +112,22 @@ export function ServiceBadges({ service }: { service: ServiceItem }) {
  */
 export function ServiceEntries({ service, inline = false, hideOriginal = false }: { service: ServiceItem; inline?: boolean; hideOriginal?: boolean }) {
   const pro = service.pro;
+  const limited = isMobileLimited(service, useIsMobile());
+
+  // 中心详情面板里的入口同样不能留 href，否则长按/中键能绕过点击拦截。
+  const onBlocked = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    notifyMobileBlocked(service);
+  };
 
   if (!pro) {
-    return <ServiceAction service={service} />;
+    return (
+      <div className="portal-entries">
+        <ServiceAction service={service} className={limited ? 'portal-enter bg-slate-600! text-slate-300!' : undefined} />
+        {limited && <span className="mt-1 max-w-[14rem] text-center text-[10px] leading-tight text-amber-300/90">{mobileLimitText(service)}</span>}
+      </div>
+    );
   }
 
   const sunset = isSunset(service);
@@ -94,32 +136,37 @@ export function ServiceEntries({ service, inline = false, hideOriginal = false }
   // 已关停的服务只保留「原版已关停」这一个置灰入口，不再叠一行「请使用 Pro 版」；
   // 两版并存的服务（作业系统）才显示 oldNote。
   const metaNote = sunset ? '' : (service.oldNote ?? sunsetLabel(service));
+  const cls = `portal-entries ${inline ? 'portal-entries--inline' : ''}`;
+
+  const proMain = limited ? (
+    <button type="button" className="portal-pro-main" aria-disabled="true" data-mobile-limited="true" title={pro.hint ?? pro.label} onClick={onBlocked}>
+      <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
+      {pro.label}
+    </button>
+  ) : (
+    <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
+      <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
+      {pro.label}
+    </a>
+  );
 
   // 首页圆环的「隐藏已关停/筹备中」开关开启时，只保留 Pro 版主按钮，
   // 把已关停原版的入口（「进入原版」/「原版已关停」）收起来，但不影响 Pro 版本身。
   if (hideOriginal) {
-    return (
-      <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
-        <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
-          <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
-          {pro.label}
-        </a>
-      </div>
-    );
+    return <div className={cls}>{proMain}</div>;
   }
 
   return (
-    <div className={`portal-entries ${inline ? 'portal-entries--inline' : ''}`}>
+    <div className={cls}>
       {/* 第一层：Pro 版主按钮，唯一醒目元素 */}
-      <a className="portal-pro-main" href={pro.href} title={pro.hint ?? pro.label}>
-        <Sparkles size={15} strokeWidth={2} aria-hidden="true" />
-        {pro.label}
-      </a>
+      {proMain}
 
       {/* 第二层：原版入口与说明合并成同一行，不再各占一行把面板撑高 */}
       <div className="portal-entries-meta">
         {!soon && (sunset ? (
           <span className="portal-old-entry is-off" aria-disabled="true">原版已关停</span>
+        ) : limited ? (
+          <button type="button" className="portal-old-entry" aria-disabled="true" data-mobile-limited="true" onClick={onBlocked}>进入原版</button>
         ) : (
           <a className="portal-old-entry" href={oldHref}>进入原版</a>
         ))}

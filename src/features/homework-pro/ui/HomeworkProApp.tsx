@@ -19,6 +19,7 @@ import { FocusTimer } from './features/FocusTimer';
 import { FloatingActions } from './layout/FloatingActions';
 import { GradeGate } from './features/GradeGate';
 import { IntroSplash } from './layout/IntroSplash';
+import { ProMobileNotice } from './layout/ProMobileNotice';
 import type { ViewMode } from '../core/types';
 
 export default function HomeworkProApp() {
@@ -36,6 +37,8 @@ function WithSkin() {
       <MotionConfig reducedMotion="user">
         {/* 开屏层与 Shell 同级：不落在 framer-motion 的 transform 容器里，fixed 才能真正全屏 */}
         <IntroSplash />
+        {/* 手机版建议：层级高于开屏光波，用户先看到选择 */}
+        <ProMobileNotice />
         <Shell />
       </MotionConfig>
     </SkinProvider>
