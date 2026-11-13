@@ -42,25 +42,30 @@ interface Episode {
 interface PlayLine {
   id: string;
   name: string;
-  type: 'hls' | 'iframe' | 'collector';
+  type: 'hls' | 'collector';
   // hls: 直接用 episode.url（当前采集站的 m3u8，最快）
-  // iframe: parser + episode.url 拼接（第三方解析嵌入）
   // collector: 用 collectorUrl 重新搜当前影片名，取该站的 m3u8 播放（多源兜底）
-  parser?: string;
   collectorUrl?: string;
+}
+
+/** 线路测速结果：ok=false 表示超时/不可达，ms 为该次请求耗时 */
+interface LineLatency {
+  ms: number;
+  ok: boolean;
 }
 
 // ============ 常量 ============
 const DEFAULT_COLLECTOR = 'https://cj.lziapi.com/api.php/provide/vod/';
 const COLLECTOR_STORAGE_KEY = 'movie_collector_url';
+const MINIMAL_MODE_KEY = 'movie_minimal_mode';
 const HLS_CDN = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
 
 // 预设采集站列表（移植自 MoonTV 开源项目 config.json，实测筛选可用站点）
 // 来源：https://github.com/samqin123/MoonTV/blob/main/config.json
-// 实测日期 2026-07-22，标注影片数量为当时实测值
+// 复测日期 2026-11-13：原线路③域名解析已失效，替换为实测可用的飘零资源
 const COLLECTOR_PRESETS: { name: string; url: string; note: string }[] = [
-  { name: '量子资源（默认）', url: 'https://cj.lziapi.com/api.php/provide/vod/', note: '14.5万部' },
-  { name: '豆瓣资源', url: 'https://dbzy.tv/api.php/provide/vod/', note: '13.5万部' },
+  { name: '量子资源（默认）', url: 'https://cj.lziapi.com/api.php/provide/vod/', note: '16.4万部' },
+  { name: '飘零资源', url: 'https://p2100.net/api.php/provide/vod/', note: '10.1万部' },
   { name: '最大资源', url: 'https://api.zuidapi.com/api.php/provide/vod/', note: '12.1万部' },
   { name: '无尽资源', url: 'https://api.wujinapi.me/api.php/provide/vod/', note: '11.6万部' },
   { name: '极速资源', url: 'https://jszyapi.com/api.php/provide/vod/', note: '10.7万部' },
@@ -76,7 +81,7 @@ const COLLECTOR_PRESETS: { name: string; url: string; note: string }[] = [
 const PLAY_LINES: PlayLine[] = [
   { id: 'lzm3u8', name: '① 当前站', type: 'hls' },
   { id: 'lizi', name: '② 量子资源', type: 'collector', collectorUrl: 'https://cj.lziapi.com/api.php/provide/vod/' },
-  { id: 'douban', name: '③ 豆瓣资源', type: 'collector', collectorUrl: 'https://dbzy.tv/api.php/provide/vod/' },
+  { id: 'piaoling', name: '③ 飘零资源', type: 'collector', collectorUrl: 'https://p2100.net/api.php/provide/vod/' },
   { id: 'zuida', name: '④ 最大资源', type: 'collector', collectorUrl: 'https://api.zuidapi.com/api.php/provide/vod/' },
   { id: 'wujin', name: '⑤ 无尽资源', type: 'collector', collectorUrl: 'https://api.wujinapi.me/api.php/provide/vod/' },
   { id: 'jisu', name: '⑥ 极速资源', type: 'collector', collectorUrl: 'https://jszyapi.com/api.php/provide/vod/' },
@@ -88,39 +93,17 @@ const PLAY_LINES: PlayLine[] = [
 
 // 免责声明文本
 const DISCLAIMER_MAIN = '视频资源全部来源于第三方播放接口，本站服务器不储存任何视频资源。视频中自带广告、视频内容均归属第三方平台，本站不承担相关责任。如有版权争议，请直接联系对应第三方资源方。';
-const DISCLAIMER_SUB = '若播放异常可尝试切换播放线路。';
+const DISCLAIMER_SUB = '每条线路会自动测速并显示延迟，播放异常时可切换到延迟更低的线路。';
 
 // 违规内容过滤黑名单（明确违法的，一律删除不显示）
 const BLOCKED_KEYWORDS = ['伦理', '三级', '两性', '情色', '成人', 'AV'];
 
-// 限制级内容关键词（擦边低俗但不违法，放进密码分类）
-const RESTRICTED_KEYWORDS = ['写真', '擦边', '热舞'];
 
 // 判断是否为违法内容（直接删除）
 function isBlocked(text: string): boolean {
   if (!text) return false;
   return BLOCKED_KEYWORDS.some((kw) => text.includes(kw));
 }
-
-// 判断是否为限制级内容（进密码分类）
-function isRestricted(text: string): boolean {
-  if (!text) return false;
-  return RESTRICTED_KEYWORDS.some((kw) => text.includes(kw));
-}
-
-// 限制级分类密码（写死在源代码里，用户无法在界面上修改）
-const RESTRICTED_PASSWORD = '15735900';
-
-function getRestrictedPassword(): string {
-  return RESTRICTED_PASSWORD;
-}
-
-// 选集缩放档位
-const EPISODE_ZOOM_LEVELS = [
-  { label: '小', cols: 'grid-cols-5 sm:grid-cols-8 md:grid-cols-10', text: 'text-xs', py: 'py-1.5' },
-  { label: '中', cols: 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8', text: 'text-sm', py: 'py-2' },
-  { label: '大', cols: 'grid-cols-3 sm:grid-cols-5 md:grid-cols-6', text: 'text-base', py: 'py-2.5' },
-];
 
 // 倍速选项
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -134,6 +117,42 @@ function getCollectorUrl(): string {
 function setCollectorUrl(url: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(COLLECTOR_STORAGE_KEY, url);
+}
+
+// ============ 播放线路测速 ============
+// 结果缓存 5 分钟：避免每打开一部影片就并发打满 10 个采集站
+let latencyCache: { at: number; data: Record<string, LineLatency> } | null = null;
+const LATENCY_TTL = 5 * 60 * 1000;
+
+/** 线路①用「当前采集站」，其余线路用各自绑定的采集站 */
+function lineCollector(line: PlayLine): string {
+  return line.type === 'hls' ? getCollectorUrl() : line.collectorUrl || DEFAULT_COLLECTOR;
+}
+
+async function pingLine(line: PlayLine): Promise<[string, LineLatency]> {
+  try {
+    const res = await fetch(
+      `/api/movie/ping?collector=${encodeURIComponent(lineCollector(line))}`,
+      { cache: 'no-store' },
+    );
+    const data = await res.json();
+    return [line.id, { ms: Number(data.ms) || 0, ok: Boolean(data.ok) }];
+  } catch {
+    return [line.id, { ms: 0, ok: false }];
+  }
+}
+
+function latencyLabel(lat?: LineLatency, loading = false): string {
+  if (!lat) return loading ? '测速中…' : '未测速';
+  return lat.ok ? `${lat.ms} ms` : '不可用';
+}
+
+function latencyTone(lat?: LineLatency): string {
+  if (!lat) return 'text-white/40';
+  if (!lat.ok) return 'text-red-300';
+  if (lat.ms < 500) return 'text-emerald-300';
+  if (lat.ms < 1200) return 'text-yellow-300';
+  return 'text-orange-300';
 }
 
 // 动态加载 hls.js
@@ -574,7 +593,13 @@ function CustomVideoPlayer({
 // ============ 主组件 ============
 /** 影视资源站的版本历史（越靠前越新） */
 const MOVIE_RELEASES: Release[] = [
-  { version: 'V1.0', date: '2026-07-22', latest: true, items: ['网站上线了'] },
+  {
+    version: 'V2.0',
+    date: '2026-11-13',
+    latest: true,
+    items: ['优化了影片播放', '优化了界面排版'],
+  },
+  { version: 'V1.0', date: '2026-07-22', items: ['网站上线了'] },
 ];
 
 export default function MoviePage() {
@@ -593,12 +618,12 @@ export default function MoviePage() {
   const [currentEpisode, setCurrentEpisode] = useState(0);
   const [currentLineId, setCurrentLineId] = useState<string>(PLAY_LINES[0].id); // 当前播放线路
 
-  // 选集缩放
-  const [episodeZoom, setEpisodeZoom] = useState(1); // 0=小 1=中 2=大
-  const [episodeFullscreen, setEpisodeFullscreen] = useState(false);
+  // 极简模式：只保留播放器、换源、选集，不显示影片介绍与免责声明
+  const [minimalMode, setMinimalMode] = useState(false);
 
-  // iframe 提示：前5秒闪烁+大字居中，5秒后变小回左上角
-  const [iframeNoticeBlink, setIframeNoticeBlink] = useState(false);
+  // 线路延迟：key = PLAY_LINES 的 id
+  const [lineLatency, setLineLatency] = useState<Record<string, LineLatency>>({});
+  const [latencyLoading, setLatencyLoading] = useState(false);
 
   // collector 线路（其他采集站）的播放数据：切到某采集站线路时现搜现取
   const [lineEpisodes, setLineEpisodes] = useState<Record<string, Episode[]>>({});
@@ -608,17 +633,44 @@ export default function MoviePage() {
   // 设置弹窗
   const [showSettings, setShowSettings] = useState(false);
   const [collectorInput, setCollectorInput] = useState('');
-
-  // 限制级分类（密码保护）
-  const [restrictedCategories, setRestrictedCategories] = useState<Category[]>([]);
-  const [restrictedUnlocked, setRestrictedUnlocked] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [showUpdateLog, setShowUpdateLog] = useState(false);
 
   // 测试阶段提示弹窗（每次进入站点都弹出，直到用户点击"我已了解"关闭）
   const [showBetaNotice, setShowBetaNotice] = useState(false);
+
+  // ============ 极简模式 & 线路测速 ============
+  const toggleMinimalMode = () => {
+    setMinimalMode((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(MINIMAL_MODE_KEY, next ? '1' : '0'); } catch { /* 隐私模式忽略 */ }
+      return next;
+    });
+  };
+
+  const measureLines = useCallback(async (force = false) => {
+    if (!force && latencyCache && Date.now() - latencyCache.at < LATENCY_TTL) {
+      setLineLatency(latencyCache.data);
+      return;
+    }
+    setLatencyLoading(true);
+    const pairs = await Promise.all(PLAY_LINES.map(pingLine));
+    const data = Object.fromEntries(pairs) as Record<string, LineLatency>;
+    latencyCache = { at: Date.now(), data };
+    setLineLatency(data);
+    setLatencyLoading(false);
+  }, []);
+
+  // 切换线路时重测「当前源」，保证显示的是刚切过去那条线路的实时延迟
+  const measureOne = useCallback(async (lineId: string) => {
+    const line = PLAY_LINES.find((l) => l.id === lineId);
+    if (!line) return;
+    const [id, result] = await pingLine(line);
+    setLineLatency((prev) => {
+      const next = { ...prev, [id]: result };
+      latencyCache = { at: Date.now(), data: next };
+      return next;
+    });
+  }, []);
 
   // ============ 数据请求 ============
   const fetchCategories = useCallback(async () => {
@@ -626,19 +678,9 @@ export default function MoviePage() {
       const res = await fetch(`/api/movie?collector=${encodeURIComponent(getCollectorUrl())}&ac=list`);
       const data = await res.json();
       if (data.class && Array.isArray(data.class)) {
-        // 违法分类直接丢弃；擦边分类放进限制级（密码保护）
-        const normal: Category[] = [];
-        const restricted: Category[] = [];
-        for (const c of data.class) {
-          if (isBlocked(c.type_name)) continue; // 违法，丢弃
-          if (isRestricted(c.type_name)) {
-            restricted.push(c); // 擦边，进密码分类
-          } else {
-            normal.push(c); // 正常
-          }
-        }
+        // 只做违法内容过滤；隐藏分类（密码入口）已整体下线，合法分类直接展示
+        const normal: Category[] = data.class.filter((c: Category) => !isBlocked(c.type_name));
         setCategories(normal);
-        setRestrictedCategories(restricted);
         // 默认选中"电影"分类，避免首页推荐乱七八糟的内容
         const movieCat = normal.find((c: Category) => c.type_name === '电影');
         if (movieCat) {
@@ -668,12 +710,10 @@ export default function MoviePage() {
       const data = await res.json();
 
       if (data.list && Array.isArray(data.list)) {
-        // 过滤掉违法影片；未解锁时也过滤掉限制级影片
-        const cleanMovies = data.list.filter((v: VodItem) => {
-          if (isBlocked(v.vod_class) || isBlocked(v.vod_name)) return false;
-          if (!restrictedUnlocked && (isRestricted(v.vod_class) || isRestricted(v.vod_name))) return false;
-          return true;
-        });
+        // 只过滤明确违法的内容；隐藏内容已下线，不再按解锁状态做区分
+        const cleanMovies = data.list.filter(
+          (v: VodItem) => !isBlocked(v.vod_class ?? '') && !isBlocked(v.vod_name),
+        );
         setMovies(cleanMovies);
         setPageCount(data.pagecount || 1);
       } else {
@@ -687,7 +727,7 @@ export default function MoviePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, activeCategory, searchKeyword, restrictedUnlocked]);
+  }, [page, activeCategory, searchKeyword]);
 
   const fetchDetail = useCallback(async (vodId: number) => {
     setDetailLoading(true);
@@ -723,6 +763,16 @@ export default function MoviePage() {
     fetchCategories();
   }, [fetchCategories]);
 
+  // 极简模式偏好：只在客户端读取，避免 SSR / hydration 文本不一致
+  useEffect(() => {
+    try { setMinimalMode(localStorage.getItem(MINIMAL_MODE_KEY) === '1'); } catch { /* 隐私模式忽略 */ }
+  }, []);
+
+  // 每次打开影片弹窗，自动测一遍全部播放线路的延迟（5 分钟内有缓存则直接复用）
+  useEffect(() => {
+    if (detail) void measureLines();
+  }, [detail?.vod_id, measureLines]);
+
   // 进入影视站弹出测试阶段提醒（每个会话首次进入弹一次）
   useEffect(() => {
     const SESSION_KEY = 'movie_beta_notice_shown';
@@ -742,8 +792,9 @@ export default function MoviePage() {
   // 注意：采集站返回的源名是拼音 "liangzi" 而非中文"量子"，需同时匹配
   const parseEpisodes = (d: any): Episode[] => {
     if (!d) return [];
-    const playFromArr = (d.vod_play_from || '').split('$$$');
-    const playUrlArr = (d.vod_play_url || '').split('$$$');
+    // 显式转字符串：d 是采集站原始 JSON，不能让 split 结果退化成 any
+    const playFromArr: string[] = String(d.vod_play_from || '').split('$$$');
+    const playUrlArr: string[] = String(d.vod_play_url || '').split('$$$');
     // 优先选 lzm3u8 源；找不到再取第一个非量子源
     let validIdx = playFromArr.findIndex((name) => name.toLowerCase().includes('lzm3u8'));
     if (validIdx === -1) {
@@ -768,12 +819,8 @@ export default function MoviePage() {
     currentLine.type === 'collector' ? lineEpisodes[currentLine.id] || [] : rawEpisodes;
   const currentEp = currentEpisodes[currentEpisode];
 
-  // 当前播放地址
-  const currentPlayUrl = (() => {
-    if (!currentEp || !currentEp.url) return '';
-    if (currentLine.type === 'iframe') return currentLine.parser + encodeURIComponent(currentEp.url);
-    return currentEp.url; // hls 和 collector 都是直接播 m3u8
-  })();
+  // 当前播放地址：hls 与 collector 线路都是直接播 m3u8
+  const currentPlayUrl = currentEp?.url || '';
 
   // collector 线路：切到该线路时，用影片名去对应采集站现搜，取 m3u8 播放地址
   useEffect(() => {
@@ -839,17 +886,6 @@ export default function MoviePage() {
     setCurrentEpisode(0);
   }, [currentLineId]);
 
-  // iframe 线路提示闪烁：切换线路或剧集时触发，前5秒闪烁大字，5秒后变小回左上角
-  useEffect(() => {
-    if (currentLine.type !== 'iframe' || !currentPlayUrl) {
-      setIframeNoticeBlink(false);
-      return;
-    }
-    setIframeNoticeBlink(true);
-    const timer = setTimeout(() => setIframeNoticeBlink(false), 5000);
-    return () => clearTimeout(timer);
-  }, [currentPlayUrl, currentLine.type]);
-
   // ============ 交互 ============
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -873,7 +909,6 @@ export default function MoviePage() {
     setDetail(null);
     setCurrentEpisode(0);
     setCurrentLineId(PLAY_LINES[0].id);
-    setEpisodeFullscreen(false);
     setLineEpisodes({});
     setLineError('');
     setLineLoading(false);
@@ -881,26 +916,9 @@ export default function MoviePage() {
 
   const handleSwitchLine = (lineId: string) => {
     setCurrentLineId(lineId);
+    // 切过去之后立刻重测这条线路，当前源延迟总是新鲜的
+    void measureOne(lineId);
     toast.success(`已切换到 ${PLAY_LINES.find((l) => l.id === lineId)?.name}`);
-  };
-
-  // 限制级分类：密码验证
-  const handlePasswordSubmit = () => {
-    if (passwordInput === getRestrictedPassword()) {
-      setRestrictedUnlocked(true);
-      setShowPasswordModal(false);
-      setPasswordInput('');
-      setPasswordError('');
-      toast.success('已解锁限制级内容');
-    } else {
-      setPasswordError('密码错误');
-    }
-  };
-
-  const handleLockRestricted = () => {
-    setRestrictedUnlocked(false);
-    setActiveCategory(0);
-    toast.success('已锁定限制级内容');
   };
 
   const handleEpisodeClick = (idx: number) => {
@@ -935,8 +953,6 @@ export default function MoviePage() {
       fetchMovies();
     }, 300);
   };
-
-  const zoomClass = EPISODE_ZOOM_LEVELS[episodeZoom];
 
   // ============ 渲染 ============
   return (
@@ -1029,44 +1045,6 @@ export default function MoviePage() {
               {cat.type_name}
             </button>
           ))}
-          {/* 限制级内容入口（始终显示） */}
-          {restrictedUnlocked ? (
-            <>
-              {restrictedCategories.map((cat) => (
-                <button
-                  key={cat.type_id}
-                  onClick={() => handleCategoryClick(cat.type_id)}
-                  className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                    activeCategory === cat.type_id && !searchKeyword
-                      ? 'bg-red-500 text-white'
-                      : 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
-                  }`}
-                >
-                  <i className="fa-solid fa-lock-open mr-1 text-xs"></i>
-                  {cat.type_name}
-                </button>
-              ))}
-              <button
-                onClick={handleLockRestricted}
-                className="px-3 py-1.5 rounded-full text-sm whitespace-nowrap bg-white/5 text-white/40 hover:text-white/70 transition-all"
-                title="锁定限制级内容"
-              >
-                <i className="fa-solid fa-lock"></i>
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => {
-                setPasswordInput('');
-                setPasswordError('');
-                setShowPasswordModal(true);
-              }}
-              className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all bg-white/5 text-white/40 hover:text-red-300 hover:bg-red-500/10"
-            >
-              <i className="fa-solid fa-lock mr-1 text-xs"></i>
-              更多内容
-            </button>
-          )}
         </div>
 
         {/* 当前状态提示 */}
@@ -1198,56 +1176,44 @@ export default function MoviePage() {
               transition={{ duration: 0.4 }}
               className="relative w-full max-w-5xl max-h-[90vh] bg-gradient-to-br from-slate-900/90 to-black/90 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden flex flex-col"
             >
-              {/* 弹窗头 */}
-              <div className="sticky top-0 z-20 bg-black/40 backdrop-blur-md border-b border-white/10 p-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white truncate flex items-center gap-2">
-                  <i className="fa-solid fa-circle-play text-amber-400"></i>
-                  {detail.vod_name}
+              {/* 弹窗头：片名 + 极简模式开关 + 关闭 */}
+              <div className="sticky top-0 z-20 bg-black/40 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-white truncate flex items-center gap-2 min-w-0 flex-1">
+                  <i className="fa-solid fa-circle-play text-amber-400 flex-shrink-0"></i>
+                  <span className="truncate">{detail.vod_name}</span>
                 </h2>
                 <button
+                  type="button"
+                  onClick={toggleMinimalMode}
+                  aria-pressed={minimalMode}
+                  title={minimalMode ? '关闭极简模式，恢复影片介绍' : '开启极简模式，只保留换源与选集'}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    minimalMode
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <i className={`fa-solid ${minimalMode ? 'fa-compress' : 'fa-expand'}`}></i>
+                  <span className="hidden sm:inline">极简模式</span>
+                  {minimalMode && <span className="hidden sm:inline">· 开</span>}
+                </button>
+                <button
                   onClick={handleCloseDetail}
-                  className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all group flex-shrink-0"
+                  className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all flex-shrink-0"
                   aria-label="关闭"
                 >
-                  <i className="fa-solid fa-times text-white/80 group-hover:text-white"></i>
+                  <i className="fa-solid fa-times text-white/80"></i>
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {/* 播放器区域 */}
+                {/* ① 播放器：所有线路都直接播 m3u8，不再有 iframe 嵌入分支 */}
                 {currentPlayUrl ? (
-                  currentLine.type !== 'iframe' ? (
-                    <CustomVideoPlayer
-                      src={currentPlayUrl}
-                      onPrevEpisode={currentEpisode > 0 ? handlePrevEpisode : undefined}
-                      onNextEpisode={currentEpisode < currentEpisodes.length - 1 ? handleNextEpisode : undefined}
-                    />
-                  ) : (
-                    <div className="relative w-full aspect-video bg-black">
-                      <iframe
-                        src={currentPlayUrl}
-                        className="w-full h-full border-0"
-                        allowFullScreen
-                        sandbox="allow-scripts allow-same-origin allow-presentation"
-                        title={detail.vod_name}
-                      />
-                      {iframeNoticeBlink ? (
-                        <motion.div
-                          animate={{ opacity: [1, 0.15, 1] }}
-                          transition={{ duration: 0.7, repeat: Infinity, ease: 'easeInOut' }}
-                          className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-fit px-6 py-3 bg-red-600/85 backdrop-blur-sm rounded-xl text-xl md:text-2xl text-white font-bold text-center pointer-events-none shadow-2xl z-10"
-                        >
-                          <i className="fa-solid fa-triangle-exclamation mr-2"></i>
-                          由第三方提供，由第三方控制
-                        </motion.div>
-                      ) : (
-                        <div className="absolute top-2 left-2 px-3 py-1.5 bg-black/75 backdrop-blur-sm rounded-lg text-sm text-amber-400 font-medium pointer-events-none">
-                          <i className="fa-solid fa-info-circle mr-1"></i>
-                          由第三方提供，由第三方控制
-                        </div>
-                      )}
-                    </div>
-                  )
+                  <CustomVideoPlayer
+                    src={currentPlayUrl}
+                    onPrevEpisode={currentEpisode > 0 ? handlePrevEpisode : undefined}
+                    onNextEpisode={currentEpisode < currentEpisodes.length - 1 ? handleNextEpisode : undefined}
+                  />
                 ) : lineLoading ? (
                   <div className="bg-black aspect-video flex items-center justify-center px-6">
                     <div className="text-center max-w-md">
@@ -1275,176 +1241,152 @@ export default function MoviePage() {
                   </div>
                 )}
 
-                {/* 免责声明（常驻显示） */}
-                <div className="px-5 py-3 bg-amber-500/5 border-y border-amber-500/20">
-                  <p className="text-xs text-amber-200/80 leading-relaxed">
-                    <i className="fa-solid fa-shield-halved mr-1.5 text-amber-400"></i>
-                    <span className="font-medium text-amber-300">免责声明：</span>
-                    {DISCLAIMER_MAIN}
-                  </p>
-                  <p className="text-xs text-white/40 mt-1 ml-5">
-                    <i className="fa-solid fa-circle-info mr-1"></i>
-                    {DISCLAIMER_SUB}
-                  </p>
-                </div>
-
-                {/* 影片信息 */}
-                <div className="p-5">
-                  <div className="flex flex-col md:flex-row gap-5">
-                    <div className="flex-shrink-0 mx-auto md:mx-0">
-                      <div className="w-32 md:w-40 aspect-[2/3] rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                        {detail.vod_pic ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={detail.vod_pic} alt={detail.vod_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <i className="fa-solid fa-image text-3xl text-white/20"></i>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        {detail.vod_year && (
-                          <span className="px-2 py-0.5 bg-white/10 rounded text-xs text-white/70">{detail.vod_year}</span>
-                        )}
-                        {detail.vod_class && (
-                          <span className="px-2 py-0.5 bg-amber-500/20 rounded text-xs text-amber-400">{detail.vod_class}</span>
-                        )}
-                        {detail.vod_remarks && (
-                          <span className="px-2 py-0.5 bg-white/10 rounded text-xs text-white/70">{detail.vod_remarks}</span>
-                        )}
-                        {detail.vod_score && (
-                          <span className="px-2 py-0.5 bg-yellow-500/20 rounded text-xs text-yellow-400">
-                            <i className="fa-solid fa-star mr-1"></i>{detail.vod_score}
-                          </span>
-                        )}
-                      </div>
-                      {detail.vod_director && (
-                        <p className="text-sm text-white/70 mb-2">
-                          <span className="text-white/40">导演：</span>{detail.vod_director}
-                        </p>
-                      )}
-                      {detail.vod_actor && (
-                        <p className="text-sm text-white/70 mb-2 line-clamp-2">
-                          <span className="text-white/40">主演：</span>{detail.vod_actor}
-                        </p>
-                      )}
-                      {detail.vod_content && (
-                        <p className="text-sm text-white/60 line-clamp-4 leading-relaxed">
-                          <span className="text-white/40">简介：</span>
-                          {detail.vod_content.replace(/<[^>]+>/g, '')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 选集区域（支持全屏 + 缩放） */}
-                  {currentEpisodes.length > 0 && (
-                    <div
-                      className={`mt-6 ${episodeFullscreen ? 'fixed inset-0 z-[60] bg-black/95 p-6 overflow-auto' : ''}`}
-                    >
-                      {episodeFullscreen && (
-                        <button
-                          onClick={() => setEpisodeFullscreen(false)}
-                          className="fixed top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center z-10"
-                        >
-                          <i className="fa-solid fa-times text-white"></i>
-                        </button>
-                      )}
-
-                      {/* 选集工具栏 */}
-                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm text-white/70">
-                            <i className="fa-solid fa-list-ol mr-1 text-amber-400"></i>
-                            选集 ({currentEpisodes.length} 集)
-                          </p>
-                          {currentEp && (
-                            <span className="text-xs text-white/40">
-                              当前：{currentEp.name || `第${currentEpisode + 1}集`}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {/* 缩放按钮 */}
-                          <div className="flex items-center bg-white/5 rounded-lg p-0.5">
-                            {EPISODE_ZOOM_LEVELS.map((z, i) => (
-                              <button
-                                key={i}
-                                onClick={() => setEpisodeZoom(i)}
-                                className={`px-2 py-1 text-xs rounded transition-all ${
-                                  episodeZoom === i
-                                    ? 'bg-amber-500 text-white'
-                                    : 'text-white/60 hover:text-white'
-                                }`}
-                                title={`${z.label}尺寸`}
-                              >
-                                <i className={`fa-solid ${i === 0 ? 'fa-minus' : i === 1 ? 'fa-circle' : 'fa-plus'}`}></i>
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* 选集全屏按钮 */}
-                          <button
-                            onClick={() => setEpisodeFullscreen(!episodeFullscreen)}
-                            className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-white/70 transition-all"
-                            title={episodeFullscreen ? '退出选集全屏' : '选集全屏'}
-                          >
-                            <i className={`fa-solid ${episodeFullscreen ? 'fa-compress' : 'fa-expand'} mr-1`}></i>
-                            {episodeFullscreen ? '退出' : '全屏'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 剧集网格 */}
-                      <div className={`grid ${zoomClass.cols} gap-2 ${episodeFullscreen ? 'max-h-none' : 'max-h-64'} overflow-y-auto pr-1`}>
-                        {currentEpisodes.map((ep, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleEpisodeClick(idx)}
-                            className={`px-2 ${zoomClass.py} rounded-lg ${zoomClass.text} transition-all truncate ${
-                              currentEpisode === idx
-                                ? 'bg-amber-500 text-white font-medium'
-                                : 'bg-white/10 text-white/70 hover:bg-white/20'
-                            }`}
-                            title={ep.name}
-                          >
-                            {ep.name || `第${idx + 1}集`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 播放线路切换（一键切换） */}
-                  <div className="mt-5 p-3 bg-white/5 rounded-xl border border-white/10">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-2">
+                {/* ② 换源：每条线路自动显示实时延迟，当前源单独标注 */}
+                <div className="px-4 pt-4">
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                    <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <i className="fa-solid fa-shuffle text-amber-400 text-sm"></i>
                         <span className="text-sm text-white/70">播放线路</span>
-                        <span className="text-xs text-white/40">（加载失败时请切换）</span>
+                        <span className={`inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] ${latencyTone(lineLatency[currentLineId])}`}>
+                          <i className="fa-solid fa-bolt text-[9px]"></i>
+                          当前源 {currentLine.name} · {latencyLabel(lineLatency[currentLineId], latencyLoading)}
+                        </span>
                       </div>
-                      <div className="flex gap-2">
-                        {PLAY_LINES.map((line) => (
+                      <button
+                        type="button"
+                        onClick={() => void measureLines(true)}
+                        disabled={latencyLoading}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40 text-xs text-white/70 transition-all"
+                        title="重新测量所有线路延迟"
+                      >
+                        <i className={`fa-solid fa-rotate-right text-[10px] ${latencyLoading ? 'fa-spin' : ''}`}></i>
+                        刷新测速
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {PLAY_LINES.map((line) => {
+                        const lat = lineLatency[line.id];
+                        return (
                           <button
                             key={line.id}
+                            type="button"
                             onClick={() => handleSwitchLine(line.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            className={`min-w-[5.5rem] px-2.5 py-1.5 rounded-lg text-left text-xs font-medium transition-all ${
                               currentLineId === line.id
                                 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
                                 : 'bg-white/10 text-white/70 hover:bg-white/20'
                             }`}
                           >
-                            <i className={`fa-solid ${line.type === 'hls' ? 'fa-bolt' : 'fa-server'} mr-1`}></i>
-                            {line.name}
+                            <span className="flex items-center gap-1 whitespace-nowrap">
+                              <i className={`fa-solid ${line.type === 'hls' ? 'fa-bolt' : 'fa-server'} text-[10px]`}></i>
+                              {line.name}
+                            </span>
+                            <span className={`block text-[10px] font-normal mt-0.5 ${currentLineId === line.id ? 'text-white/90' : latencyTone(lat)}`}>
+                              {latencyLabel(lat, latencyLoading)}
+                            </span>
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
+
+                {/* ③ 选集：只保留剧集网格，去掉缩放 / 全屏 / 当前集文字等冗余控件 */}
+                {currentEpisodes.length > 0 && (
+                  <div className="px-4 pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <i className="fa-solid fa-list-ol text-amber-400 text-sm"></i>
+                      <span className="text-sm text-white/70">选集</span>
+                      <span className="text-xs text-white/40">共 {currentEpisodes.length} 集</span>
+                    </div>
+                    <div className={`grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 overflow-y-auto pr-1 ${minimalMode ? 'max-h-[42vh]' : 'max-h-52'}`}>
+                      {currentEpisodes.map((ep, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleEpisodeClick(idx)}
+                          className={`px-2 py-2 rounded-lg text-sm transition-all truncate ${
+                            currentEpisode === idx
+                              ? 'bg-amber-500 text-white font-medium'
+                              : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          }`}
+                          title={ep.name}
+                        >
+                          {ep.name || `第${idx + 1}集`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ④ 影片介绍与免责声明：极简模式下完全不显示 */}
+                {!minimalMode && (
+                  <>
+                    <div className="px-4 pt-5 pb-4">
+                      <div className="flex flex-col md:flex-row gap-5">
+                        <div className="flex-shrink-0 mx-auto md:mx-0">
+                          <div className="w-32 md:w-40 aspect-[2/3] rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            {detail.vod_pic ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={detail.vod_pic} alt={detail.vod_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <i className="fa-solid fa-image text-3xl text-white/20"></i>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-3">
+                            {detail.vod_year && (
+                              <span className="px-2 py-0.5 bg-white/10 rounded text-xs text-white/70">{detail.vod_year}</span>
+                            )}
+                            {detail.vod_class && (
+                              <span className="px-2 py-0.5 bg-amber-500/20 rounded text-xs text-amber-400">{detail.vod_class}</span>
+                            )}
+                            {detail.vod_remarks && (
+                              <span className="px-2 py-0.5 bg-white/10 rounded text-xs text-white/70">{detail.vod_remarks}</span>
+                            )}
+                            {detail.vod_score && (
+                              <span className="px-2 py-0.5 bg-yellow-500/20 rounded text-xs text-yellow-400">
+                                <i className="fa-solid fa-star mr-1"></i>{detail.vod_score}
+                              </span>
+                            )}
+                          </div>
+                          {detail.vod_director && (
+                            <p className="text-sm text-white/70 mb-2">
+                              <span className="text-white/40">导演：</span>{detail.vod_director}
+                            </p>
+                          )}
+                          {detail.vod_actor && (
+                            <p className="text-sm text-white/70 mb-2 line-clamp-2">
+                              <span className="text-white/40">主演：</span>{detail.vod_actor}
+                            </p>
+                          )}
+                          {detail.vod_content && (
+                            <p className="text-sm text-white/60 line-clamp-4 leading-relaxed">
+                              <span className="text-white/40">简介：</span>
+                              {detail.vod_content.replace(/<[^>]+>/g, '')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-5 py-3 bg-amber-500/5 border-t border-amber-500/20">
+                      <p className="text-xs text-amber-200/80 leading-relaxed">
+                        <i className="fa-solid fa-shield-halved mr-1.5 text-amber-400"></i>
+                        <span className="font-medium text-amber-300">免责声明：</span>
+                        {DISCLAIMER_MAIN}
+                      </p>
+                      <p className="text-xs text-white/40 mt-1 ml-5">
+                        <i className="fa-solid fa-circle-info mr-1"></i>
+                        {DISCLAIMER_SUB}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -1462,57 +1404,6 @@ export default function MoviePage() {
               <div className="w-10 h-10 border-2 border-white/30 border-t-amber-500 rounded-full animate-spin"></div>
               <p className="text-white/70 text-sm">加载影片详情...</p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 限制级分类密码弹窗 */}
-      <AnimatePresence>
-        {showPasswordModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4"
-            onClick={() => setShowPasswordModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-red-500/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => {
-                  setPasswordInput(e.target.value);
-                  setPasswordError('');
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                placeholder="请输入密码"
-                autoFocus
-                className="w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white text-center tracking-widest placeholder-white/30 focus:outline-none focus:border-red-500/50 mb-2"
-              />
-              {passwordError && (
-                <p className="text-red-400 text-xs text-center mb-2">{passwordError}</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowPasswordModal(false)}
-                  className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 text-sm rounded-lg transition-all"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handlePasswordSubmit}
-                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-all font-medium"
-                >
-                  确认
-                </button>
-              </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1552,6 +1443,27 @@ export default function MoviePage() {
               <p className="text-xs text-white/50 mb-3 leading-relaxed">
                 本站通过苹果 CMS V10 标准接口从第三方采集站获取影片数据。可从下方预设列表中选择，也可在输入框自定义其他同格式采集站地址。
               </p>
+
+              {/* 极简模式开关（与播放页头部的快捷开关共用同一状态） */}
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm text-white/80">极简模式</p>
+                  <p className="text-[11px] text-white/40 mt-0.5">播放页隐藏影片介绍与免责声明，只保留换源和选集</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleMinimalMode}
+                  aria-pressed={minimalMode}
+                  aria-label="切换极简模式"
+                  className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${minimalMode ? 'bg-amber-500' : 'bg-white/20'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                      minimalMode ? 'left-[1.375rem]' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
 
               {/* 预设采集站列表 */}
               <div className="mb-4">
