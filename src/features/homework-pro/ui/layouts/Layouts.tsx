@@ -7,6 +7,7 @@ import {
   GlancePanel, ToolDock, ContentRouter, Footer,
 } from './parts';
 import { LayoutPicker } from './LayoutPicker';
+import { AIAskDock } from '../features/AIAsk';
 
 type LayoutProps = {
   searchRef: RefObject<HTMLInputElement | null>;
@@ -37,6 +38,7 @@ export function LayoutA({ searchRef, inputRef }: LayoutProps) {
         <p className="hw-eyebrow">视图</p>
         <MainNav vertical />
         <ToolDock vertical />
+        <AIAskDock />
         <div className="mt-auto space-y-2 pt-4">
           <StatusLine />
           <LayoutPicker />
@@ -51,6 +53,7 @@ export function LayoutA({ searchRef, inputRef }: LayoutProps) {
           <div className="mb-4 md:hidden"><MainNav /></div>
           {/* 侧栏在窄屏隐藏，工具区移到正文上方，否则手机上摸不到智能排期 / AI 批改 */}
           <div className="mb-4 md:hidden"><ToolDock /></div>
+          <div className="mb-4 md:hidden"><AIAskDock /></div>
           <Content inputRef={inputRef} />
           <Footer />
         </div>
@@ -72,6 +75,7 @@ export function LayoutB({ searchRef, inputRef }: LayoutProps) {
           <aside className="order-1 min-w-0 space-y-4 lg:order-2">
             <div className="hidden lg:block"><GlancePanel /></div>
             <ToolDock />
+            <AIAskDock />
           </aside>
           <div className="order-2 min-w-0 lg:order-1"><Content inputRef={inputRef} /></div>
         </div>

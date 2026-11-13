@@ -10,6 +10,8 @@ import { ProDialog } from '../common/bits';
 import { DraftInput } from '../common/DraftInput';
 import { GradePicker, WeakSubjectPicker } from '../common/ProfilePickers';
 import { SKIP_INTRO_KEY } from '../layout/IntroSplash';
+import { useAiUsage, DAILY_BUDGET, usagePercent, type ModelKey } from '../../hooks/useAiUsage';
+import { MODEL_META } from '../features/AIAsk';
 
 /**
  * 个人中心：账号 + 学情概览 + 学习画像 + AI 设置 + 偏好 + 数据入口。
@@ -25,6 +27,7 @@ export function ProfileDialog() {
 
   const initial = (user?.username || '本地').slice(0, 1).toUpperCase();
   const weak = settings.weakSubjects ?? [];
+  const { usage } = useAiUsage();
 
   const overview = [
     { label: '待办', value: stats.active, tone: 'var(--primary)' },
@@ -162,6 +165,39 @@ export function ProfileDialog() {
             两种模式都会自动兜底：识别失败会自己换通道重试，不会卡住你记作业。
           </p>
         </section>
+
+        {/* ------------------------------------------------ AI 问答消耗（A / B 各一块） */}
+        {(['A', 'B'] as ModelKey[]).map((key) => {
+          const meta = MODEL_META[key];
+          const Icon = meta.icon;
+          const pct = usagePercent(usage, key);
+          const calls = key === 'A' ? usage.callsA : usage.callsB;
+          return (
+            <section key={key} className="hw-panel space-y-2 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="hw-eyebrow flex items-center gap-1.5">
+                  <Icon size={13} /> {meta.name} · 消耗情况
+                </p>
+                <span className="hw-ai-badge">{meta.tag}</span>
+              </div>
+              <p className="hw-label">{meta.quality} · {meta.speed} · {meta.cost}</p>
+              <div className="hw-usage-track" role="progressbar" aria-label={`${meta.name}今日用量`}
+                aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                <i style={{ width: `${pct}%` }} data-key={key} />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="hw-label hw-num">
+                  今日 {usage[key].toLocaleString()} / {DAILY_BUDGET[key].toLocaleString()} tokens
+                </span>
+                <span className="hw-num text-sm font-bold" style={{ color: 'var(--primary)' }}>{pct}%</span>
+              </div>
+              <p className="hw-label border-t pt-2" style={{ borderColor: 'var(--hw-rule)' }}>
+                今日已发起 {calls} 次问答。按每次调用返回的真实 token 累计、每天 0 点归零，
+                是本站自己的用量估算，不是平台账单余额。
+              </p>
+            </section>
+          );
+        })}
 
         {/* ------------------------------------------------ 偏好 */}
         <section className="hw-panel space-y-3 p-3">

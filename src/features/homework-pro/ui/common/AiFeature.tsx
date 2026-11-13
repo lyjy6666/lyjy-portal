@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Sparkles, Camera, Gauge, CalendarRange } from 'lucide-react';
+import { Sparkles, Camera, Gauge, CalendarRange, MessagesSquare } from 'lucide-react';
 
 /**
  * 「本站 AI 特色」主视觉卡。
@@ -42,6 +42,7 @@ export function AiFeatureCard({
           <span className="hw-ai-pill"><Camera size={13} /> 拍照 / 语音记作业</span>
           <span className="hw-ai-pill"><Gauge size={13} /> 逐条推测完成用时</span>
           <span className="hw-ai-pill"><CalendarRange size={13} /> 自动均衡到每一天</span>
+          <span className="hw-ai-pill"><MessagesSquare size={13} /> AI 问答 · 按学段与薄弱项深度讲解</span>
         </div>
       )}
 
