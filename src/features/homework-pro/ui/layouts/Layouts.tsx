@@ -41,6 +41,7 @@ export function LayoutA({ searchRef, inputRef }: LayoutProps) {
         <AIAskDock />
         <div className="mt-auto space-y-2 pt-4">
           <StatusLine />
+          {/* 布局②桌面端唯一的布局切换入口，不能删；里面只剩布局、没有皮肤 */}
           <LayoutPicker />
           {/* 「前往原版」「退出登录」已经在 ToolMenu 里，这里不再重复放一份 */}
           <ToolMenu vertical />

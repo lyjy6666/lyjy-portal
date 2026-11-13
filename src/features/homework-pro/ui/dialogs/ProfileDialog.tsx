@@ -2,7 +2,7 @@
 
 import {
   User, GraduationCap, Target, Bell, Download, Trash2, LogOut,
-  ArrowUpRight, ChevronRight, ChartNoAxesColumn,
+  ArrowUpRight, ChevronRight, ChartNoAxesColumn, Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePro } from '../../hooks/ProContext';
@@ -10,7 +10,7 @@ import { ProDialog } from '../common/bits';
 import { DraftInput } from '../common/DraftInput';
 import { GradePicker, WeakSubjectPicker } from '../common/ProfilePickers';
 import { SKIP_INTRO_KEY } from '../layout/IntroSplash';
-import { useAiUsage, DAILY_BUDGET, usagePercent, type ModelKey } from '../../hooks/useAiUsage';
+import { useAiUsage, DAILY_BUDGET, USAGE_PROMO, USAGE_PROMO_DETAIL, usagePercent, type ModelKey } from '../../hooks/useAiUsage';
 import { MODEL_META } from '../features/AIAsk';
 
 /**
@@ -167,6 +167,13 @@ export function ProfileDialog() {
         </section>
 
         {/* ------------------------------------------------ AI 问答消耗（A / B 各一块） */}
+        <section className="hw-ask-promo hw-panel p-3">
+          <Sparkles size={12} />
+          <span>
+            {USAGE_PROMO}
+            <span className="hw-label block font-normal">{USAGE_PROMO_DETAIL}</span>
+          </span>
+        </section>
         {(['A', 'B'] as ModelKey[]).map((key) => {
           const meta = MODEL_META[key];
           const Icon = meta.icon;
@@ -269,14 +276,15 @@ export function ProfileDialog() {
             </span>
             <ChevronRight size={14} style={{ color: 'var(--muted-foreground)' }} />
           </a>
-          <a href="/homework/pro/updates" className="flex w-full items-center gap-3 px-3 py-2.5 text-left">
+          <button type="button" className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+            onClick={() => { closeDialog(); openDialog('updates'); }}>
             <ChartNoAxesColumn size={15} style={{ color: 'var(--primary)' }} />
             <span className="min-w-0 flex-1">
               <span className="hw-title block text-sm">PRO 更新记录</span>
               <span className="hw-label">只记录 Pro 版，不与原版混写</span>
             </span>
             <ChevronRight size={14} style={{ color: 'var(--muted-foreground)' }} />
-          </a>
+          </button>
         </section>
       </div>
     </ProDialog>

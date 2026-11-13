@@ -2,7 +2,7 @@
 
 import {
   Sparkles, Camera, Gauge, CalendarRange, PenLine, ShieldCheck,
-  LayoutDashboard, WifiOff, ArrowRight, Check,
+  LayoutDashboard, WifiOff, ArrowRight, Check, MessagesSquare,
 } from 'lucide-react';
 import { usePro } from '../../hooks/ProContext';
 import { ProDialog } from '../common/bits';
@@ -30,6 +30,7 @@ const AI_POINTS = [
   { icon: PenLine, title: 'AI 批改', desc: '上传作业，逐题判断对错，给出正确答案、解析和同类练习题。' },
   { icon: Gauge, title: 'AI 用时推测', desc: '年级定基准速度，薄弱项额外加 15~25% 时间，估算结果直接写回作业。' },
   { icon: CalendarRange, title: 'AI 智能排期', desc: '把估算出的用时折算成难度，自动均衡到每一天，哪天写不完一眼看得出来。' },
+  { icon: MessagesSquare, title: 'AI 问答', desc: '独立聊天页保留多会话记录；两个模型可选，结合学段与薄弱项做深度分析，公式、代码都排版清楚。' },
 ];
 
 export function IntroDialogs() {
@@ -73,7 +74,10 @@ export function IntroDialogs() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--hw-rule)' }}>
-            <a href="/homework/pro/updates" className="hw-btn"><Sparkles size={14} /> 查看完整更新记录</a>
+            <button type="button" className="hw-btn"
+              onClick={() => { closeDialog(); openDialog('updates'); }}>
+              <Sparkles size={14} /> 查看完整更新记录
+            </button>
             <a href="/homework" className="hw-chip">去用原版（数据互通）</a>
             <button type="button" className="hw-btn ml-auto" onClick={closeDialog}>知道了</button>
           </div>
@@ -85,7 +89,7 @@ export function IntroDialogs() {
         open={dialog === 'aiIntro'}
         onOpenChange={(v) => { if (!v) closeDialog(); }}
         title="本站 AI 能帮你做什么"
-        desc="不是聊天机器人，是四件具体的事：记下来、算清楚、排到每天、批改讲明白。"
+        desc="不是聊天机器人，是五件具体的事：记下来、算清楚、排到每天、批改讲明白、随时问。"
         className="sm:max-w-[620px]"
       >
         <div className="space-y-3">
@@ -100,6 +104,7 @@ export function IntroDialogs() {
               <span className="hw-ai-pill"><Check size={12} /> 年级定基准</span>
               <span className="hw-ai-pill"><Check size={12} /> 薄弱项加权</span>
               <span className="hw-ai-pill"><Check size={12} /> 一键排到每天</span>
+              <span className="hw-ai-pill"><Check size={12} /> AI 问答</span>
             </div>
           </div>
 
@@ -127,6 +132,9 @@ export function IntroDialogs() {
             </button>
             <a href="/homework/pro/planner" className="hw-btn" onClick={closeDialog}>
               <ArrowRight size={14} /> 去 AI 智能排期
+            </a>
+            <a href="/homework/pro/ai" className="hw-btn" onClick={closeDialog}>
+              <MessagesSquare size={14} /> 去 AI 问答
             </a>
             <button type="button" className="hw-btn ml-auto" onClick={closeDialog}>知道了</button>
           </div>

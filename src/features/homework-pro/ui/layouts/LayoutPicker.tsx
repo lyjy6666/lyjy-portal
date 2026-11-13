@@ -8,7 +8,7 @@ import { ProDialog } from '../common/bits';
 import { THEME_META, THEME_ORDER, LAYOUT_META, LAYOUT_ORDER, type LayoutId } from '../../skins/theme';
 import type { SkinId } from '../../core/types';
 
-/** 2 种布局 × 3 套主题，点击即时切换，顶栏常驻显示当前组合 */
+/** 2 种布局 × 3 套主题，点击即时切换，顶栏/侧栏常驻显示当前组合 */
 export function LayoutPicker() {
   const { layout, setLayout } = usePro();
   const { skin, setSkin } = useSkin();

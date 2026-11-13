@@ -19,11 +19,21 @@ export type ModelKey = 'A' | 'B';
 export const AI_USAGE_NAME = 'aiUsageV1';
 export const AI_USAGE_EVENT = 'hw:ai-usage-changed';
 
-/** 每日预算（tokens）：模型 A 单次消耗高，预算给小一些；模型 B 快且省，预算给大一些 */
-export const DAILY_BUDGET: Record<ModelKey, number> = {
-  A: 5_000,
-  B: 25_000,
+/** 基础每日额度（tokens）：站主说「基础改为 1 万和 3 万」 */
+export const BASE_DAILY_BUDGET: Record<ModelKey, number> = {
+  A: 10_000,
+  B: 30_000,
 };
+
+/** 当前生效的每日额度 = 基础 ×3（用量狂欢活动）；活动结束由站主手动调回基础值 */
+export const DAILY_BUDGET: Record<ModelKey, number> = {
+  A: BASE_DAILY_BUDGET.A * 3, // 30,000
+  B: BASE_DAILY_BUDGET.B * 3, // 90,000
+};
+
+/** 试行期活动文案：只做展示，不感知日期，站主到时候会通知调回 */
+export const USAGE_PROMO = 'Pro 版刚发布，用量狂欢，翻三倍，持续到 12.18';
+export const USAGE_PROMO_DETAIL = '基础每日 1 万 / 3 万 tokens，活动期翻三倍为 3 万 / 9 万。';
 
 export type AiUsage = {
   /** YYYY-MM-DD，跨天自动归零 */

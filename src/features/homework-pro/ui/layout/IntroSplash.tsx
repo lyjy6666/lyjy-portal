@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Sparkles, ArrowRight, Camera, Gauge, CalendarRange, PenLine } from 'lucide-react';
+import { Sparkles, ArrowRight, Camera, Gauge, CalendarRange, PenLine, MessagesSquare } from 'lucide-react';
 import { useSkin } from '../../skins/skin';
 
 /**
@@ -37,6 +37,7 @@ const FEATURES = [
   { icon: Gauge, text: '按年级 + 薄弱项估时' },
   { icon: CalendarRange, text: 'AI 智能排期' },
   { icon: PenLine, text: 'AI 批改与举一反三' },
+  { icon: MessagesSquare, text: 'AI 问答 · 按学段深度讲解' },
 ];
 
 export function IntroSplash() {
@@ -116,7 +117,7 @@ export function IntroSplash() {
         <p className="hw-splash-sub">lyjy 作业管理系统 Pro</p>
         <p className="hw-splash-desc">
           不只是把作业记下来。从拍照录入、按年级估算用时，到自动排进每一天、逐题批改讲解，
-          整条链路都由 AI 接手。
+          整条链路都由 AI 接手；不懂的地方还能直接问 AI 问答，按你的学段和薄弱项讲得更透。
         </p>
 
         <div className="hw-splash-features">

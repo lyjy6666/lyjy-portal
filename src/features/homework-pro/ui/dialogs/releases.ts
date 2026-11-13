@@ -17,6 +17,11 @@ export const HOMEWORK_PRO_HIGHLIGHTS = [
     title: '三因子用时推测',
     desc: 'AI 根据年级、薄弱项与作业内容三因子推测完成用时',
   },
+  {
+    no: '03',
+    title: 'AI 问答',
+    desc: '独立聊天页与多会话记录；双模型可选、平台审核，按学段与薄弱项深度分析，公式与代码清晰排版',
+  },
 ] as const;
 
 export const HOMEWORK_PRO_RELEASES: Release[] = [
@@ -34,7 +39,8 @@ export const HOMEWORK_PRO_RELEASES: Release[] = [
       '子任务检查清单、优先级、标签、预计 / 实际耗时、迟交标记',
       '本地缓存与离线暂存、乐观更新失败回滚、8 秒撤销删除',
       '专注计时支持自定义时长，结束只记耗时、不自动完成作业',
-      '开屏光波介绍：从左上角 AI 标识展开，介绍深度融合的 AI 系统',
+      'AI 问答独立页：左右两栏多会话、双模型选择、平台审核、按学段与薄弱项深度分析',
+      '开屏光波介绍：从左上角 AI 标识展开，介绍深度融合的 AI 系统与 AI 问答',
     ],
   },
 ];
@@ -42,9 +48,9 @@ export const HOMEWORK_PRO_RELEASES: Release[] = [
 /** 下一版预告：与已发布版本分开渲染，明确是计划中的内容 */
 export const HOMEWORK_PRO_PREVIEW = {
   version: 'Pro V0.2',
-  title: 'AI 问答等更多 AI 功能',
+  title: '更多 AI 功能',
   items: [
-    'AI 问答',
+    'AI 问答持续增强：更多题型与学科适配',
     '更多 AI 功能持续接入',
   ],
   note: '以上为计划内容，具体功能以上线版本为准。',

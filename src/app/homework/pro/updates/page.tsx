@@ -48,7 +48,7 @@ export default function HomeworkProUpdatesPage() {
               <span className="hw-ai-tag">重磅升级</span>
               <span className="hw-ai-tag-ghost">本次核心</span>
             </div>
-            <p className="hw-ai-title mt-2 text-lg">AI 深度融合，作业从记录到排期全链接管</p>
+            <p className="hw-ai-title mt-2 text-lg">AI 深度融合，记录、排期、批改到问答全链接管</p>
 
             <div className="hw-release-cards">
               {HOMEWORK_PRO_HIGHLIGHTS.map((h) => (
