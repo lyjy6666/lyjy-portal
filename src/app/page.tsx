@@ -7,7 +7,6 @@ import ListLayout from '@/components/home/ListLayout';
 import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
-import { PreviewProvider } from '@/components/home/PreviewContext';
 import MobileDesktopHint from '@/components/home/MobileDesktopHint';
 import MobileNoticeDialog from '@/components/home/MobileNoticeDialog';
 import MobileBlockNotice from '@/components/home/MobileBlockNotice';
@@ -118,7 +117,6 @@ export default function PortalHome() {
   const renderRing = layoutMode === 'ring' && (!isCompact || forceRing);
 
   return (
-    <PreviewProvider>
     <div className="relative min-h-screen overflow-x-hidden">
       <Background />
       {/* 手机浏览器提示：可关闭；开启浏览器「访问桌面版」后 UA 变化，提示自动消失 */}
@@ -160,6 +158,5 @@ export default function PortalHome() {
       />
       <NextVersionDialog open={showNextModal} onOpenChange={setShowNextModal} />
     </div>
-    </PreviewProvider>
   );
 }

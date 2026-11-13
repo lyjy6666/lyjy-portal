@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
     await transporter.sendMail({
       from: `"LYJY导航 催更" <${user}>`,
       to,
-      subject: '[LYJY催更] 有人点了「催更 V7.0」',
+      subject: '[LYJY催更] 有人催更「下一代（版本号未定）」',
       text:
         `时间：${time}\n` +
         `IP：${ip}\n\n` +
-        `有用户在导航首页「下一代更新预告」弹窗里点了一次「催更」，期待更多新功能早日上线。\n`,
+        `有用户在导航首页「下一代（版本号未定）」更新预告弹窗里点了一次「催更」，期待 500 天纪念日与 AI 资讯等新方向早日上线。\n`,
     });
 
     return Response.json({ ok: true });

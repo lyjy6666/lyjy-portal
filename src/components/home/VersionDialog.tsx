@@ -1,24 +1,71 @@
 'use client';
 
-import { History, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
-import { usePreview } from './PreviewContext';
+import { useState } from 'react';
+import { ChevronDown, History } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
+
+/** 折叠进 V7.0 的历史 preview 内容（四项上新原文） */
+const PREVIEW_ITEMS = [
+  '作业管理系统 PRO 版：深度融合 AI，支持拍照 / 语音记作业、按年级与薄弱项估时、AI 批改和独立整页的智能排期，另有双布局三主题与离线同步。',
+  '自动签到助手：Windows 源码包，定时用截图模板匹配自动点签到，跑完还能延迟关机（可取消）。',
+  'AI 聊天：Flutter 跨平台客户端，提供 Windows 免安装版与 Android APK，自配任意 OpenAI 兼容接口即可使用。',
+  '垂直管制：站内点开即玩的电梯调度模拟器，含值班闯关、自由沙盒与第一人称单人驾驶三种模式。',
+];
+
+/**
+ * V7.0 preview 不再单独占一个版本框，折叠进 V7.0 条目里。
+ * 只用 span / button（phrasing content），因为 UpdateTimeline 会把每个 item 包在 span 内。
+ */
+function PreviewFold() {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="mt-2 block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition hover:border-sky-400/40 hover:text-sky-200"
+      >
+        {open ? '收起' : '展开'} v7.0preview
+        <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <span className="mt-2 block rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] leading-relaxed text-slate-400">
+          <span className="mb-1.5 block font-semibold text-slate-300">V7.0 preview · 2026.11.07 · 四项上新</span>
+          {PREVIEW_ITEMS.map((text) => (
+            <span key={text} className="mt-1 block">· {text}</span>
+          ))}
+          <span className="mt-2 block text-slate-500">上述内容已于 2026.11.13 合并进 V7.0 正式版。</span>
+        </span>
+      )}
+    </span>
+  );
+}
 
 /** 站点版本历史（越靠前越新） */
 const SITE_RELEASES: Release[] = [
   {
-    version: 'V7.0 preview',
-    date: '2026.11.07',
+    version: 'V7.0',
+    date: '2026.11.13',
     latest: true,
-    tag: '四项上新',
+    tag: '正式版',
     items: [
-      '作业管理系统 PRO 版：深度融合 AI，支持拍照 / 语音记作业、按年级与薄弱项估时、AI 批改和独立整页的智能排期，另有双布局三主题与离线同步。',
+      <>
+        <span className="block font-semibold text-slate-200">作业管理系统 PRO 版</span>
+        <span className="mt-1 block">
+          <span className="text-sky-300">（v0.1）</span>
+          深度融合 AI，支持拍照 / 语音记作业、按年级与薄弱项估时、AI 批改和独立整页的智能排期，另有双布局三主题与离线同步。
+        </span>
+        <span className="mt-1 block">
+          <span className="text-sky-300">（v0.2）</span>
+          新增 AI 问答独立聊天页：左右两栏多会话记录、模型 A / B 可选，发送前平台审核，可开启按学段与薄弱项的深度分析，回答按 Markdown 排版；Pro 版刚发布用量狂欢，基础 1 万 / 3 万 tokens 翻三倍为 3 万 / 9 万。
+        </span>
+      </>,
       '自动签到助手：Windows 源码包，定时用截图模板匹配自动点签到，跑完还能延迟关机（可取消）。',
       'AI 聊天：Flutter 跨平台客户端，提供 Windows 免安装版与 Android APK，自配任意 OpenAI 兼容接口即可使用。',
       '垂直管制：站内点开即玩的电梯调度模拟器，含值班闯关、自由沙盒与第一人称单人驾驶三种模式。',
-      'V7.0 正式版预计 11 月 14~15 号上线，届时会合并本轮 preview 的全部内容。',
+      <PreviewFold />,
     ],
   },
   {
@@ -60,20 +107,6 @@ const SITE_RELEASES: Release[] = [
 ];
 
 export default function VersionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { isPreview, optIn, optOut } = usePreview();
-
-  const tryPreview = () => {
-    optIn();
-    onOpenChange(false);
-    toast.success('已开启 V7.0 preview，新版内容已解锁');
-  };
-
-  const leavePreview = () => {
-    optOut();
-    onOpenChange(false);
-    toast('已退出尝鲜，回到 V6.5 界面');
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[560px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
@@ -85,40 +118,8 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
             <History size={17} className="text-sky-400" />
             更新记录
           </DialogTitle>
-          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 版本历史</p>
+          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 正式版（2026.11.13）</p>
         </DialogHeader>
-
-        {isPreview ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-            <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">尝鲜中</span>
-            <p className="min-w-0 flex-1 text-xs leading-relaxed text-slate-300">当前是 V7.0 preview 界面，想回 V6.5 可随时退出。</p>
-            <button
-              type="button"
-              onClick={leavePreview}
-              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-rose-400/40 hover:text-rose-200"
-            >
-              取消尝鲜 · 返回 V6.5
-            </button>
-          </div>
-        ) : (
-          <div className="relative overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/20 via-sky-500/10 to-transparent p-4">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sky-400/20 blur-2xl" />
-            <div className="relative flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">有新版本</span>
-              <span className="text-sm font-semibold text-white">V7.0 preview 已就绪</span>
-            </div>
-            <p className="relative mt-2 text-xs leading-relaxed text-slate-300">
-              作业管理系统 PRO 版、自动签到助手、AI 聊天、垂直管制，共 4 项新内容等着你。当前首页仍是 V6.5，尝鲜后才会解锁。
-            </p>
-            <button
-              type="button"
-              onClick={tryPreview}
-              className="relative mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-sky-400 to-cyan-500 px-4 py-2 text-xs font-bold text-slate-900 transition hover:brightness-110"
-            >
-              <Sparkles size={14} /> 尝鲜 · 立即体验
-            </button>
-          </div>
-        )}
 
         <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <UpdateTimeline releases={SITE_RELEASES} />

@@ -6,7 +6,6 @@ import { ChartLine, Headset, List, Sparkles } from 'lucide-react';
 import { servicesFor, type ServiceItem } from '@/data/services';
 import { useIsMobile } from './useIsMobile';
 import { isMobileLimited, mobileLimitText, notifyMobileBlocked } from './mobileGuard';
-import { usePreview } from './PreviewContext';
 import { isNavigable } from '@/lib/serviceNav';
 import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared';
 import { useServiceNav } from './useServiceNav';
@@ -128,9 +127,8 @@ function ServiceRow({ service, categoryId, mobile }: { service: ServiceItem; cat
 }
 
 export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
-  const { isPreview } = usePreview();
   const mobile = useIsMobile();
-  const { categories } = useMemo(() => servicesFor(isPreview), [isPreview]);
+  const { categories } = useMemo(() => servicesFor(), []);
   const [decorationChars, setDecorationChars] = useState<string[]>([]);
   const [decorationStyles, setDecorationStyles] = useState<{ delay: string; duration: string; transform: string }[]>([]);
 
@@ -218,8 +216,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         <div className="text-gray-400 text-sm bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-500/20">
           <p>© 2026 LYJY导航系统 <span className="mx-2">|</span>{' '}
             <button type="button" onClick={onOpenVersion} className="relative text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">
-              {isPreview ? 'V7.0 preview' : 'V6.5'}
-              {!isPreview && <span className="portal-version-dot" aria-label="有新版本可尝鲜" />}
+              V7.0
             </button>
           </p>
         </div>

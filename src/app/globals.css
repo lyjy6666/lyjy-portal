@@ -1295,27 +1295,6 @@ button, a, input, textarea, select {
 }
 .portal-old-note[data-warn='true'] { color: #f59e0b; }
 
-/* 更新记录入口的小红点：未尝鲜 V7.0 preview 时一直提示 */
-.portal-version-dot {
-  position: absolute;
-  top: -3px;
-  right: -9px;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #f43f5e;
-  box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.85), 0 0 9px rgba(244, 63, 94, 0.85);
-  animation: portal-version-pulse 1.8s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes portal-version-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.8); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .portal-version-dot { animation: none; }
-}
-
 /* ===== 下一代更新预告弹窗：入场/退场 + 内容错峰动画 ===== */
 .cs-dialog-pop[data-state='open'] {
   animation: cs-dialog-pop-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both !important;

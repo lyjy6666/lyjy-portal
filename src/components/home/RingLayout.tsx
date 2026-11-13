@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChartLine, Headset, History, LayoutGrid, Sparkles } from 'lucide-react';
 import { servicesFor, type ServiceItem } from '@/data/services';
-import { usePreview } from './PreviewContext';
 import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
 import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
@@ -34,9 +33,8 @@ export default function RingLayout({
   onOpenNextPreview,
 }: RingLayoutProps) {
   const [hideInactive, setHideInactive] = useState(false);
-  // 未尝鲜时只渲染 V6.5 清单：作业系统只有原版，三个新增项目不出现。
-  const { isPreview } = usePreview();
-  const bundle = useMemo(() => servicesFor(isPreview), [isPreview]);
+  // V7.0 正式版：所有用户默认看到完整清单。
+  const bundle = useMemo(() => servicesFor(), []);
   // 「已关停/筹备中」= soon/unavailable。原版入口的隐藏交给 ServiceEntries 的 hideOriginal，
   // 不在此移除整个节点，避免把 search/toolbox 的 Pro 版也一起关掉。
   const isInactive = (s: ServiceItem) => Boolean(s.soon || s.unavailable);
@@ -263,8 +261,7 @@ export default function RingLayout({
       <div className="portal-hud portal-hud--bottom [@media(max-width:767px)]:bottom-[4.5rem]! [@media(max-height:559px)]:hidden!">
         © 2026 LYJY导航系统 ·{' '}
         <button type="button" onClick={onOpenVersion} className="relative text-sky-300 hover:text-sky-200">
-          {isPreview ? 'V7.0 preview' : 'V6.5'}
-          {!isPreview && <span className="portal-version-dot" aria-label="有新版本可尝鲜" />}
+          V7.0
         </button>
       </div>
 

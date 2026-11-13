@@ -140,46 +140,14 @@ export const flattenServices = () =>
 /** 有 Android 安装包的产品：手机版不提示「无法安装 Windows 程序」 */
 export const ANDROID_CAPABLE_IDS = new Set(['aichat']);
 
-/** 仅 V7.0 preview 通道可见的新增服务（默认 V6.5 首页不展示） */
-export const PREVIEW_ONLY_IDS = new Set(['vertical-control', 'auto-checkin', 'aichat']);
-
 /**
- * V6.5 形态的「作业管理系统」：只有原版入口，没有 Pro 版按钮与并存说明。
- * 用户未尝鲜时，首页不能出现「作业管理系统 PRO 版」。
+ * V7.0 正式版服务清单：所有用户默认都看到完整清单，不再有 V6.5 / 尝鲜分支。
+ * 分类信息必须同时写到 categories[].services 上：之前只写在 flat 里，
+ * 导致列表布局（用 categories）拿到的 service.categoryId 为空，
+ * 手机版灰显判定在子按钮里失效，灰按钮仍渲染成可绕过的 <a href>。
  */
-function toLegacyHomework(s: ServiceItem): ServiceItem {
-  return {
-    ...s,
-    url: '/homework',
-    desc: '语音输入、智能排期、AI 批改',
-    pro: undefined,
-    oldUrl: undefined,
-    oldNote: undefined,
-    badge: undefined,
-  };
-}
-
-/**
- * 按预览通道返回服务清单。
- * preview=false（默认 V6.5）：过滤三个新增项目 + 作业系统退回原版。
- * preview=true（已尝鲜 V7.0）：完整清单。
- */
-export function servicesFor(preview: boolean) {
-  const base: ServiceCategory[] = preview
-    ? serviceCategories
-    : serviceCategories
-        .map((category) => ({
-          ...category,
-          services: category.services
-            .filter((service) => !PREVIEW_ONLY_IDS.has(service.id))
-            .map((service) => (service.id === 'homework' ? toLegacyHomework(service) : service)),
-        }))
-        .filter((category) => category.services.length > 0);
-
-  // 分类信息必须同时写到 categories[].services 上。
-  // 之前只写在 flat 里，导致列表布局（用 categories）拿到的 service.categoryId 为空，
-  // 手机版灰显判定在子按钮里失效，灰按钮仍渲染成可绕过的 <a href>。
-  const categories: ServiceCategory[] = base.map((category) => ({
+export function servicesFor() {
+  const categories: ServiceCategory[] = serviceCategories.map((category) => ({
     ...category,
     services: category.services.map((service) => ({
       ...service,
