@@ -2,6 +2,8 @@ import Link from 'next/link';
 import {
   HOMEWORK_PRO_RELEASES,
   HOMEWORK_PRO_HIGHLIGHTS,
+  HOMEWORK_PRO_V02_HIGHLIGHTS,
+  HOMEWORK_PRO_HIGHLIGHT_TITLE,
   HOMEWORK_PRO_PREVIEW,
 } from '@/features/homework-pro/ui/dialogs/releases';
 import '@/features/homework-pro/skins/tokens.css';
@@ -13,14 +15,10 @@ export const metadata = {
 };
 
 /**
- * Pro 版专用更新记录页面。
- * 重磅升级与常规条目装在**同一个 Pro V0.1 版本框**里，
- * 用户一眼就知道这些都是 1.0 的更新；重磅区在框内用独立视觉凸显。
+ * Pro 版专用更新记录页面（主入口已改成站内弹窗，这里保留兼容旧链接）。
+ * V0.1 / V0.2 各一个版本框，重磅升级卡片各归各的版本。
  */
 export default function HomeworkProUpdatesPage() {
-  const release = HOMEWORK_PRO_RELEASES[0];
-  if (!release) return null;
-
   return (
     <main data-theme="journal" className="hw-root min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-10">
@@ -34,40 +32,50 @@ export default function HomeworkProUpdatesPage() {
           </p>
         </header>
 
-        {/* 一个版本 = 一个框：重磅升级和常规条目都在这里面 */}
-        <section className="hw-release-block">
-          <div className="hw-release-head">
-            <span className="hw-title text-base">{release.version}</span>
-            {release.latest && <span className="hw-chip" data-active="true">最新</span>}
-            {release.tag && <span className="hw-chip">{release.tag}</span>}
-            <span className="hw-label hw-num ml-auto">{release.date}</span>
-          </div>
-
-          <div className="hw-release-highlight">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="hw-ai-tag">重磅升级</span>
-              <span className="hw-ai-tag-ghost">本次核心</span>
-            </div>
-            <p className="hw-ai-title mt-2 text-lg">AI 深度融合，记录、排期、批改到问答全链接管</p>
-
-            <div className="hw-release-cards">
-              {HOMEWORK_PRO_HIGHLIGHTS.map((h) => (
-                <div key={h.no} className="hw-release-card">
-                  <span className="hw-release-no">{h.no}</span>
-                  <p className="hw-title mt-2 text-base">{h.title}</p>
-                  <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
+        <div className="space-y-4">
+          {HOMEWORK_PRO_RELEASES.map((release) => {
+            const highlights = release.version === 'Pro V0.2'
+              ? HOMEWORK_PRO_V02_HIGHLIGHTS
+              : HOMEWORK_PRO_HIGHLIGHTS;
+            return (
+              <section key={release.version} className="hw-release-block">
+                <div className="hw-release-head">
+                  <span className="hw-title text-base">{release.version}</span>
+                  {release.latest && <span className="hw-chip" data-active="true">最新</span>}
+                  {release.tag && <span className="hw-chip">{release.tag}</span>}
+                  <span className="hw-label hw-num ml-auto">{release.date}</span>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <p className="hw-eyebrow mt-4">常规更新</p>
-          <ul className="hw-release-list">
-            {release.items.map((item, i) => (
-              <li key={i}><span className="hw-release-dot" />{item}</li>
-            ))}
-          </ul>
-        </section>
+                <div className="hw-release-highlight">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="hw-ai-tag">重磅升级</span>
+                    <span className="hw-ai-tag-ghost">本次核心</span>
+                  </div>
+                  <p className="hw-ai-title mt-2 text-lg">
+                    {HOMEWORK_PRO_HIGHLIGHT_TITLE[release.version] ?? 'AI 深度融合'}
+                  </p>
+
+                  <div className="hw-release-cards">
+                    {highlights.map((h) => (
+                      <div key={h.no} className="hw-release-card">
+                        <span className="hw-release-no">{h.no}</span>
+                        <p className="hw-title mt-2 text-base">{h.title}</p>
+                        <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="hw-eyebrow mt-4">常规更新</p>
+                <ul className="hw-release-list">
+                  {release.items.map((item, i) => (
+                    <li key={i}><span className="hw-release-dot" />{item}</li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
 
         {/* 下一版预告：虚线框与已发布的实线版本框区分开，明确是计划中 */}
         <section className="hw-release-preview">

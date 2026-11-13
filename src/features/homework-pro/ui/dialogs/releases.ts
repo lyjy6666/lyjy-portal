@@ -2,11 +2,13 @@ import type { Release } from '@/components/UpdateTimeline';
 
 /** Pro 版专用版本历史：只记录 Pro，不与原版版本混写 */
 
+export type ProHighlight = { no: string; title: string; desc: string };
+
 /**
- * 重磅升级：更新记录页顶部用独立的大卡片单独呈现，
- * 不混在普通条目列表里，才能真的「凸显」。
+ * 重磅升级：更新记录里的独立大卡片单独呈现，不混在普通条目列表里。
+ * 按版本分组：V0.1 是 AI 全线打通与三因子估时，V0.2 是 AI 问答上线。
  */
-export const HOMEWORK_PRO_HIGHLIGHTS = [
+export const HOMEWORK_PRO_HIGHLIGHTS: ProHighlight[] = [
   {
     no: '01',
     title: 'AI 全线打通',
@@ -17,19 +19,43 @@ export const HOMEWORK_PRO_HIGHLIGHTS = [
     title: '三因子用时推测',
     desc: 'AI 根据年级、薄弱项与作业内容三因子推测完成用时',
   },
+];
+
+export const HOMEWORK_PRO_V02_HIGHLIGHTS: ProHighlight[] = [
   {
     no: '03',
     title: 'AI 问答',
     desc: '独立聊天页与多会话记录；双模型可选、平台审核，按学段与薄弱项深度分析，公式与代码清晰排版',
   },
-] as const;
+];
+
+/** 每个版本的大 Card 标题，避免 V0.1 里提前出现 V0.2 的能力 */
+export const HOMEWORK_PRO_HIGHLIGHT_TITLE: Record<string, string> = {
+  'Pro V0.1': 'AI 深度融合，作业从记录到排期全链接管',
+  'Pro V0.2': 'AI 问答上线 · 不懂的地方随时问',
+};
 
 export const HOMEWORK_PRO_RELEASES: Release[] = [
+  {
+    version: 'Pro V0.2',
+    date: '2026.11.13',
+    tag: '重磅更新',
+    latest: true,
+    items: [
+      '独立聊天页 /homework/pro/ai：左侧会话列表（可新建 / 切换 / 删除），右侧聊天记录，多会话自动保留',
+      '模型 A / 模型 B 两个档位可选：A 质量高、速度较慢、用量较高；B 质量较低、速度快、用量较低，真实模型名不对外显示',
+      '发送前平台审核：依次显示「平台审核中」→「AI 深度思考中」，破甲、越狱与学习无关内容一律拦截并说明原因',
+      '可开启深度分析：结合账号里的学段（小学 / 初中 / 高中）和薄弱项调整讲解深度，并给针对性巩固建议',
+      '回答按 Markdown 排版：数学公式与代码块专门适配，不再糊成一堆反斜杠符号',
+      '每日用量进度条（个人中心、模型选择、聊天页三处同步）；Pro 版刚发布用量狂欢，基础 1 万 / 3 万 tokens 翻三倍为 3 万 / 9 万',
+      '「本站 AI 特色」在 AI 图标弹窗、开屏介绍、Pro 更新记录三处同步加入 AI 问答',
+      'Pro 更新记录改为站内弹窗，右下角时钟、个人中心、Pro 介绍弹窗都能打开，不再跳独立页面',
+    ],
+  },
   {
     version: 'Pro V0.1',
     date: '2026.11.07',
     tag: '全新重构',
-    latest: true,
     items: [
       '建档学习画像（年级 + 薄弱项），个人中心随时修改',
       '图片识别与文本 AI 均支持多通道自动降级，单通道限流不影响使用，可选快速模式',
@@ -39,15 +65,14 @@ export const HOMEWORK_PRO_RELEASES: Release[] = [
       '子任务检查清单、优先级、标签、预计 / 实际耗时、迟交标记',
       '本地缓存与离线暂存、乐观更新失败回滚、8 秒撤销删除',
       '专注计时支持自定义时长，结束只记耗时、不自动完成作业',
-      'AI 问答独立页：左右两栏多会话、双模型选择、平台审核、按学段与薄弱项深度分析',
-      '开屏光波介绍：从左上角 AI 标识展开，介绍深度融合的 AI 系统与 AI 问答',
+      '开屏光波介绍：从左上角 AI 标识展开，介绍深度融合的 AI 系统',
     ],
   },
 ];
 
 /** 下一版预告：与已发布版本分开渲染，明确是计划中的内容 */
 export const HOMEWORK_PRO_PREVIEW = {
-  version: 'Pro V0.2',
+  version: 'Pro V0.3',
   title: '更多 AI 功能',
   items: [
     'AI 问答持续增强：更多题型与学科适配',

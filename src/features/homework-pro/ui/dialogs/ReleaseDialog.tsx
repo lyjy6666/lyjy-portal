@@ -6,6 +6,8 @@ import { ProDialog } from '../common/bits';
 import {
   HOMEWORK_PRO_RELEASES,
   HOMEWORK_PRO_HIGHLIGHTS,
+  HOMEWORK_PRO_V02_HIGHLIGHTS,
+  HOMEWORK_PRO_HIGHLIGHT_TITLE,
   HOMEWORK_PRO_PREVIEW,
 } from './releases';
 
@@ -13,11 +15,10 @@ import {
  * Pro 版更新记录弹窗。
  * 原先右下角按钮会跳到 /homework/pro/updates 独立页面，用户反馈「应该保持跟以前一致，
  * 打开一个弹窗」。这里把同样的内容搬进 ProDialog，和其他站内弹窗观感一致。
+ * V0.1 / V0.2 各一个版本框，重磅升级卡片各归各的版本。
  */
 export function ReleaseDialog() {
   const { dialog, closeDialog } = usePro();
-  const release = HOMEWORK_PRO_RELEASES[0];
-  if (!release) return null;
 
   return (
     <ProDialog
@@ -27,40 +28,50 @@ export function ReleaseDialog() {
       desc="这里只记录 Pro 版的版本历史，不与原版更新记录混写。"
       className="sm:max-w-[720px]"
     >
-      {/* 一个版本 = 一个框：重磅升级和常规条目都装在同一个框里 */}
-      <section className="hw-release-block">
-        <div className="hw-release-head">
-          <span className="hw-title text-base">{release.version}</span>
-          {release.latest && <span className="hw-chip" data-active="true">最新</span>}
-          {release.tag && <span className="hw-chip">{release.tag}</span>}
-          <span className="hw-label hw-num ml-auto">{release.date}</span>
-        </div>
-
-        <div className="hw-release-highlight">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="hw-ai-tag">重磅升级</span>
-            <span className="hw-ai-tag-ghost">本次核心</span>
-          </div>
-          <p className="hw-ai-title mt-2 text-lg">AI 深度融合，记录、排期、批改到问答全链接管</p>
-
-          <div className="hw-release-cards">
-            {HOMEWORK_PRO_HIGHLIGHTS.map((h) => (
-              <div key={h.no} className="hw-release-card">
-                <span className="hw-release-no">{h.no}</span>
-                <p className="hw-title mt-2 text-base">{h.title}</p>
-                <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
+      <div className="space-y-4">
+        {HOMEWORK_PRO_RELEASES.map((release) => {
+          const highlights = release.version === 'Pro V0.2'
+            ? HOMEWORK_PRO_V02_HIGHLIGHTS
+            : HOMEWORK_PRO_HIGHLIGHTS;
+          return (
+            <section key={release.version} className="hw-release-block">
+              <div className="hw-release-head">
+                <span className="hw-title text-base">{release.version}</span>
+                {release.latest && <span className="hw-chip" data-active="true">最新</span>}
+                {release.tag && <span className="hw-chip">{release.tag}</span>}
+                <span className="hw-label hw-num ml-auto">{release.date}</span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <p className="hw-eyebrow mt-4">常规更新</p>
-        <ul className="hw-release-list">
-          {release.items.map((item, i) => (
-            <li key={i}><span className="hw-release-dot" />{item}</li>
-          ))}
-        </ul>
-      </section>
+              <div className="hw-release-highlight">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="hw-ai-tag">重磅升级</span>
+                  <span className="hw-ai-tag-ghost">本次核心</span>
+                </div>
+                <p className="hw-ai-title mt-2 text-lg">
+                  {HOMEWORK_PRO_HIGHLIGHT_TITLE[release.version] ?? 'AI 深度融合'}
+                </p>
+
+                <div className="hw-release-cards">
+                  {highlights.map((h) => (
+                    <div key={h.no} className="hw-release-card">
+                      <span className="hw-release-no">{h.no}</span>
+                      <p className="hw-title mt-2 text-base">{h.title}</p>
+                      <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="hw-eyebrow mt-4">常规更新</p>
+              <ul className="hw-release-list">
+                {release.items.map((item, i) => (
+                  <li key={i}><span className="hw-release-dot" />{item}</li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
 
       <section className="hw-release-preview">
         <div className="flex flex-wrap items-center gap-2">
