@@ -58,7 +58,8 @@ interface LineLatency {
 const DEFAULT_COLLECTOR = 'https://cj.lziapi.com/api.php/provide/vod/';
 const COLLECTOR_STORAGE_KEY = 'movie_collector_url';
 const MINIMAL_MODE_KEY = 'movie_minimal_mode';
-const HLS_CDN = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+// hls.js 自托管：原先从 cdn.jsdelivr.net 加载，该 CDN 不可达时视频会完全播不了
+const HLS_SCRIPT_SRC = '/vendor/hls.min.js';
 
 // 预设采集站列表（移植自 MoonTV 开源项目 config.json，实测筛选可用站点）
 // 来源：https://github.com/samqin123/MoonTV/blob/main/config.json
@@ -163,7 +164,7 @@ function loadHls(): Promise<any> {
   if (hlsPromise) return hlsPromise;
   hlsPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = HLS_CDN;
+    script.src = HLS_SCRIPT_SRC;
     script.onload = () => {
       if ((window as any).Hls) resolve((window as any).Hls);
       else reject(new Error('hls.js 加载失败'));
@@ -234,36 +235,50 @@ function CustomVideoPlayer({
 
     const url = src;
 
-    if (!url.includes('.m3u8')) {
+    // 采集站的 m3u8 常不带扩展名（如 https://v.xxx.com/share/abc），
+    // 不能只靠 .m3u8 后缀判断；只把明确的直链媒体格式交给 <video> 原生播放。
+    const isDirectMedia = /\.(mp4|webm|ogg|ogv|m4v|mov)(\?|#|$)/i.test(url);
+    if (isDirectMedia) {
       video.src = url;
       return;
     }
 
-    // 原生 HLS 支持（Safari）
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
-      return;
-    }
-
-    // hls.js
+    // Chromium 的 canPlayType('application/vnd.apple.mpegurl') 会返回 "maybe"，
+    // 但实际并不支持 HLS 解复用：若据此直接 video.src = m3u8，会报
+    // DEMUXER_ERROR_COULD_NOT_PARSE。所以一律优先用 hls.js（站内自托管），
+    // 只有 hls.js 不支持 / 加载失败时才回退原生 HLS（Safari）。
     let cancelled = false;
-    loadHls().then((Hls) => {
-      if (cancelled || !Hls.isSupported()) return;
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
-      hlsRef.current = hls;
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-      });
-      hls.on(Hls.Events.ERROR, (_: any, data: any) => {
-        if (data.fatal) {
-          toast.error('视频加载失败，请尝试切换播放线路');
+    const playNative = () => {
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+      } else {
+        toast.error('当前浏览器不支持该视频格式');
+      }
+    };
+
+    loadHls()
+      .then((Hls) => {
+        if (cancelled) return;
+        if (!Hls.isSupported()) {
+          playNative();
+          return;
         }
+        const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+        hlsRef.current = hls;
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+          if (data.fatal) {
+            toast.error('视频加载失败，请尝试切换播放线路');
+          }
+        });
+      })
+      .catch(() => {
+        if (!cancelled) playNative();
       });
-    }).catch(() => {
-      toast.error('播放器加载失败');
-    });
 
     return () => {
       cancelled = true;
