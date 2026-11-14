@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import PlanSwitch from './PlanSwitch';
+import { useSectionPager } from './useSectionPager';
 import {
   ARCHIVE_STATS,
   LINES,
   MILESTONES,
   SERVICE_GROWTH,
+  PORTAL_VERSIONS,
   SNAPSHOTS,
   dayOffset,
   formatDate,
@@ -30,6 +32,10 @@ const xOf = (date: string) => PAD + (Math.min(dayOffset(date), SPAN) / SPAN) * (
 
 
 export default function StarLog() {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useSectionPager(scrollerRef);
+
+
   const [hover, setHover] = useState<{ x: number; y: number; label: string; date: string } | null>(null);
 
   const points = useMemo(() => {
@@ -55,10 +61,10 @@ export default function StarLog() {
         <span className={styles.barMeta}>36 个存档 · 4 条线 · 1 座门户</span>
       </header>
 
-      <div className={styles.scroller} id="star-scroller">
+      <div ref={scrollerRef} className={styles.scroller} id="star-scroller">
         {/* 01 首屏 */}
         <section id="screen-1" className={styles.screen}>
-          <div className={`${styles.heroInner} ${styles.reveal}`}>
+          <div className={styles.heroInner} data-reveal>
             <p className={styles.kicker}>2025.08.04 — 2026.12.18</p>
             <h1 className={styles.heroTitle}>
               <span className={styles.big}>500</span>
@@ -79,7 +85,7 @@ export default function StarLog() {
 
         {/* 02 轨道 */}
         <section id="screen-2" className={styles.screen} aria-labelledby="orbit-title">
-          <div className={`${styles.block} ${styles.reveal}`}>
+          <div className={styles.block} data-reveal>
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.sectionNo}>01 / 轨道</span>
@@ -162,12 +168,25 @@ export default function StarLog() {
                 </li>
               ))}
             </ul>
+
+            <div className={styles.portalStrip}>
+              <span className={styles.portalStripLabel}>合并之后的六代</span>
+              <div className={styles.portalChips}>
+                {PORTAL_VERSIONS.map((v) => (
+                  <span key={v.id} className={styles.portalChip}>
+                    <span className={styles.portalChipDot} aria-hidden="true" />
+                    <strong>{v.label}</strong>
+                    <em>{v.date.length === 4 ? v.date : formatDate(v.date)}</em>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
         {/* 03 生长 */}
         <section id="screen-3" className={styles.screen} aria-labelledby="growth-title">
-          <div className={`${styles.block} ${styles.reveal}`}>
+          <div className={styles.block} data-reveal>
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.sectionNo}>02 / 生长</span>
@@ -206,7 +225,7 @@ export default function StarLog() {
 
         {/* 04 里程碑 */}
         <section id="screen-4" className={styles.screen} aria-labelledby="mile-title">
-          <div className={`${styles.block} ${styles.reveal}`}>
+          <div className={styles.block} data-reveal>
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.sectionNo}>03 / 节点</span>
@@ -232,7 +251,7 @@ export default function StarLog() {
 
         {/* 05 结尾 */}
         <section id="screen-5" className={`${styles.screen} ${styles.endScreen}`}>
-          <div className={`${styles.endInner} ${styles.reveal}`}>
+          <div className={styles.endInner} data-reveal>
             <p className={styles.endLine}>这不是一条增长曲线，<br />是一个小站慢慢成为家的过程。</p>
             <div className={styles.footerLinks}>
               <Link href="/anniversary">去时光机，亲手打开 2025.08.04 ↗</Link>
