@@ -102,14 +102,26 @@ export async function POST(request: NextRequest) {
 
   try {
     const sql = getSql();
+
+    // 已封存的名字不允许再写：否则知道用户名的人就能把别人的信覆盖掉
+    const existing = await sql`
+      SELECT username FROM anniversary_capsules WHERE username = ${username} LIMIT 1
+    `;
+    if (existing.length) {
+      return Response.json({ error: '这个名字已经封存过一封信了，不能覆盖' }, { status: 409 });
+    }
+
     await sql`
       INSERT INTO anniversary_capsules (username, content, unlock_at, updated_at)
       VALUES (${username}, ${content}, ${UNLOCK_AT}, NOW())
-      ON CONFLICT (username) DO UPDATE
-        SET content = EXCLUDED.content, updated_at = NOW()
     `;
     return Response.json({ ok: true, username, unlockAt: UNLOCK_AT, daysLeft: daysBetween(shanghaiToday(), UNLOCK_AT) });
   } catch (err) {
+    // 并发下两个请求同时通过上面的检查，唯一约束会挡住后一个
+    const message = err instanceof Error ? err.message : '';
+    if (message.includes('duplicate key') || message.includes('unique')) {
+      return Response.json({ error: '这个名字已经封存过一封信了，不能覆盖' }, { status: 409 });
+    }
     console.error('capsule POST error:', err);
     return Response.json({ error: '保存失败，请稍后再试' }, { status: 500 });
   }

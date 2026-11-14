@@ -108,12 +108,6 @@ export default function Capsule() {
     }
   };
 
-  const rewrite = () => {
-    if (!window.confirm('到期前服务端不会返回正文，所以看不到原文。\n重写会覆盖服务器上的那封，确定吗？')) return;
-    setText('');
-    setView('new');
-  };
-
   const download = () => {
     const body = content || text;
     const blob = new Blob(
@@ -208,10 +202,12 @@ export default function Capsule() {
                 </p>
               </div>
               <div className={styles.actions}>
-                <button type="button" onClick={rewrite} className={styles.ghost}>重写并覆盖</button>
                 <button type="button" onClick={download} className={styles.ghost}>下载备份</button>
               </div>
-              <p className={styles.hint}>到期前服务端不返回正文，所以这里看不到原文——这是故意的。</p>
+              <p className={styles.hint}>
+                到期前服务端不返回正文，所以这里看不到原文——这是故意的。
+                封存后不能再修改，也不能被同名覆盖。
+              </p>
             </>
           ) : null}
 
