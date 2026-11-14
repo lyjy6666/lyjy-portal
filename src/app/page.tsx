@@ -8,6 +8,7 @@ import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
 import MobileDesktopHint from '@/components/home/MobileDesktopHint';
+import AnniversarySplash from '@/components/home/AnniversarySplash';
 import MobileNoticeDialog from '@/components/home/MobileNoticeDialog';
 import MobileBlockNotice from '@/components/home/MobileBlockNotice';
 import { isMobileDevice } from '@/components/home/useIsMobile';
@@ -121,6 +122,7 @@ export default function PortalHome() {
       <Background />
       {/* 手机浏览器提示：可关闭；开启浏览器「访问桌面版」后 UA 变化，提示自动消失 */}
       <MobileDesktopHint />
+      <AnniversarySplash />
 
       {!ready ? (
         // 布局偏好只能在客户端读取，先用静态圆环骨架占位，避免首屏跳变
