@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import PlanSwitch from './PlanSwitch';
 import {
   LINES,
   PLAYABLE,
@@ -121,6 +120,7 @@ export default function TimeMachine() {
           <span className={styles.kicker}>500 · 时光机</span>
           <span className={styles.barSub}>十三个旧存档，六代线上门户</span>
         </div>
+        <Link href="/anniversary" className={styles.starLink}>去星图 →</Link>
         <span className={styles.counter}>
           {String(i + 1).padStart(2, '0')} / {list.length}
         </span>
@@ -269,7 +269,6 @@ export default function TimeMachine() {
         </div>
       </section>
 
-      <PlanSwitch current="a" />
     </main>
   );
 }

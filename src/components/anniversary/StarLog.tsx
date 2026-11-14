@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import PlanSwitch from './PlanSwitch';
 import { useSectionPager } from './useSectionPager';
 import {
   ARCHIVE_STATS,
@@ -291,14 +290,17 @@ export default function StarLog() {
           <div className={styles.endInner} data-reveal>
             <p className={styles.endLine}>这不是一条增长曲线，<br />是一个小站慢慢成为家的过程。</p>
             <div className={styles.footerLinks}>
-              <Link href="/anniversary">去时光机，亲手打开 2025.08.04 ↗</Link>
+              <Link href="/anniversary/machine">去时光机，亲手打开 2025.08.04 ↗</Link>
+              <Link href="/anniversary/capsule">
+                去写 730 天的专属回忆
+                <em>2027.08.04 才会打开</em>
+              </Link>
             </div>
             <p className={styles.endSmall}>2026.12.18 · 建站 500 天</p>
           </div>
         </section>
       </div>
 
-      <PlanSwitch current="c" />
     </main>
   );
 }

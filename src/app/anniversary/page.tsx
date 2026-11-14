@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import TimeMachine from '@/components/anniversary/TimeMachine';
+import StarLog from '@/components/anniversary/StarLog';
 
 export const metadata: Metadata = {
-  title: '500 · 时光机',
-  description: '13 个还能启动的旧存档，加上 V3.0 到 V7.0 的六代线上门户。点一个日期，直接走进那一天。',
+  title: '500 · 星图',
+  description: '把 500 天压成一条轨道：36 个存档、4 条产品线、1 次合并、22 个入口。真实数据，不是模拟统计。',
 };
 
 export default function AnniversaryRoute() {
-  return <TimeMachine />;
+  return <StarLog />;
 }
