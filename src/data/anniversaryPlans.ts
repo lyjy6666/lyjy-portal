@@ -137,7 +137,7 @@ export type PortalVersion = {
 };
 
 export const PORTAL_VERSIONS: PortalVersion[] = [
-  { id: 'p3', label: 'V3.0', date: '2025', shot: '/portal-shots/v3.png', url: 'https://lyjyold.netlify.app/', note: '最早的门户，标签页还叫 project_template_react' },
+  { id: 'p3', label: 'V3.0', date: '2025', shot: '/portal-shots/v3.png', url: 'https://lyjyold.netlify.app/', note: '最早的门户，标签页还叫 project_template_react；如今只剩一片星空，内容已经加载不出来' },
   { id: 'p5', label: 'V5.0', date: '2026-07-11', shot: '/portal-shots/v5.png', url: 'https://6a6bfe856bfd6a00099eb6a5--lyjy.netlify.app/', note: '城市深夜电台 · 声音星系，列表布局' },
   { id: 'p6', label: 'V6.0', date: '2026-09-24', shot: '/portal-shots/v6.png', url: 'https://6add793d0bd0f3dfb0aeddcc--lyjy.netlify.app/', note: '银河圆环首次展开，17 个节点' },
   { id: 'p65', label: 'V6.5', date: '2026-10', shot: '/portal-shots/v65.png', url: 'https://6af0097eaeafc87fbd07e7eb--lyjy.netlify.app/', note: '搜索页与工具箱全面 Pro 版化，22 个节点' },

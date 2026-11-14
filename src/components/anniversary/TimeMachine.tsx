@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import PlanSwitch from './PlanSwitch';
 import {
@@ -50,23 +50,23 @@ const PORTAL: Entry[] = PORTAL_VERSIONS.map((v) => ({
   shot: v.shot,
 }));
 
-const ENTRIES = [...LOCAL, ...PORTAL];
-
 export default function TimeMachine() {
-  const [index, setIndex] = useState(0);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const current = ENTRIES[index];
-  const traces = current.kind === 'local'
-    ? tracesFor({ id: current.id, category: current.category })
-    : [];
+  // 左侧一次只展开一组：旧存档 / 线上门户，保证所有内容收在一屏里
+  const [group, setGroup] = useState<'local' | 'portal'>('local');
+  const [i, setI] = useState(0);
+
+  const list = group === 'local' ? LOCAL : PORTAL;
+  const current = list[Math.min(i, list.length - 1)];
+  const traces = current.kind === 'local' ? tracesFor({ id: current.id, category: current.category }) : [];
   const target = current.src ?? current.url ?? '/';
 
-  const go = (next: number) => setIndex((next + ENTRIES.length) % ENTRIES.length);
-  const openWindow = () => window.open(target, '_blank', 'noopener,noreferrer');
-  const fullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen?.();
+  const switchGroup = (next: 'local' | 'portal') => {
+    if (next === group) return;
+    setGroup(next);
+    setI(0);
   };
+  const go = (next: number) => setI((next + list.length) % list.length);
+  const openWindow = () => window.open(target, '_blank', 'noopener,noreferrer');
 
   return (
     <main className={styles.page}>
@@ -76,27 +76,54 @@ export default function TimeMachine() {
           <span className={styles.kicker}>500 · 时光机</span>
           <span className={styles.barSub}>十三个旧存档，六代线上门户</span>
         </div>
-        <span className={styles.counter}>{String(index + 1).padStart(2, '0')} / {ENTRIES.length}</span>
+        <span className={styles.counter}>
+          {String(i + 1).padStart(2, '0')} / {list.length}
+        </span>
       </header>
 
       <section className={styles.stage}>
         <aside className={styles.rail} aria-label="选择历史版本">
-          <p className={styles.railHint}>左右滑动 · 点一下换一台</p>
+          <div className={styles.groups} role="tablist" aria-label="版本分组">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={group === 'local'}
+              onClick={() => switchGroup('local')}
+              className={`${styles.groupTab} ${group === 'local' ? styles.groupTabOn : ''}`}
+            >
+              旧存档
+              <span>{LOCAL.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={group === 'portal'}
+              onClick={() => switchGroup('portal')}
+              className={`${styles.groupTab} ${group === 'portal' ? styles.groupTabOn : ''}`}
+            >
+              线上门户
+              <span>{PORTAL.length}</span>
+            </button>
+          </div>
 
-          <p className={styles.groupLabel}>旧存档 · {LOCAL.length}</p>
           <ol className={styles.railList}>
-            {LOCAL.map((entry, i) => {
-              const active = i === index;
+            {list.map((entry, idx) => {
+              const active = idx === i;
               return (
                 <li key={entry.id}>
                   <button
                     type="button"
-                    onClick={() => setIndex(i)}
+                    onClick={() => setI(idx)}
                     aria-pressed={active}
                     className={`${styles.railItem} ${active ? styles.railItemOn : ''}`}
                   >
-                    <span className={styles.railDot} style={{ background: lineColor(entry.category) }} />
-                    <time dateTime={entry.date}>{formatDate(entry.date)}</time>
+                    <span
+                      className={styles.railDot}
+                      style={{ background: entry.kind === 'portal' ? '#fbbf24' : lineColor(entry.category) }}
+                    />
+                    <time dateTime={entry.date}>
+                      {entry.date.length === 4 ? entry.date : formatDate(entry.date)}
+                    </time>
                     <strong>{entry.label}</strong>
                     {entry.note ? <em>{entry.note}</em> : null}
                   </button>
@@ -105,28 +132,9 @@ export default function TimeMachine() {
             })}
           </ol>
 
-          <p className={styles.groupLabel}>线上门户 · {PORTAL.length}</p>
-          <ol className={styles.railList}>
-            {PORTAL.map((entry, i) => {
-              const realIndex = LOCAL.length + i;
-              const active = realIndex === index;
-              return (
-                <li key={entry.id}>
-                  <button
-                    type="button"
-                    onClick={() => setIndex(realIndex)}
-                    aria-pressed={active}
-                    className={`${styles.railItem} ${active ? styles.railItemOn : ''}`}
-                  >
-                    <span className={styles.railDot} style={{ background: '#fbbf24' }} />
-                    <time>{entry.date.length === 4 ? entry.date : formatDate(entry.date)}</time>
-                    <strong>{entry.label}</strong>
-                    {entry.note ? <em>{entry.note}</em> : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+          <p className={styles.railHint}>
+            {group === 'local' ? '十三台还能启动的旧机器' : '合并之后的六代门户'}
+          </p>
         </aside>
 
         <div className={styles.viewport}>
@@ -144,15 +152,13 @@ export default function TimeMachine() {
               ) : null}
             </div>
             <div className={styles.actions}>
-              <button type="button" onClick={() => go(index - 1)} className={styles.ghost}>← 上一个</button>
-              <button type="button" onClick={() => go(index + 1)} className={styles.ghost}>下一个 →</button>
-              <button type="button" onClick={openWindow} className={styles.ghost}>新窗口 ↗</button>
-              <button type="button" onClick={fullscreen} className={styles.solid}>全屏</button>
+              <button type="button" onClick={() => go(i - 1)} className={styles.ghost}>← 上一个</button>
+              <button type="button" onClick={() => go(i + 1)} className={styles.ghost}>下一个 →</button>
+              <button type="button" onClick={openWindow} className={styles.accent}>新窗口 ↗</button>
             </div>
           </div>
 
-
-          <div className={styles.frameWrap} ref={frameRef}>
+          <div className={styles.frameWrap}>
             <div className={styles.frameChrome} aria-hidden="true">
               <span /><span /><span />
               <em>{current.kind === 'local' ? `/versions/${current.id}` : target}</em>
@@ -168,9 +174,21 @@ export default function TimeMachine() {
                 loading="lazy"
               />
             ) : (
-              /* 线上部署是另一套服务，iframe 会被它自己的脚本/鉴权挡住，这里用当时截下的原图 */
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={current.shot} alt={`${current.label} · ${current.date} 的线上页面截图`} className={styles.shot} />
+              <div className={styles.shotWrap}>
+                {/* 线上部署是另一套服务，iframe 会被它自己的脚本/鉴权挡住，这里用当时截下的原图 */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={current.shot}
+                  alt={`${current.label} · ${current.date} 的线上页面截图`}
+                  className={styles.shot}
+                />
+                <div className={styles.shotBadge}>
+                  <strong>{current.label}</strong>
+                  <span className={styles.shotDate}>
+                    {current.date.length === 4 ? current.date : formatDate(current.date)}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
 
