@@ -38,9 +38,7 @@ export default function Capsule() {
     setBusy(true);
     setError('');
     try {
-      // 本地改系统时间时，服务端进程不一定感知得到，这里把浏览器日期一并带上
-      const today = new Date().toLocaleDateString('sv-SE');
-      const res = await fetch(`/api/capsule?username=${encodeURIComponent(name)}&asOf=${today}`, { cache: 'no-store' });
+      const res = await fetch(`/api/capsule?username=${encodeURIComponent(name)}`, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || '读取失败');
@@ -84,8 +82,7 @@ export default function Capsule() {
     setBusy(true);
     setError('');
     try {
-      const today = new Date().toLocaleDateString('sv-SE');
-      const res = await fetch(`/api/capsule?asOf=${today}`, {
+      const res = await fetch('/api/capsule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: name, content: text }),
