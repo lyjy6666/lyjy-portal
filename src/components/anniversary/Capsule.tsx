@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './Capsule.module.css';
 
-const UNLOCK_AT = '2027-08-04';
+const FALLBACK_UNLOCK = '2027-08-04';
 const USER_KEY = 'lyjy_capsule_user_v1';
 
 type View = 'idle' | 'loading' | 'new' | 'sealed' | 'unlocked';
@@ -15,6 +15,7 @@ export default function Capsule() {
   const [content, setContent] = useState('');
   const [view, setView] = useState<View>('idle');
   const [daysLeft, setDaysLeft] = useState(0);
+  const [unlockAt, setUnlockAt] = useState(FALLBACK_UNLOCK);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +49,7 @@ export default function Capsule() {
       } catch {
         /* 忽略 */
       }
+      if (typeof data.unlockAt === 'string') setUnlockAt(data.unlockAt);
       if (!data.exists) {
         setView('new');
         setText('');
@@ -95,6 +97,7 @@ export default function Capsule() {
       } catch {
         /* 忽略 */
       }
+      if (typeof data.unlockAt === 'string') setUnlockAt(data.unlockAt);
       setDaysLeft(data.daysLeft ?? 0);
       setView('sealed');
       setError('');
@@ -114,7 +117,7 @@ export default function Capsule() {
   const download = () => {
     const body = content || text;
     const blob = new Blob(
-      [JSON.stringify({ username, unlockAt: UNLOCK_AT, content: body }, null, 2)],
+      [JSON.stringify({ username, unlockAt, content: body }, null, 2)],
       { type: 'application/json' },
     );
     const url = URL.createObjectURL(blob);
@@ -140,7 +143,7 @@ export default function Capsule() {
           <p className={styles.kicker}>第 730 天 · 建站两周年</p>
           <h1 className={styles.title}>写给两年后的自己</h1>
           <p className={styles.lede}>
-            2025.08.04 到 2027.08.04，正好 730 天。
+            2025.08.04 到 {unlockAt.replaceAll('-', '.')}，正好 730 天。
             <br />
             信存在服务器上，到那天用同一个用户名回来取。
           </p>
@@ -201,7 +204,7 @@ export default function Capsule() {
                 <span className={styles.lock} aria-hidden="true">✉</span>
                 <strong>已封存 · {username}</strong>
                 <p>
-                  还有 <b>{daysLeft}</b> 天。到 2027.08.04，用这个名字回来，信会自己打开。
+                  还有 <b>{daysLeft}</b> 天。到 {unlockAt.replaceAll('-', '.')}，用这个名字回来，信会自己打开。
                 </p>
               </div>
               <div className={styles.actions}>

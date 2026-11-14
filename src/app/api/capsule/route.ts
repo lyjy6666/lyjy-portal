@@ -4,8 +4,8 @@ import { neon } from '@neondatabase/serverless';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** 2025-08-04 起的第 730 天 */
-const UNLOCK_AT = '2027-08-04';
+/** 2025-08-04 起的第 730 天；本地可用 CAPSULE_UNLOCK_AT 覆盖，方便验证「到期」效果 */
+const UNLOCK_AT = process.env.CAPSULE_UNLOCK_AT?.trim() || '2027-08-04';
 const MAX_LEN = 20000;
 
 function getSql() {
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     return Response.json({
       exists: true,
       unlocked,
+      unlockAt: UNLOCK_AT,
       daysLeft: daysLeft(),
       createdAt: rows[0].created_at,
       ...(unlocked ? { content: rows[0].content as string } : {}),
