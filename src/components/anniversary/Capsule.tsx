@@ -4,72 +4,125 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './Capsule.module.css';
 
-/** 2025-08-04 起的第 730 天 */
 const UNLOCK_AT = '2027-08-04';
-const KEY = 'lyjy_capsule_730_v1';
+const USER_KEY = 'lyjy_capsule_user_v1';
 
-type Saved = { text: string; savedAt: string };
+type View = 'idle' | 'loading' | 'new' | 'sealed' | 'unlocked';
 
 export default function Capsule() {
+  const [username, setUsername] = useState('');
   const [text, setText] = useState('');
-  const [sealed, setSealed] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
+  const [content, setContent] = useState('');
+  const [view, setView] = useState<View>('idle');
   const [daysLeft, setDaysLeft] = useState(0);
-  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
+  // 记住上次用的用户名，下次自动带出来
   useEffect(() => {
-    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
-    setUnlocked(today >= UNLOCK_AT);
-
-    const target = new Date(`${UNLOCK_AT}T00:00:00+08:00`).getTime();
-    setDaysLeft(Math.max(0, Math.ceil((target - Date.now()) / 86400000)));
-
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const data = JSON.parse(raw) as Saved;
-        if (typeof data?.text === 'string') {
-          setText(data.text);
-          setSealed(true);
-        }
-      }
+      const saved = localStorage.getItem(USER_KEY);
+      if (saved) setUsername(saved);
     } catch {
-      setStatus('本地存储不可用，请下载备份后自行保存。');
+      /* 忽略 */
     }
-    setReady(true);
   }, []);
 
-  const seal = () => {
-    if (!text.trim()) {
-      setStatus('先写一句想留给未来的话。');
+  const lookup = async () => {
+    const name = username.trim();
+    if (!name) {
+      setError('先填一个用户名，它就是取信的凭证。');
       return;
     }
+    setBusy(true);
+    setError('');
     try {
-      localStorage.setItem(KEY, JSON.stringify({ text, savedAt: new Date().toISOString() } satisfies Saved));
-      setSealed(true);
-      setStatus('已封存。到 2027.08.04 会自动打开。');
+      const res = await fetch(`/api/capsule?username=${encodeURIComponent(name)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '读取失败');
+        return;
+      }
+      try {
+        localStorage.setItem(USER_KEY, name);
+      } catch {
+        /* 忽略 */
+      }
+      if (!data.exists) {
+        setView('new');
+        setText('');
+        return;
+      }
+      if (data.unlocked) {
+        setContent(data.content || '');
+        setView('unlocked');
+        return;
+      }
+      setDaysLeft(data.daysLeft ?? 0);
+      setView('sealed');
     } catch {
-      setStatus('保存失败，请先下载备份。');
+      setError('网络不太好，再试一次。');
+    } finally {
+      setBusy(false);
     }
   };
 
+  const seal = async () => {
+    const name = username.trim();
+    if (!name) {
+      setError('先填用户名，不然到期那天找不到这封信。');
+      return;
+    }
+    if (!text.trim()) {
+      setError('先写一句想留给未来的话。');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const res = await fetch('/api/capsule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name, content: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '保存失败');
+        return;
+      }
+      try {
+        localStorage.setItem(USER_KEY, name);
+      } catch {
+        /* 忽略 */
+      }
+      setDaysLeft(data.daysLeft ?? 0);
+      setView('sealed');
+      setError('');
+    } catch {
+      setError('网络不太好，再试一次。');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rewrite = () => {
+    if (!window.confirm('到期前服务端不会返回正文，所以看不到原文。\n重写会覆盖服务器上的那封，确定吗？')) return;
+    setText('');
+    setView('new');
+  };
+
   const download = () => {
+    const body = content || text;
     const blob = new Blob(
-      [JSON.stringify({ unlockAt: UNLOCK_AT, text }, null, 2)],
+      [JSON.stringify({ username, unlockAt: UNLOCK_AT, content: body }, null, 2)],
       { type: 'application/json' },
     );
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'lyjy-写给730天.json';
+    a.download = `lyjy-写给730天-${username || '未命名'}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const reopen = () => {
-    if (!window.confirm('重新编辑会解除本浏览器里的封存状态，原文不会删除。确定继续吗？')) return;
-    setSealed(false);
   };
 
   return (
@@ -89,58 +142,92 @@ export default function Capsule() {
           <p className={styles.lede}>
             2025.08.04 到 2027.08.04，正好 730 天。
             <br />
-            这封信现在封上，到那天才会自己打开。
+            信存在服务器上，到那天用同一个用户名回来取。
           </p>
 
-          {!ready ? (
-            <p className={styles.loading}>正在读取本地信件…</p>
-          ) : unlocked ? (
-            <>
-              <div className={styles.opened}>
-                <span className={styles.openedMark}>已到期 · 可以读了</span>
-                <p className={styles.letterBody}>{text || '这一封是空的——写的时候大概太忙了。'}</p>
-              </div>
-              <div className={styles.actions}>
-                <button type="button" onClick={download} className={styles.ghost}>下载备份</button>
-                <button type="button" onClick={reopen} className={styles.ghost}>重新编辑</button>
-              </div>
-            </>
-          ) : sealed ? (
-            <>
-              <div className={styles.sealedBox}>
-                <span className={styles.lock} aria-hidden="true">✉</span>
-                <strong>已封存</strong>
-                <p>
-                  还有 <b>{daysLeft}</b> 天。到 2027.08.04，这一页会自己把信打开。
-                </p>
-              </div>
-              <div className={styles.actions}>
-                <button type="button" onClick={download} className={styles.ghost}>下载备份</button>
-                <button type="button" onClick={reopen} className={styles.ghost}>重新编辑</button>
-              </div>
-            </>
-          ) : (
+          <div className={styles.field}>
+            <label htmlFor="capsule-user">取信凭证 · 用户名</label>
+            <div className={styles.fieldRow}>
+              <input
+                id="capsule-user"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="只有你自己记得的名字"
+                maxLength={20}
+                autoComplete="off"
+                disabled={view === 'sealed' || view === 'unlocked'}
+              />
+              <button type="button" onClick={lookup} className={styles.solid} disabled={busy || view === 'sealed' || view === 'unlocked'}>
+                {busy ? '查询中…' : '查看我的信'}
+              </button>
+            </div>
+            <p className={styles.hint}>
+              2–20 位，中英文、数字、下划线、短横线。到期那天用同一个名字来取，忘了就真的取不到了。
+            </p>
+          </div>
+
+          {error ? <p className={styles.status} role="status">{error}</p> : null}
+
+          {view === 'idle' ? (
+            <p className={styles.hint}>
+              第一次来？填好用户名点「查看我的信」，没有记录就会让你写。
+            </p>
+          ) : null}
+
+          {view === 'new' ? (
             <>
               <textarea
                 className={styles.editor}
                 aria-label="写给 730 天的信"
-                placeholder="两年后的我，你好……"
+                placeholder={`${username || '两年后的我'}，你好……`}
                 value={text}
                 maxLength={20000}
                 onChange={(e) => setText(e.target.value)}
               />
               <div className={styles.actions}>
-                <button type="button" onClick={seal} className={styles.solid}>封存这封信</button>
-                <button type="button" onClick={download} className={styles.ghost} disabled={!text}>下载备份</button>
+                <button type="button" onClick={seal} className={styles.solid} disabled={busy}>
+                  {busy ? '封存中…' : '封存这封信'}
+                </button>
+                <button type="button" onClick={download} className={styles.ghost} disabled={!text}>
+                  下载备份
+                </button>
               </div>
             </>
-          )}
+          ) : null}
+
+          {view === 'sealed' ? (
+            <>
+              <div className={styles.sealedBox}>
+                <span className={styles.lock} aria-hidden="true">✉</span>
+                <strong>已封存 · {username}</strong>
+                <p>
+                  还有 <b>{daysLeft}</b> 天。到 2027.08.04，用这个名字回来，信会自己打开。
+                </p>
+              </div>
+              <div className={styles.actions}>
+                <button type="button" onClick={rewrite} className={styles.ghost}>重写并覆盖</button>
+                <button type="button" onClick={download} className={styles.ghost}>下载备份</button>
+              </div>
+              <p className={styles.hint}>到期前服务端不返回正文，所以这里看不到原文——这是故意的。</p>
+            </>
+          ) : null}
+
+          {view === 'unlocked' ? (
+            <>
+              <div className={styles.opened}>
+                <span className={styles.openedMark}>已到期 · 可以读了</span>
+                <p className={styles.letterBody}>{content || '这一封是空的——写的时候大概太忙了。'}</p>
+              </div>
+              <div className={styles.actions}>
+                <button type="button" onClick={download} className={styles.ghost}>下载备份</button>
+              </div>
+            </>
+          ) : null}
 
           <p className={styles.note}>
-            只存在这台设备的浏览器里，不上传服务器。清缓存或换设备会丢，建议同时下载备份。
-            封存是仪式感，不是加密保险箱——浏览器时间也可以被改。
+            信只存在本站服务器上（Postgres），不进浏览器缓存，也不发邮件。
+            用户名是唯一凭证、没有密码，请取一个别人猜不到的；忘记用户名无法找回。
           </p>
-          {status ? <p className={styles.status} role="status">{status}</p> : null}
         </article>
       </section>
     </main>
