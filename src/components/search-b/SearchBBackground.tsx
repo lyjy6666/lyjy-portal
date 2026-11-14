@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 /**
  * 搜索页 B 版背景：纯 CSS 多壁纸系统。
@@ -82,6 +82,8 @@ const GRAIN =
 
 export default function SearchBBackground({ wallpaperId }: { wallpaperId: string }) {
   const wp = WALLPAPERS.find((w) => w.id === wallpaperId) ?? WALLPAPERS[0];
+  // 用户要求减少动效时，光斑保持静态，避免无限动画常驻合成层
+  const reduceMotion = useReducedMotion();
 
   return (
     <div
@@ -96,8 +98,8 @@ export default function SearchBBackground({ wallpaperId }: { wallpaperId: string
           className={`absolute rounded-full blur-[90px] ${b.pos}`}
           style={{ backgroundColor: b.color }}
           initial={{ opacity: 0.28, scale: 1 }}
-          animate={{ opacity: [0.28, 0.46, 0.28], scale: [1, 1.14, 1] }}
-          transition={{ duration: b.duration, repeat: Infinity, ease: 'easeInOut', delay: b.delay }}
+          animate={reduceMotion ? { opacity: 0.32, scale: 1 } : { opacity: [0.28, 0.46, 0.28], scale: [1, 1.14, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: b.duration, repeat: Infinity, ease: 'easeInOut', delay: b.delay }}
         />
       ))}
 

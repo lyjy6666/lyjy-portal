@@ -58,7 +58,7 @@ export const serviceCategories: ServiceCategory[] = [
       color: 'purple',
       url: '/search/pro',
       oldUrl: '/search',
-      desc: '聚合 26+ 搜索引擎',
+      desc: '聚合 23 个搜索引擎',
       sunset: '2026-11-01',
       pro: {
         href: '/search/pro',

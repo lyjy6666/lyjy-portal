@@ -18,20 +18,31 @@ export default function EnginePicker({
   const normal = SEARCH_ENGINES.filter((e) => !e.ai);
   const ai = SEARCH_ENGINES.filter((e) => e.ai);
 
-  const openAi = (e: SearchEngineB) => window.open(e.buildUrl(''), '_blank', 'noopener,noreferrer');
+  // 秘塔等少数 AI 的 buildUrl 带 ?q=，空查询时剥掉，避免打开一个空的搜索页
+  const openAi = (e: SearchEngineB) => {
+    const url = e.buildUrl('').replace(/\?q=$/, '');
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const renderBtn = (e: SearchEngineB) => (
     <button
       key={e.id}
       type="button"
+      role="option"
+      aria-selected={!e.ai && e.id === currentId}
       onClick={() => (e.ai ? openAi(e) : onSelect(e.id))}
-      title={e.ai ? `打开 ${e.name}` : undefined}
+      title={e.ai ? `打开 ${e.name}` : e.note ?? e.name}
       className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-white/10 ${
         !e.ai && e.id === currentId ? 'bg-white/15 ring-1 ring-white/20' : ''
       }`}
     >
       <AppIcon initial={e.initial} accent={e.accent} size={30} />
-      <span className="truncate text-sm text-white/90">{e.name}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm text-white/90">{e.name}</span>
+        {e.note ? (
+          <span className="block truncate text-[10px] text-amber-200/70">⚠ {e.note}</span>
+        ) : null}
+      </span>
       {e.ai && <ExternalLink size={13} className="ml-auto shrink-0 text-white/40" />}
     </button>
   );
