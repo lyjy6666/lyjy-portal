@@ -7,8 +7,8 @@ import {
   LINES,
   PLAYABLE,
   PORTAL_VERSIONS,
-  SEARCH_FADED_NOTE,
   formatDate,
+  tracesFor,
   type SnapshotCategory,
 } from '@/data/anniversaryPlans';
 import styles from './TimeMachine.module.css';
@@ -56,7 +56,9 @@ export default function TimeMachine() {
   const [index, setIndex] = useState(0);
   const frameRef = useRef<HTMLDivElement>(null);
   const current = ENTRIES[index];
-  const isSearch = current.category === '搜索';
+  const traces = current.kind === 'local'
+    ? tracesFor({ id: current.id, category: current.category })
+    : [];
   const target = current.src ?? current.url ?? '/';
 
   const go = (next: number) => setIndex((next + ENTRIES.length) % ENTRIES.length);
@@ -137,6 +139,9 @@ export default function TimeMachine() {
                   : `${current.date.length === 4 ? current.date : formatDate(current.date)} · 线上部署快照`}
                 {current.note ? ` · ${current.note}` : ''}
               </p>
+              {traces.length > 0 ? (
+                <span className={styles.traceBadge}>岁月的痕迹 · {traces.length}</span>
+              ) : null}
             </div>
             <div className={styles.actions}>
               <button type="button" onClick={() => go(index - 1)} className={styles.ghost}>← 上一个</button>
@@ -146,12 +151,6 @@ export default function TimeMachine() {
             </div>
           </div>
 
-          {isSearch ? (
-            <div className={styles.faded}>
-              <span className={styles.fadedMark}>岁月的痕迹</span>
-              <p>{SEARCH_FADED_NOTE}</p>
-            </div>
-          ) : null}
 
           <div className={styles.frameWrap} ref={frameRef}>
             <div className={styles.frameChrome} aria-hidden="true">
@@ -174,6 +173,17 @@ export default function TimeMachine() {
               <img src={current.shot} alt={`${current.label} · ${current.date} 的线上页面截图`} className={styles.shot} />
             )}
           </div>
+
+          {traces.length > 0 ? (
+            <div className={styles.traces}>
+              {traces.map((trace) => (
+                <div className={styles.trace} key={trace.title}>
+                  <span className={styles.traceMark}>{trace.title}</span>
+                  <p>{trace.text}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <p className={styles.disclaimer}>
             {current.kind === 'local'

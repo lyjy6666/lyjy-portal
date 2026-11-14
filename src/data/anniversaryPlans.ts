@@ -148,3 +148,53 @@ export const PORTAL_VERSIONS: PortalVersion[] = [
 /** 搜索页快照的「岁月痕迹」说明：背景图没跟着代码留下来 */
 export const SEARCH_FADED_NOTE =
   '随着岁月的痕迹，这一页的背景图已经加载不出来了。当年铺满整屏的那张图，没有跟着代码一起留下来——剩下的是骨架、文字，和一块空出来的位置。';
+
+/** 岁月的痕迹：每个旧版都留下了一些「已经不工作」的东西 */
+export type Trace = { title: string; text: string };
+
+export const TRACE_BY_CATEGORY: Record<SnapshotCategory, Trace> = {
+  主页: {
+    title: '天气没有来',
+    text: '右上角那句「获取失败： 未知错误」，从第一天起就挂在那里。天气接口早就停了，这句话反而成了主页的一部分。',
+  },
+  搜索: {
+    title: '背景图已经加载不出来',
+    text: SEARCH_FADED_NOTE,
+  },
+  导航: {
+    title: '当年的热闹是算出来的',
+    text: '30 天访问趋势是内置算法生成的模拟数据：主页 500–800、搜索页 400–700、作业系统 200–400。真正可信的数字，是这次 500 天才敢放出来的 36 个存档。',
+  },
+  工具: {
+    title: '后端已经睡了',
+    text: '作业系统连的 Supabase、语音朗读的访问验证，大多已经停服。页面还能打开，但提交按钮不会再有回应。',
+  },
+};
+
+/** 个别版本额外的痕迹 */
+export const EXTRA_TRACES: Record<string, Trace[]> = {
+  'v8.4': [
+    {
+      title: '一颗埋了 500 天的时间胶囊',
+      text: '「时间胶囊」按钮的 href 是 #，从来没被启用过。它安安静静躺了 500 天，直到今天才被打开。',
+    },
+  ],
+  'v8.27-home': [
+    {
+      title: '标签页还叫 project_template_react',
+      text: '直到 5.30 主页，浏览器标签才从脚手架默认名改成「lyjy 的小站」。之前访客看到的，一直是模板的名字。',
+    },
+  ],
+  'v5.30-home': [
+    {
+      title: '名字终于写在了门上',
+      text: '这一版把标签页改成了「lyjy 的小站」，也是主页线最大的存档——4.1 万个条目，绝大多数是依赖包。',
+    },
+  ],
+};
+
+export function tracesFor(snapshot: { id: string; category?: SnapshotCategory }): Trace[] {
+  const extra = EXTRA_TRACES[snapshot.id] ?? [];
+  const base = snapshot.category ? [TRACE_BY_CATEGORY[snapshot.category]] : [];
+  return [...base, ...extra];
+}

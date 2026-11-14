@@ -322,3 +322,52 @@
 @media (max-width: 900px) {
   .shot { height: auto; }
 }
+
+/* ===== 岁月的痕迹 ===== */
+.traceBadge {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+.traces {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.trace {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.06), rgba(255, 255, 255, 0.015));
+}
+
+.traceMark {
+  flex: none;
+  color: #fcd34d;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.trace p {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.8;
+  color: #94a3b8;
+}
+
+@media (max-width: 900px) {
+  .trace { flex-direction: column; gap: 0.3rem; }
+  .traceMark { font-size: 0.64rem; }
+}
