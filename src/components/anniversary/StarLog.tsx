@@ -10,6 +10,7 @@ import {
   SERVICE_GROWTH,
   PORTAL_VERSIONS,
   SNAPSHOTS,
+  TRACE_WALL,
   dayOffset,
   formatDate,
   type Snapshot,
@@ -259,12 +260,66 @@ export default function StarLog() {
           </div>
         </section>
 
-        {/* 04 里程碑 */}
+        {/* 04 四条线 */}
+        <section className={styles.screen} aria-labelledby="lines-title">
+          <div className={styles.block} data-reveal>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.sectionNo}>03 / 四条线</span>
+                <h2 id="lines-title">四个房间，各自长过一段时间。</h2>
+              </div>
+              <p>主页、导航、搜索、工具——合并之前，它们谁也不认识谁。</p>
+            </div>
+            <ul className={styles.lineCards}>
+              {LINES.map((line) => {
+                const items = SNAPSHOTS.filter((s) => s.category === line.id);
+                const first = items[0];
+                const last = items[items.length - 1];
+                return (
+                  <li key={line.id}>
+                    <span className={styles.lineBadge} style={{ background: line.color }} />
+                    <div className={styles.lineTop}>
+                      <strong>{line.id}</strong>
+                      <em>{items.length} 个存档</em>
+                    </div>
+                    <p>{line.desc}</p>
+                    <small>
+                      {first ? formatDate(first.date) : '—'} → {last ? formatDate(last.date) : '—'}
+                    </small>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+
+        {/* 05 痕迹墙 */}
+        <section className={styles.screen} aria-labelledby="traces-title">
+          <div className={styles.block} data-reveal>
+            <div className={styles.sectionHead}>
+              <div>
+                <span className={styles.sectionNo}>04 / 痕迹</span>
+                <h2 id="traces-title">有些东西，没能一起搬过来。</h2>
+              </div>
+              <p>失效的接口、编造的统计、埋了 500 天的死链——它们也是这 500 天的一部分。</p>
+            </div>
+            <ul className={styles.traceWall}>
+              {TRACE_WALL.map((trace) => (
+                <li key={trace.title}>
+                  <strong>{trace.title}</strong>
+                  <p>{trace.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* 06 里程碑 */}
         <section id="screen-4" className={styles.screen} aria-labelledby="mile-title">
           <div className={styles.block} data-reveal>
             <div className={styles.sectionHead}>
               <div>
-                <span className={styles.sectionNo}>03 / 节点</span>
+                <span className={styles.sectionNo}>05 / 节点</span>
                 <h2 id="mile-title">十个日子，够讲完这 500 天。</h2>
               </div>
               <p>没有存档的五个月，也是这 500 天的一部分。</p>

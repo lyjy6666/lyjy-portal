@@ -198,3 +198,13 @@ export function tracesFor(snapshot: { id: string; category?: SnapshotCategory })
   const base = snapshot.category ? [TRACE_BY_CATEGORY[snapshot.category]] : [];
   return [...base, ...extra];
 }
+
+/** 星图末尾的「痕迹墙」：把散落在各版本里的失效点汇总成一面墙 */
+export const TRACE_WALL: Trace[] = [
+  TRACE_BY_CATEGORY.主页,
+  TRACE_BY_CATEGORY.搜索,
+  TRACE_BY_CATEGORY.导航,
+  TRACE_BY_CATEGORY.工具,
+  ...EXTRA_TRACES['v8.4'],
+  ...EXTRA_TRACES['v8.27-home'],
+];
