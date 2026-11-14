@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import PlanSwitch from './PlanSwitch';
 import {
@@ -54,6 +54,10 @@ export default function TimeMachine() {
   // 左侧一次只展开一组：旧存档 / 线上门户，保证所有内容收在一屏里
   const [group, setGroup] = useState<'local' | 'portal'>('local');
   const [i, setI] = useState(0);
+  // 旧版是 SPA，首帧偶尔白屏；检测到就自动重载，两次还不行才让用户手动点
+  const [blank, setBlank] = useState(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const retryRef = useRef(0);
 
   const list = group === 'local' ? LOCAL : PORTAL;
   const current = list[Math.min(i, list.length - 1)];
@@ -67,6 +71,47 @@ export default function TimeMachine() {
   };
   const go = (next: number) => setI((next + list.length) % list.length);
   const openWindow = () => window.open(target, '_blank', 'noopener,noreferrer');
+
+  // 切换版本时重置白屏状态
+  useEffect(() => {
+    retryRef.current = 0;
+    setBlank(false);
+  }, [current.id]);
+
+  const forceReload = () => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    setBlank(false);
+    frame.src = `${target}${target.includes('?') ? '&' : '?'}_retry=${Date.now()}`;
+  };
+
+  /** iframe 载入后检查有没有真的渲染出东西；空的话自动重载，最多两次 */
+  const checkFrame = () => {
+    const frame = frameRef.current;
+    if (!frame || current.kind !== 'local') return;
+
+    window.setTimeout(() => {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc || !doc.body) return;
+        const text = (doc.body.innerText || '').replace(/\s+/g, '');
+        const root = doc.getElementById('root');
+        const empty = text.length < 6 && (!root || root.childElementCount === 0);
+        if (!empty) {
+          setBlank(false);
+          return;
+        }
+        if (retryRef.current < 2) {
+          retryRef.current += 1;
+          frame.src = `${target}${target.includes('?') ? '&' : '?'}_retry=${Date.now()}`;
+          return;
+        }
+        setBlank(true);
+      } catch {
+        // 拿不到文档就当正常，不误报
+      }
+    }, 520);
+  };
 
   return (
     <main className={styles.page}>
@@ -166,6 +211,8 @@ export default function TimeMachine() {
             {current.kind === 'local' ? (
               <iframe
                 key={current.id}
+                ref={frameRef}
+                onLoad={checkFrame}
                 src={target}
                 title={`${current.label} · ${current.date} 的历史快照`}
                 className={styles.frame}
@@ -190,6 +237,17 @@ export default function TimeMachine() {
                 </div>
               </div>
             )}
+
+            {blank && current.kind === 'local' ? (
+              <div className={styles.blankMask}>
+                <p>这一版没有自己加载出来</p>
+                <span>旧页面偶尔会卡在首帧，重载一下通常就好了。</span>
+                <div className={styles.blankActions}>
+                  <button type="button" onClick={forceReload} className={styles.accent}>重新加载</button>
+                  <button type="button" onClick={openWindow} className={styles.ghost}>新窗口打开</button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {traces.length > 0 ? (
