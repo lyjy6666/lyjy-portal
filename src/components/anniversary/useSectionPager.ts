@@ -49,13 +49,6 @@ export function useSectionPager(
       return false;
     };
 
-    /** 滚到的那一屏直接点亮，不依赖 IO 是否及时回调 */
-    const light = (top: number) => {
-      const target = sections().find((s) => Math.abs(s.offsetTop - top) < 6);
-      if (!target) return;
-      target.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => el.classList.add('is-in'));
-    };
-
     const goto = (dir: 1 | -1) => {
       const list = tops();
       if (!list.length) return;
@@ -71,10 +64,6 @@ export function useSectionPager(
 
       locked = true;
       el.scrollTo({ top: next, behavior: 'smooth' });
-      light(next);
-      window.setTimeout(() => light(next), 380);
-      light(next);
-      window.setTimeout(() => light(next), 380);
       window.setTimeout(() => {
         locked = false;
       }, COOLDOWN);

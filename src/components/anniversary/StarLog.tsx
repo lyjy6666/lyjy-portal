@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import PlanSwitch from './PlanSwitch';
 import { useSectionPager } from './useSectionPager';
@@ -34,6 +34,43 @@ const xOf = (date: string) => PAD + (Math.min(dayOffset(date), SPAN) / SPAN) * (
 export default function StarLog() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   useSectionPager(scrollerRef);
+
+  // 滚动停住之后，才把「当前这一屏」点亮：滚的过程中下一屏是空的，停在哪屏，哪屏才弹出来
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const screens = Array.from(el.querySelectorAll<HTMLElement>(':scope > section'));
+    if (!screens.length) return;
+
+    const itemsOf = (node: HTMLElement | undefined) =>
+      node ? Array.from(node.querySelectorAll<HTMLElement>('[data-reveal]')) : [];
+    const light = (node: HTMLElement | undefined) => {
+      itemsOf(node).forEach((item) => item.classList.add('is-in'));
+    };
+
+    // 只把「非首屏」先藏起来：JS 万一没跑，页面仍然是完整可读的。
+    // 首屏不加动画，进站就是完整的，不做无意义的闪烁。
+    screens.slice(1).forEach((s) => itemsOf(s).forEach((item) => item.classList.add('is-armed')));
+
+    let timer = 0;
+    const onScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        // 找与当前滚动位置最接近的那一屏
+        let best = 0;
+        screens.forEach((s, i) => {
+          if (Math.abs(s.offsetTop - el.scrollTop) < Math.abs(screens[best].offsetTop - el.scrollTop)) best = i;
+        });
+        light(screens[best]);
+      }, 110);
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
 
   const [hover, setHover] = useState<{ x: number; y: number; label: string; date: string } | null>(null);

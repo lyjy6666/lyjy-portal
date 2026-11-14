@@ -328,24 +328,23 @@
 }
 
 
-/* ===== 滚到这一屏，内容才「弹」出来 =====
-   用滚动驱动动画：区间收窄到 entry 28%~52%，滚到位时快速完成，
-   不是从头到尾缓慢浮现。不支持的浏览器直接显示，绝不留白。 */
-:global([data-reveal]) {
-  animation: screen-pop linear both;
-  animation-timeline: view();
-  animation-range: entry 28% entry 52%;
+/* ===== 停在哪一屏，哪一屏才弹出来 =====
+   默认可见（不影响无 JS / 爬虫）；JS 挂载后只给「非首屏」加 .is-armed 藏起来，
+   滚动停住再给当前屏加 .is-in 播放一次弹出动画。 */
+:global([data-reveal].is-armed) {
+  opacity: 0;
+  transform: translateY(28px) scale(0.96);
+}
+:global([data-reveal].is-in) {
+  animation: screen-pop 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes screen-pop {
-  from { opacity: 0; transform: translateY(44px) scale(0.97); }
-  60% { opacity: 1; }
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@supports not (animation-timeline: view()) {
-  :global([data-reveal]) { animation: none; opacity: 1; transform: none; }
-}
 @media (prefers-reduced-motion: reduce) {
-  :global([data-reveal]) { animation: none; opacity: 1; transform: none; }
+  :global([data-reveal].is-armed) { opacity: 1; transform: none; }
+  :global([data-reveal].is-in) { animation: none; }
 }
 
 /* ===== 轨道下方的六代版本带 ===== */
