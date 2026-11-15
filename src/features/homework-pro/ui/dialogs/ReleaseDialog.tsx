@@ -7,7 +7,6 @@ import {
   HOMEWORK_PRO_RELEASES,
   HOMEWORK_PRO_HIGHLIGHTS,
   HOMEWORK_PRO_V02_HIGHLIGHTS,
-  HOMEWORK_PRO_V03_HIGHLIGHTS,
   HOMEWORK_PRO_HIGHLIGHT_TITLE,
   HOMEWORK_PRO_PREVIEW,
 } from './releases';
@@ -31,11 +30,9 @@ export function ReleaseDialog() {
     >
       <div className="space-y-4">
         {HOMEWORK_PRO_RELEASES.map((release) => {
-          const highlights = release.version === 'Pro V0.3'
-            ? HOMEWORK_PRO_V03_HIGHLIGHTS
-            : release.version === 'Pro V0.2'
-              ? HOMEWORK_PRO_V02_HIGHLIGHTS
-              : HOMEWORK_PRO_HIGHLIGHTS;
+          const highlights = release.version === 'Pro V0.2'
+            ? HOMEWORK_PRO_V02_HIGHLIGHTS
+            : release.version === 'Pro V0.1' ? HOMEWORK_PRO_HIGHLIGHTS : [];
           return (
             <section key={release.version} className="hw-release-block">
               <div className="hw-release-head">
@@ -45,25 +42,26 @@ export function ReleaseDialog() {
                 <span className="hw-label hw-num ml-auto">{release.date}</span>
               </div>
 
-              <div className="hw-release-highlight">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="hw-ai-tag">重磅升级</span>
-                  <span className="hw-ai-tag-ghost">本次核心</span>
+              {highlights.length > 0 && (
+                <div className="hw-release-highlight">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="hw-ai-tag">重磅升级</span>
+                    <span className="hw-ai-tag-ghost">本次核心</span>
+                  </div>
+                  <p className="hw-ai-title mt-2 text-lg">
+                    {HOMEWORK_PRO_HIGHLIGHT_TITLE[release.version] ?? 'AI 深度融合'}
+                  </p>
+                  <div className="hw-release-cards">
+                    {highlights.map((h) => (
+                      <div key={h.no} className="hw-release-card">
+                        <span className="hw-release-no">{h.no}</span>
+                        <p className="hw-title mt-2 text-base">{h.title}</p>
+                        <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="hw-ai-title mt-2 text-lg">
-                  {HOMEWORK_PRO_HIGHLIGHT_TITLE[release.version] ?? 'AI 深度融合'}
-                </p>
-
-                <div className="hw-release-cards">
-                  {highlights.map((h) => (
-                    <div key={h.no} className="hw-release-card">
-                      <span className="hw-release-no">{h.no}</span>
-                      <p className="hw-title mt-2 text-base">{h.title}</p>
-                      <p className="hw-label mt-1 leading-relaxed">{h.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
 
               <p className="hw-eyebrow mt-4">常规更新</p>
               <ul className="hw-release-list">

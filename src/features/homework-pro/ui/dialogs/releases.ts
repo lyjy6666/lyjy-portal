@@ -29,16 +29,11 @@ export const HOMEWORK_PRO_V02_HIGHLIGHTS: ProHighlight[] = [
   },
 ];
 
-export const HOMEWORK_PRO_V03_HIGHLIGHTS: ProHighlight[] = [
-  { no: '04', title: '添加作业更稳', desc: '同步刷新不再冲掉新作业；改用本地克制拆分，一条归一条、多科目自动分开' },
-  { no: '05', title: '黑白科技主题', desc: '新增第 ② 套视觉主题，黑白基底 + 科技蓝点缀；侧栏工作台下线，统一速览双栏' },
-];
 
 /** 每个版本的大 Card 标题，避免 V0.1 里提前出现 V0.2 的能力 */
 export const HOMEWORK_PRO_HIGHLIGHT_TITLE: Record<string, string> = {
   'Pro V0.1': 'AI 深度融合，作业从记录到排期全链接管',
   'Pro V0.2': 'AI 问答上线 · 不懂的地方随时问',
-  'Pro V0.3': '添加作业与视觉体验打磨',
 };
 
 export const HOMEWORK_PRO_RELEASES: Release[] = [
@@ -50,9 +45,6 @@ export const HOMEWORK_PRO_RELEASES: Release[] = [
     items: [
       '新增第 ② 套视觉主题「黑白科技」：黑白基底 + 科技蓝点缀，克制极简',
       '下线「侧栏 · 工作台」布局，统一为「速览 · 双栏」',
-      '个人中心新增「购买 AI 用量额度」三档展示（拟定价，支付通道未开放）',
-      '修复添加作业被同步刷新冲掉、以及「假成功」提示的问题',
-      '输入一条作业不再被 AI 拆成多条；改为本地克制拆分，该拆的拆、不该拆的不拆',
       '原版截止日期时区修正，不再差 8 小时',
     ],
   },
