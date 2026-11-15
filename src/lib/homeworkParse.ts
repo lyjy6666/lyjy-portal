@@ -65,3 +65,63 @@ export async function parseHomeworkText(text: string): Promise<{ items: string[]
   }
   return local();
 }
+
+/** 并列科目识别用的基础科目名（不含「英语单词」这类复合词，避免重复命中） */
+const SPLIT_SUBJECTS = ['语文', '数学', '英语', '物理', '化学', '生物', '历史', '地理', '政治', '科学', '音乐', '美术', '体育'];
+
+/**
+ * 克制的本地拆分：只按「明确分隔」和「并列科目」拆，
+ * 绝不调 AI、绝不改写原文、绝不加科目前缀。
+ *
+ * - 每个换行 = 一条
+ * - 分号 / 序号 = 多条
+ * - 一句话里出现 ≥2 个不同科目 = 按科目切开；共享后缀会补回每一条
+ *   （「语文数学英语试卷」→ 语文试卷 / 数学试卷 / 英语试卷）
+ * - 其余情况 = 原样一条
+ */
+export function splitHomeworkInput(raw: string): string[] {
+  const text = raw.trim();
+  if (!text) return [];
+
+  const lines = text.split(/[\n\r]+/).map((s) => s.trim()).filter(Boolean);
+  if (lines.length > 1) return lines.flatMap(splitHomeworkInput);
+
+  const bySep = text
+    .split(/[;；]+|(?:^|\s)[①-⑳\d]+[.、)]\s*/)
+    .map((s) => s.replace(/^[,，、\s]+|[,，、\s]+$/g, '').trim())
+    .filter(Boolean);
+  if (bySep.length > 1) return bySep;
+
+  const hits: { at: number; name: string }[] = [];
+  for (const name of SPLIT_SUBJECTS) {
+    let at = text.indexOf(name);
+    while (at !== -1) {
+      hits.push({ at, name });
+      at = text.indexOf(name, at + name.length);
+    }
+  }
+  hits.sort((a, b) => a.at - b.at || b.name.length - a.name.length);
+  const picked: typeof hits = [];
+  for (const h of hits) {
+    if (picked.some((p) => h.at < p.at + p.name.length)) continue;
+    picked.push(h);
+  }
+  if (new Set(picked.map((p) => p.name)).size < 2) return [text];
+
+  const parts: string[] = [];
+  for (let i = 0; i < picked.length; i++) {
+    const start = picked[i].at;
+    const end = i + 1 < picked.length ? picked[i + 1].at : text.length;
+    parts.push(text.slice(start, end).trim().replace(/[,，、\s]+$/, ''));
+  }
+  const prefix = text.slice(0, picked[0].at).trim();
+  if (prefix) parts[0] = `${prefix}${parts[0]}`;
+
+  // 共享后缀：前面几段只有科目名时，把最后一段的「试卷 / 作业」补回去
+  const last = parts[parts.length - 1];
+  const tail = last.slice(picked[picked.length - 1].name.length).trim();
+  if (tail && parts.slice(0, -1).every((p) => SPLIT_SUBJECTS.includes(p))) {
+    for (let i = 0; i < parts.length - 1; i++) parts[i] = `${parts[i]}${tail}`;
+  }
+  return parts.filter(Boolean);
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { parseHomeworkText } from '@/lib/homeworkParse';
+import { parseHomeworkText, splitHomeworkInput } from '@/lib/homeworkParse';
 // 收敛到统一鉴权：Pro 用验签 Bearer，原版继续 X-User-Id，行为向后兼容
 import { requireHomeworkUser as getUserIdFromHeader } from '@/lib/homeworkAuth';
 
@@ -37,13 +37,16 @@ export async function POST(request: NextRequest) {
     const userId = getUserIdFromHeader(request);
     if (!userId) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
-    const { text, dueDate, split } = await request.json();
+    const { text, dueDate, mode } = await request.json();
     const raw = typeof text === 'string' ? text.trim() : '';
     if (!raw) return NextResponse.json({ error: '请输入作业内容' }, { status: 400 });
 
-    // 默认「输入一条就是一条」。AI 智能分点会把一句话拆成多条、还会强行加科目前缀，
-    // 用户普遍认为这是 bug。只有显式 split:true（批量/结构化入口）才启用智能分点。
-    const taskItems = split === true ? (await parseHomeworkText(raw)).items : [raw];
+    // local（默认）：本地克制拆分 —— 换行 / 分号 / 并列科目才拆，原文不做任何改写。
+    // ai：旧版 AI 智能分点，会改写文字并加科目前缀，只给结构化预览入口用。
+    // single：强制合成一条。
+    const taskItems = mode === 'ai'
+      ? (await parseHomeworkText(raw)).items
+      : mode === 'single' ? [raw] : splitHomeworkInput(raw);
 
     const createdTasks: Record<string, unknown>[] = [];
     for (const item of taskItems) {

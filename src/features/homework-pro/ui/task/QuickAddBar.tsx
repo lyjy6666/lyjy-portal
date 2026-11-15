@@ -146,7 +146,7 @@ export function QuickAddBar({ inputRef }: { inputRef: RefObject<HTMLTextAreaElem
             // Enter 保留换行，Ctrl/⌘+Enter 才提交，避免整段文字被拆坏
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submit(); }
           }}
-          placeholder={'输入一条作业；Enter 换行，Ctrl + Enter 添加'}
+          placeholder={'输入一条作业；写了多个科目会自动分开，Ctrl + Enter 添加'}
           rows={2}
           className="hw-input min-h-[76px] flex-1 resize-y py-2.5"
           style={{ overflowY: 'auto' }}

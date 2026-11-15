@@ -10,11 +10,11 @@ const base = '/api/homework/tasks';
 export const tasksApi = {
   list: () => apiFetch<TasksResponse>(base).then((r) => r.tasks ?? []),
 
-  /** 默认输入一条只建一条；split=true 才启用 AI 智能分点（批量入口用） */
-  create: (text: string, dueDate: string | null, split = false) =>
+  /** local=按换行/分号/并列科目克制拆分（默认）；ai=智能分点；single=强制一条 */
+  create: (text: string, dueDate: string | null, mode: 'local' | 'ai' | 'single' = 'local') =>
     apiFetch<TasksResponse>(base, {
       method: 'POST',
-      body: JSON.stringify({ text, dueDate, split }),
+      body: JSON.stringify({ text, dueDate, mode }),
     }).then((r) => r.tasks ?? []),
 
   update: (id: number, patch: { text?: string; completed?: boolean; dueDate?: string | null; isPinned?: boolean }) =>
