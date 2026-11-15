@@ -46,9 +46,19 @@ function PreviewFold() {
 /** 站点版本历史（越靠前越新） */
 const SITE_RELEASES: Release[] = [
   {
+    version: 'V7.0 Next',
+    date: '2026.11.15',
+    latest: true,
+    tag: '增量更新',
+    items: [
+      '界面美化：鼠标聚光灯、边缘流光、流光扫过等轻量动效；新增黑白科技主题；长页面使用滚动显现、数字递增、打字机与卡片错峰入场，支持鼠标跟随的 3D 倾斜。',
+      '作业管理系统 V0.3：添加作业更稳，黑白科技主题，统一速览双栏布局。',
+      '搜索页 v1.1：本地搜索建议、语音输入、更多引擎入口与网络提示、手机端优化。',
+    ],
+  },
+  {
     version: 'V7.0',
     date: '2026.11.13',
-    latest: true,
     tag: '正式版',
     items: [
       <>
@@ -120,7 +130,7 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
             <History size={17} className="text-sky-400" />
             更新记录
           </DialogTitle>
-          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 正式版（2026.11.13）</p>
+          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 Next（2026.11.15）</p>
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">

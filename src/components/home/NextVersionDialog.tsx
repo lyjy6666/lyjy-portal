@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BookOpenCheck, CalendarHeart, Newspaper, Palette, Rocket, Search, Sparkles } from 'lucide-react';
+import { Bell, CalendarHeart, Newspaper, Rocket, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /**
@@ -111,77 +111,7 @@ export default function NextVersionDialog({
             </div>
           </div>
 
-          {/* 方向二：界面美化 */}
-          <div className="relative overflow-hidden rounded-2xl border border-violet-400/35 bg-gradient-to-br from-violet-500/20 via-violet-500/[0.08] to-transparent p-5">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-400/20 blur-2xl" />
-            <div className="relative flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 text-white shadow-lg shadow-violet-500/40">
-                <Palette size={24} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[15px] font-bold text-white">界面美化</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 px-2 py-0.5 text-[10px] font-bold text-violet-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                    计划中
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-200">
-                  给各页面补视觉细节：鼠标聚光灯、边缘流光、流光扫过等轻量动效；
-                  黑白基底配科技蓝的极简主题；长页面用滚动显现、数字递增、打字机与卡片错峰入场，
-                  卡片还能跟着鼠标做 3D 倾斜。原则是克制，动效只用来提示层次，不抢内容。
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 方向三：作业 V0.3 */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/20 via-emerald-500/[0.08] to-transparent p-5">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-400/20 blur-2xl" />
-            <div className="relative flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/40">
-                <BookOpenCheck size={24} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[15px] font-bold text-white">作业管理系统 V0.3</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 px-2 py-0.5 text-[10px] font-bold text-emerald-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    计划中
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-200">
-                  添加作业更稳：同步刷新不再冲掉刚加的作业，一条就是一条、写多个科目才自动分开；
-                  新增黑白科技主题，侧栏布局下线、统一速览双栏；原版截止日期时区修正。
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 方向四：搜索 v1.1 */}
-          <div className="relative overflow-hidden rounded-2xl border border-pink-400/35 bg-gradient-to-br from-pink-500/20 via-pink-500/[0.08] to-transparent p-5">
-            <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-pink-400/20 blur-2xl" />
-            <div className="relative flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-lg shadow-pink-500/40">
-                <Search size={24} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[15px] font-bold text-white">搜索页 v1.1</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-pink-400/30 px-2 py-0.5 text-[10px] font-bold text-pink-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-pink-400" />
-                    计划中
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-200">
-                  输入时给本地搜索建议（历史、引擎名、网址直达），支持语音输入；
-                  补上「更多」引擎入口与国内网络提示，手机端顶栏与对比度优化。
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 方向五：AI 资讯 */}
+          {/* 方向二：AI 资讯 */}
           <div className="relative overflow-hidden rounded-2xl border border-sky-400/35 bg-gradient-to-br from-sky-500/20 via-sky-500/[0.08] to-transparent p-5">
             <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-sky-400/20 blur-2xl" />
             <div className="relative flex items-start gap-4">
