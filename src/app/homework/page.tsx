@@ -26,7 +26,7 @@ interface UserInfo {
 }
 
 /** 作业管理系统的版本历史（更新记录弹窗用；越靠前越新） */
-export const HOMEWORK_RELEASES: Release[] = [
+const HOMEWORK_RELEASES: Release[] = [
   {
     version: 'V5.1',
     date: '2026.11.7',

@@ -22,7 +22,7 @@ import SunsetOverlay from '@/components/SunsetOverlay';
 import Link from 'next/link';
 
 /** 格式转换工具箱的版本历史（越靠前越新） */
-export const TOOLBOX_RELEASES: Release[] = [
+const TOOLBOX_RELEASES: Release[] = [
   { version: 'V2.3', date: '2026.7.29', latest: true, items: ['新增了水印工具'] },
   { version: 'V2.2', date: '2026.7.9', items: ['修复了一些已知问题'] },
   { version: 'V2.1', date: '2026.3.1', items: ['新增了大量功能', '增加了独立桌面应用', '已经修复了已知问题'] },

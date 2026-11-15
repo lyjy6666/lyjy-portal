@@ -607,7 +607,7 @@ function CustomVideoPlayer({
 
 // ============ 主组件 ============
 /** 影视资源站的版本历史（越靠前越新） */
-export const MOVIE_RELEASES: Release[] = [
+const MOVIE_RELEASES: Release[] = [
   {
     version: 'V2.0',
     date: '2026-11-13',

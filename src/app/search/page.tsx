@@ -426,7 +426,7 @@ const folders: Folder[] = [
 ];
 
 /** 搜索页的版本历史（越靠前越新） */
-export const SEARCH_RELEASES: Release[] = [
+const SEARCH_RELEASES: Release[] = [
   { version: 'V2.2', date: '2026.7.11', latest: true, items: ['新增了大量搜索引擎'] },
   { version: 'V2.1', date: '2026.3.11', items: ['优化了一下动画，增加了一些功能'] },
   { version: 'V2.0', date: '2026.1.29', items: ['增加大量功能', '修复了一些已知问题'] },
