@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { ChartLine, Headset, History, LayoutGrid, Sparkles } from 'lucide-react';
 import { servicesFor, type ServiceItem } from '@/data/services';
@@ -9,6 +9,7 @@ import GalaxyRing from './GalaxyRing';
 import ServiceNode from './ServiceNode';
 import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
 import { uniformAngles } from './ringAngles';
+import { Spotlight, BorderBeam } from '@/components/fx/Fx';
 
 const RING_RADIUS = 49;
 
@@ -229,31 +230,34 @@ export default function RingLayout({
           onMouseLeave={startIdle}
         >
           {hovered && (
-            <div className="portal-tooltip portal-tooltip--center" style={accentStyle(hovered.color)}>
-              {hovered.categoryName && (
-                <div
-                  className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-                  style={{ color: 'var(--service-accent)' }}
-                >
-                  {hovered.categoryName}
+            <Spotlight alwaysOn radius={190} color="rgba(56, 189, 248, 0.18)" className="portal-center-spot">
+              <div
+                className="portal-tooltip portal-tooltip--center portal-tooltip--mono"
+                style={{ '--service-accent': '#38bdf8' } as CSSProperties}
+              >
+                <BorderBeam color="#38bdf8" duration={4.5} />
+                {hovered.categoryName && (
+                  <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-sky-400">
+                    {hovered.categoryName}
+                  </div>
+                )}
+                <div className="text-lg font-semibold tracking-tight text-zinc-50">{hovered.name}</div>
+                <div className="mt-2 text-sm leading-relaxed text-zinc-400">{hovered.desc}</div>
+                <ServiceBadges service={hovered} />
+                {/* 主入口 + 尝鲜版入口并排 */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                  {hovered.pro ? <ServiceEntries service={hovered} hideOriginal={hideInactive} /> : <ServiceAction service={hovered} />}
                 </div>
-              )}
-              <div className="text-base font-semibold text-white">{hovered.name}</div>
-              <div className="mt-1.5 text-xs leading-relaxed text-slate-400">{hovered.desc}</div>
-              <ServiceBadges service={hovered} />
-              {/* 主入口 + 尝鲜版入口并排 */}
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                {hovered.pro ? <ServiceEntries service={hovered} hideOriginal={hideInactive} /> : <ServiceAction service={hovered} />}
+                {hovered.upgradeHref && (
+                  <Link
+                    href={hovered.upgradeHref}
+                    className="mt-2 block text-[10px] text-zinc-500 transition hover:text-sky-300"
+                  >
+                    {hovered.oldLabel ?? '返回旧版'}
+                  </Link>
+                )}
               </div>
-              {hovered.upgradeHref && (
-                <Link
-                  href={hovered.upgradeHref}
-                  className="mt-2 block text-[10px] text-slate-500 hover:text-slate-300"
-                >
-                  {hovered.oldLabel ?? '返回旧版'}
-                </Link>
-              )}
-            </div>
+            </Spotlight>
           )}
         </div>
       </div>

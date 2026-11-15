@@ -1358,3 +1358,154 @@ button, a, input, textarea, select {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   通用视觉动效（门户中心面板 / 作业 Pro 定价卡 / 500 天星图共用）
+   ============================================================ */
+
+@property --fx-beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes fx-beam-spin {
+  to { --fx-beam-angle: 360deg; }
+}
+
+@keyframes fx-blink {
+  50% { opacity: 0; }
+}
+
+/* Border Beam：一圈沿边框流动的高光，用 mask 只露出边框宽度 */
+.fx-border-beam {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--fx-beam-angle),
+    transparent 0deg,
+    transparent 255deg,
+    var(--fx-beam-color, #38bdf8) 315deg,
+    #ffffff 335deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: fx-beam-spin var(--fx-beam-duration, 4s) linear infinite;
+}
+
+/* Spotlight：跟随鼠标的径向光，默认只在 hover 时显现 */
+.fx-spotlight { position: relative; }
+.fx-spotlight-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  background: radial-gradient(
+    var(--fx-radius, 220px) circle at var(--fx-x, 50%) var(--fx-y, 50%),
+    var(--fx-color, rgba(56, 189, 248, 0.16)),
+    transparent 72%
+  );
+}
+.fx-spotlight:hover .fx-spotlight-glow,
+.fx-spotlight.is-on .fx-spotlight-glow { opacity: 1; }
+
+/* Scroll Reveal：进入视口才显现 */
+.fx-reveal {
+  opacity: 0;
+  transform: translateY(var(--fx-y, 34px));
+  transition:
+    opacity 0.68s ease var(--fx-delay, 0ms),
+    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1) var(--fx-delay, 0ms);
+  will-change: opacity, transform;
+}
+.fx-reveal.is-in { opacity: 1; transform: none; }
+
+.fx-tilt { transform-style: preserve-3d; }
+
+.fx-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: fx-blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-reveal { opacity: 1; transform: none; transition: none; }
+  .fx-border-beam { animation: none; }
+  .fx-caret { animation: none; }
+  .fx-spotlight-glow { display: none; }
+}
+
+/* ============================================================
+   圆环中心详情面板：黑白主基底 + 科技蓝点缀（只作用于中心面板，
+   用 --mono 覆盖而非改 .portal-tooltip 基类，避免影响列表布局）
+   ============================================================ */
+
+.portal-center-spot { position: relative; }
+
+.portal-tooltip--mono {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.92);
+  color: #fafafa;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 36px rgba(56, 189, 248, 0.09);
+}
+
+.portal-tooltip--mono .portal-badges > span {
+  border-color: rgba(56, 189, 248, 0.32);
+  background: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+}
+
+.portal-tooltip--mono .portal-enter {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+.portal-tooltip--mono .portal-enter:hover {
+  filter: none;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+}
+
+.portal-tooltip--mono .portal-pro-main {
+  color: #000000;
+  background: linear-gradient(100deg, #e0f2fe, #38bdf8 55%, #0284c7);
+  box-shadow: 0 8px 26px -8px rgba(56, 189, 248, 0.5);
+}
+.portal-tooltip--mono .portal-pro-main:hover {
+  box-shadow: 0 12px 32px -8px rgba(56, 189, 248, 0.65);
+}
+
+.portal-tooltip--mono .portal-old-entry {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #a1a1aa;
+}
+.portal-tooltip--mono .portal-old-entry:hover { color: #fafafa; border-color: rgba(255, 255, 255, 0.4); }
+.portal-tooltip--mono .portal-old-note,
+.portal-tooltip--mono .portal-unavailable { color: #a1a1aa; }
+.portal-tooltip--mono .portal-meta-sep { color: rgba(255, 255, 255, 0.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-tooltip--mono .fx-border-beam { animation: none; }
+}
+
+/* ===== 导航系统窗口整体放大 ===== */
+.portal-center-panel { width: min(26rem, 68%); }
+.portal-tooltip--center { padding: 1.15rem 1.25rem; border-radius: 0.9rem; }
+.portal-tooltip--mono .portal-enter { padding: 0.48rem 0.95rem; font-size: 13px; }
+.portal-tooltip--mono .portal-pro-main { padding: 0.48rem 0.95rem; font-size: 13px; }
+.portal-tooltip--mono .portal-old-entry { padding: 0.45rem 0.85rem; font-size: 12px; }
+.portal-tooltip--mono .portal-badges > span { font-size: 11px; padding: 0.15rem 0.5rem; }

@@ -31,7 +31,9 @@ export type DialogName =
   // 品牌区的 Pro / AI 两个按钮各自弹出介绍
   | 'proIntro' | 'aiIntro'
   // Pro 版更新记录：保持站内弹窗，不再跳独立页面
-  | 'updates' | null;
+  | 'updates'
+  // 购买 AI 用量额度（纯展示，支付通道未开放）
+  | 'quota' | null;
 
 export type ProSettings = {
   dailyLimitMin: number;

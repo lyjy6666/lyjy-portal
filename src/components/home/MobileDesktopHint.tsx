@@ -43,7 +43,7 @@ export default function MobileDesktopHint() {
       aria-modal="true"
       aria-label="手机版使用说明"
     >
-      <div className="w-full max-w-sm rounded-2xl border border-sky-400/40 bg-slate-900 p-6 text-white shadow-2xl shadow-black/60">
+      <div className="w-full max-w-md rounded-2xl border border-sky-400/40 bg-slate-900 p-6 text-white shadow-2xl shadow-black/60">
         <div className="flex items-center gap-2 text-sky-300">
           <Monitor size={22} />
           <h1 className="text-base font-bold">建议使用电脑版</h1>

@@ -1198,3 +1198,85 @@ ol.hw-md-list { list-style: decimal; }
   .hw-ai-sessions { max-height: 38vh; border-right: 0; border-bottom: 1px solid var(--hw-rule); }
   .hw-ai-session-list { max-height: 22vh; }
 }
+
+/* ===== 购买 AI 用量额度（纯展示，支付未开放） ===== */
+.hw-quota-entry {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+  border-radius: var(--hw-radius-panel);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.hw-quota-entry:hover {
+  background: color-mix(in srgb, var(--primary) 15%, var(--card));
+  box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--primary) 70%, transparent);
+}
+
+.hw-quota-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: stretch;
+}
+.hw-quota-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--hw-radius-panel);
+  background: var(--card);
+}
+.hw-quota-card[data-current='true'] { border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); }
+.hw-quota-card[data-featured='true'] {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  box-shadow: 0 14px 34px -16px color-mix(in srgb, var(--primary) 65%, transparent);
+}
+.hw-quota-price {
+  margin: 0;
+  font-family: var(--hw-font-num);
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+.hw-quota-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.9;
+  color: var(--muted-foreground);
+}
+.hw-quota-list li { display: flex; align-items: center; gap: 0.35rem; }
+.hw-quota-badge {
+  position: absolute;
+  top: -0.65rem;
+  right: 0.75rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--hw-radius-chip);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.hw-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-quota-entry { transition: none; }
+  .hw-quota-card .fx-border-beam { animation: none; }
+}

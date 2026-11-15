@@ -206,6 +206,21 @@ export function ProfileDialog() {
           );
         })}
 
+        {/* ------------------------------------------------ 购买 AI 用量额度 */}
+        <button
+          type="button"
+          className="hw-quota-entry"
+          onClick={() => { closeDialog(); openDialog('quota'); }}
+        >
+          <span className="flex items-center gap-2">
+            <Sparkles size={14} /> 购买 AI 用量额度
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="hw-label">免费版 / Pro / Max · 拟定价</span>
+            <ChevronRight size={15} />
+          </span>
+        </button>
+
         {/* ------------------------------------------------ 偏好 */}
         <section className="hw-panel space-y-3 p-3">
           <p className="hw-eyebrow">偏好</p>

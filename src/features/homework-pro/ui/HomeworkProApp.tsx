@@ -11,6 +11,7 @@ import { TaskDetail } from './task/TaskDetail';
 import { SelectionBar } from './task/SelectionBar';
 import { AIGraderDialog } from './dialogs/AIGraderDialog';
 import { ProfileDialog } from './dialogs/ProfileDialog';
+import { QuotaDialog } from './dialogs/QuotaDialog';
 import { ReleaseDialog } from './dialogs/ReleaseDialog';
 import { IntroDialogs } from './dialogs/IntroDialogs';
 import { BasicDialogs } from './dialogs/BasicDialogs';
@@ -92,6 +93,7 @@ function Shell() {
       <SmartCapture />
       <AIGraderDialog />
       <ProfileDialog />
+      <QuotaDialog />
       <ReleaseDialog />
       <IntroDialogs />
       <BasicDialogs />

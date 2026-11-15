@@ -36,7 +36,7 @@ export default function MobileNoticeDialog({
       aria-modal="true"
       aria-label={title}
     >
-      <div className="w-full max-w-sm rounded-2xl border border-amber-400/40 bg-slate-900 p-5 text-white shadow-2xl shadow-black/60">
+      <div className="w-full max-w-md rounded-2xl border border-amber-400/40 bg-slate-900 p-5 text-white shadow-2xl shadow-black/60">
         <div className="flex items-start gap-2">
           <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-400" />
           <h2 className="min-w-0 flex-1 text-sm font-bold leading-relaxed">{title}</h2>

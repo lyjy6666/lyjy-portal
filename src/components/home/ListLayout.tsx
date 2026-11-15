@@ -69,7 +69,7 @@ function ServiceRow({ service, categoryId, mobile }: { service: ServiceItem; cat
             open(service);
           }
         }}
-        className={`flex h-full w-full flex-col items-stretch gap-2 py-2.5 px-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
+        className={`flex h-full w-full flex-col items-stretch gap-2 py-3.5 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 bg-gradient-to-r ${c.bg} border ${c.border} rounded-lg overflow-hidden backdrop-blur-sm ${
           navigable ? 'cursor-pointer' : ''
         }`}
       >
@@ -84,10 +84,10 @@ function ServiceRow({ service, categoryId, mobile }: { service: ServiceItem; cat
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-              <span className="line-clamp-2 break-words text-sm font-medium text-white">{service.name}</span>
+              <span className="line-clamp-2 break-words text-base font-medium text-white">{service.name}</span>
               <ServiceBadges service={service} />
             </div>
-            <span className="mt-0.5 line-clamp-2 break-words text-xs leading-relaxed text-slate-400/80 sm:text-[11px]">{service.desc}</span>
+            <span className="mt-0.5 line-clamp-2 break-words text-sm leading-relaxed text-slate-400/90 sm:text-xs">{service.desc}</span>
             {limited && <span className="mt-0.5 text-[10px] leading-tight text-amber-300/90">{limitText}</span>}
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         <motion.div className="mt-4 h-1 w-32 md:w-48 mx-auto bg-gradient-to-r from-blue-500 to-transparent rounded-full" initial={{ width: 0 }} animate={{ width: '12rem' }} transition={{ duration: 1, delay: 0.7 }} />
       </motion.div>
 
-      <motion.div className="mb-8 w-full max-w-lg px-4 text-center [@media(max-height:559px)]:mb-3!" custom={2} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+      <motion.div className="mb-8 w-full max-w-xl px-4 text-center [@media(max-height:559px)]:mb-3!" custom={2} initial="hidden" animate="visible" variants={fadeInUpVariant}>
         <div className="bg-black/30 backdrop-blur-sm border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/10 [@media(max-height:559px)]:p-2!">
           <p className="text-blue-100 text-base sm:text-lg font-light leading-relaxed">欢迎使用LYJY导航系统，请选择您需要访问的服务</p>
         </div>
@@ -179,7 +179,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         </div>
       </motion.div>
 
-      <motion.div className="relative w-full min-w-0 max-w-2xl bg-gradient-to-br from-black/60 to-slate-900/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 md:p-8 [@media(max-height:559px)]:p-3! shadow-2xl border border-blue-500/30" custom={5} initial="hidden" animate="visible" variants={fadeInUpVariant}>
+      <motion.div className="relative w-full min-w-0 max-w-4xl bg-gradient-to-br from-black/60 to-slate-900/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 md:p-8 [@media(max-height:559px)]:p-3! shadow-2xl border border-blue-500/30" custom={5} initial="hidden" animate="visible" variants={fadeInUpVariant}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjMzY1YTg1MjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVoiIHN0cm9rZT0iIzMwN2Y5ZDEwIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] opacity-30" />
         </div>
