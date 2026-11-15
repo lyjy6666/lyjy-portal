@@ -30,10 +30,16 @@ export const HOMEWORK_PRO_V02_HIGHLIGHTS: ProHighlight[] = [
 ];
 
 
+export const HOMEWORK_PRO_V03_HIGHLIGHTS: ProHighlight[] = [
+  { no: '04', title: '添加作业更稳', desc: '同步刷新不再冲掉新作业；改用本地克制拆分，一条归一条、多科目自动分开' },
+  { no: '05', title: '黑白科技主题', desc: '新增第 ② 套视觉主题，黑白基底 + 科技蓝点缀；侧栏工作台下线，统一速览双栏' },
+];
+
 /** 每个版本的大 Card 标题，避免 V0.1 里提前出现 V0.2 的能力 */
 export const HOMEWORK_PRO_HIGHLIGHT_TITLE: Record<string, string> = {
   'Pro V0.1': 'AI 深度融合，作业从记录到排期全链接管',
   'Pro V0.2': 'AI 问答上线 · 不懂的地方随时问',
+  'Pro V0.3': '添加作业与视觉体验打磨',
 };
 
 export const HOMEWORK_PRO_RELEASES: Release[] = [
