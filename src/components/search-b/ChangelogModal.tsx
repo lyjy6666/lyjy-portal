@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
-export const RELEASES: Release[] = [
+const RELEASES: Release[] = [
   {
     version: 'Pro 版 V1.1',
     date: '2026.11.15',

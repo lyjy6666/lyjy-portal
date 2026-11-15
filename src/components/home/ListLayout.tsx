@@ -11,13 +11,11 @@ import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared
 import { useServiceNav } from './useServiceNav';
 import { useAlertSeen } from './useAlertSeen';
 import { markAlertSeen } from '@/lib/portalAlert';
-import { ChangelogUnreadDot } from '@/components/changelog/UnifiedChangelog';
 
 type ListLayoutProps = {
   dynamicNumber: number;
   onOpenStats: () => void;
   onOpenVersion: () => void;
-  onOpenChangelog: () => void;
   onSwitchLayout: () => void;
   onOpenNextPreview: () => void;
 };
@@ -128,7 +126,7 @@ function ServiceRow({ service, categoryId, mobile }: { service: ServiceItem; cat
   );
 }
 
-export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onOpenChangelog, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
+export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, onSwitchLayout, onOpenNextPreview }: ListLayoutProps) {
   const mobile = useIsMobile();
   const { categories } = useMemo(() => servicesFor(), []);
   const [decorationChars, setDecorationChars] = useState<string[]>([]);
@@ -227,10 +225,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
       <div className="portal-fabs fixed bottom-4 left-4 right-4 z-40 flex flex-row justify-center gap-2 sm:left-auto sm:right-6 sm:flex-col [@media(max-height:559px)]:left-4! [@media(max-height:559px)]:right-4! [@media(max-height:559px)]:flex-row!" style={accentStyle('blue')}>
         <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
         <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
-        <button type="button" onClick={onOpenChangelog} className="portal-fab relative" aria-label="全站更新记录">
-          <Sparkles size={20} />
-          <ChangelogUnreadDot />
-        </button>
+        <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><Sparkles size={20} /></button>
         <button type="button" onClick={onSwitchLayout} className="portal-fab" aria-label="切换圆环布局"><List size={20} /></button>
       </div>
 

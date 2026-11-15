@@ -44,7 +44,7 @@ function PreviewFold() {
 }
 
 /** 站点版本历史（越靠前越新） */
-export const SITE_RELEASES: Release[] = [
+const SITE_RELEASES: Release[] = [
   {
     version: 'V7.0',
     date: '2026.11.13',

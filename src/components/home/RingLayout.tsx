@@ -10,7 +10,6 @@ import ServiceNode from './ServiceNode';
 import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
 import { uniformAngles } from './ringAngles';
 import { Spotlight, BorderBeam } from '@/components/fx/Fx';
-import { ChangelogUnreadDot } from '@/components/changelog/UnifiedChangelog';
 
 const RING_RADIUS = 49;
 
@@ -23,7 +22,6 @@ type RingLayoutProps = {
   dynamicNumber: number;
   onOpenStats: () => void;
   onOpenVersion: () => void;
-  onOpenChangelog: () => void;
   onSwitchLayout: () => void;
   onOpenNextPreview: () => void;
 };
@@ -32,7 +30,6 @@ export default function RingLayout({
   dynamicNumber,
   onOpenStats,
   onOpenVersion,
-  onOpenChangelog,
   onSwitchLayout,
   onOpenNextPreview,
 }: RingLayoutProps) {
@@ -275,10 +272,7 @@ export default function RingLayout({
       <div className="fixed bottom-4 left-4 right-4 z-40 flex flex-row justify-center gap-2 sm:left-auto sm:right-6 sm:flex-col [@media(max-height:559px)]:left-4! [@media(max-height:559px)]:right-4! [@media(max-height:559px)]:flex-row!">
         <button type="button" onClick={onOpenStats} className="portal-fab" aria-label="查看网站统计数据"><ChartLine size={20} /></button>
         <button type="button" onClick={() => window.open('/cs', '_blank')} className="portal-fab" aria-label="智能客服"><Headset size={20} /></button>
-        <button type="button" onClick={onOpenChangelog} className="portal-fab relative" aria-label="全站更新记录">
-          <History size={20} />
-          <ChangelogUnreadDot />
-        </button>
+        <button type="button" onClick={onOpenVersion} className="portal-fab" aria-label="更新记录"><History size={20} /></button>
         <button type="button" onClick={onSwitchLayout} className="portal-fab" aria-label="返回旧布局"><LayoutGrid size={20} /></button>
       </div>
     </div>

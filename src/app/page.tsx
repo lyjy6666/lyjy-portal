@@ -6,7 +6,6 @@ import StatisticsModal from '@/components/StatisticsModal';
 import ListLayout from '@/components/home/ListLayout';
 import RingLayout from '@/components/home/RingLayout';
 import VersionDialog from '@/components/home/VersionDialog';
-import UnifiedChangelog from '@/components/changelog/UnifiedChangelog';
 import NextVersionDialog from '@/components/home/NextVersionDialog';
 import MobileDesktopHint from '@/components/home/MobileDesktopHint';
 import AnniversarySplash from '@/components/home/AnniversarySplash';
@@ -27,7 +26,6 @@ export default function PortalHome() {
   const [ringWarnOpen, setRingWarnOpen] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showNextModal, setShowNextModal] = useState(false);
   const [statsData, setStatsData] = useState<WebsiteStats[]>([]);
   const [dynamicNumber, setDynamicNumber] = useState(0);
@@ -113,7 +111,6 @@ export default function PortalHome() {
     dynamicNumber,
     onOpenStats: () => setShowStatsModal(true),
     onOpenVersion: () => setShowVersionModal(true),
-    onOpenChangelog: () => setShowChangelogModal(true),
     onOpenNextPreview: () => setShowNextModal(true),
   };
 
@@ -149,7 +146,6 @@ export default function PortalHome() {
 
       <StatisticsModal isOpen={showStatsModal} onClose={() => setShowStatsModal(false)} data={statsData} />
       <VersionDialog open={showVersionModal} onOpenChange={setShowVersionModal} />
-      <UnifiedChangelog open={showChangelogModal} onOpenChange={setShowChangelogModal} />
       {/* 全站唯一的「仅电脑版可访问」提示：所有灰显入口被点中时统一弹这一个 */}
       <MobileBlockNotice />
       <MobileNoticeDialog
