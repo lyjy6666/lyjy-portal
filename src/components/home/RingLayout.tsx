@@ -10,6 +10,7 @@ import ServiceNode from './ServiceNode';
 import { ServiceAction, ServiceEntries, ServiceBadges, ServiceIcon, accentStyle, accents } from './shared';
 import { uniformAngles } from './ringAngles';
 import { Spotlight, BorderBeam } from '@/components/fx/Fx';
+import { CURRENT_VERSION } from '@/components/home/VersionDialog';
 
 const RING_RADIUS = 49;
 
@@ -265,7 +266,7 @@ export default function RingLayout({
       <div className="portal-hud portal-hud--bottom [@media(max-width:767px)]:bottom-[4.5rem]! [@media(max-height:559px)]:hidden!">
         © 2026 LYJY导航系统 ·{' '}
         <button type="button" onClick={onOpenVersion} className="relative text-sky-300 hover:text-sky-200">
-          V7.0
+          {CURRENT_VERSION}
         </button>
       </div>
 

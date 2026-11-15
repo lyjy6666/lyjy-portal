@@ -118,6 +118,9 @@ const SITE_RELEASES: Release[] = [
   },
 ];
 
+/** 对外展示的最新版本号：跟随更新记录第一条，避免页脚写死 */
+export const CURRENT_VERSION = SITE_RELEASES[0].version;
+
 export default function VersionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

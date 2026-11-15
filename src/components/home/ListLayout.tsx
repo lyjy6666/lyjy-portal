@@ -11,6 +11,7 @@ import { ServiceAction, ServiceBadges, ServiceIcon, accentStyle } from './shared
 import { useServiceNav } from './useServiceNav';
 import { useAlertSeen } from './useAlertSeen';
 import { markAlertSeen } from '@/lib/portalAlert';
+import { CURRENT_VERSION } from '@/components/home/VersionDialog';
 
 type ListLayoutProps = {
   dynamicNumber: number;
@@ -216,7 +217,7 @@ export default function ListLayout({ dynamicNumber, onOpenStats, onOpenVersion, 
         <div className="text-gray-400 text-sm bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-500/20">
           <p>© 2026 LYJY导航系统 <span className="mx-2">|</span>{' '}
             <button type="button" onClick={onOpenVersion} className="relative text-blue-400 text-xs hover:text-blue-300 transition-colors underline-offset-2 hover:underline">
-              V7.0
+              {CURRENT_VERSION}
             </button>
           </p>
         </div>
