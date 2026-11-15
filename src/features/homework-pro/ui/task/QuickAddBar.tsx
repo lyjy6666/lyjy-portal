@@ -101,14 +101,20 @@ export function QuickAddBar({ inputRef }: { inputRef: RefObject<HTMLTextAreaElem
   };
 
   const addTemplate = async (tplText: string, tplMin?: number, tplSubject?: string) => {
-    const meta: Partial<ProMeta> = {
-      ...collectMeta(),
-      estimateMin: tplMin ?? (estimateMin === '' ? undefined : Number(estimateMin)),
-      subject: tplSubject ?? (subject || undefined),
-      subtasks: splitIntoChecklist(tplText),
-    };
-    const ok = await addTask(tplText, toUtcIso(dueLocal) ?? null, meta);
-    if (ok) toast.success('已按模板添加，并拆成检查清单');
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const meta: Partial<ProMeta> = {
+        ...collectMeta(),
+        estimateMin: tplMin ?? (estimateMin === '' ? undefined : Number(estimateMin)),
+        subject: tplSubject ?? (subject || undefined),
+        subtasks: splitIntoChecklist(tplText),
+      };
+      const ok = await addTask(tplText, toUtcIso(dueLocal) ?? null, meta);
+      if (ok) toast.success('已按模板添加，并拆成检查清单');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const addTag = () => {
@@ -282,8 +288,9 @@ export function QuickAddBar({ inputRef }: { inputRef: RefObject<HTMLTextAreaElem
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="hw-label mr-1 flex items-center gap-1"><BookOpen size={12} /> 常用模板</span>
             {DEFAULT_TEMPLATES.slice(0, 5).map((tpl) => (
-              <button key={tpl.id} type="button" className="hw-chip hover:opacity-80"
+              <button key={tpl.id} type="button" className="hw-chip hover:opacity-80 disabled:opacity-40"
                 onClick={() => void addTemplate(tpl.text, tpl.estimateMin, tpl.subject)}
+                disabled={submitting}
                 title="点击按模板添加（自动拆成检查清单）">
                 <Sparkles size={11} /> {tpl.name}
               </button>

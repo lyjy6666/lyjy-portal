@@ -11,7 +11,7 @@ import type {
 } from '../core/types';
 import { DEFAULT_FILTER, makeMeta } from '../core/types';
 import type { MetaMap } from '../core/merge';
-import { mergeProTasks, normalizeBaseTask, metaPatch } from '../core/merge';
+import { mergeProTasks, mergeBaseTasks, normalizeBaseTask, metaPatch } from '../core/merge';
 import { filterTasks } from '../core/filters';
 import { groupBySubject, groupByTime, groupByPriority, boardGroups, type TaskGroup } from '../core/grouping';
 import { summary } from '../core/stats';
@@ -83,6 +83,13 @@ type Action =
   | { type: 'restore'; task: ProTask }
   | { type: 'setAll'; tasks: ProTask[] };
 
+// 同一毫秒内连续添加也要拿到不同的临时 id
+let tempSeq = 0;
+function nextTempId() {
+  tempSeq = (tempSeq + 1) % 1000;
+  return -Date.now() * 1000 - tempSeq;
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'hydrate': return { ...state, tasks: action.tasks, metaMap: action.metaMap, loading: false, error: null };
@@ -91,7 +98,7 @@ function reducer(state: State, action: Action): State {
     case 'add': return { ...state, tasks: [action.task, ...state.tasks] };
     case 'replaceTemp': return {
       ...state,
-      tasks: [...state.tasks.filter((t) => t.id !== action.tempId), ...action.tasks],
+      tasks: [...action.tasks, ...state.tasks.filter((t) => t.id !== action.tempId)],
     };
     case 'patch': return {
       ...state,
@@ -311,14 +318,18 @@ export function ProProvider({ children }: { children: ReactNode }) {
     try {
       const [rawTasks, metaMap] = await Promise.all([tasksApi.list(), metaApi.list()]);
       const base = rawTasks.map(normalizeBaseTask);
-      const tasks = mergeProTasks(base, metaMap);
+      const remote = mergeProTasks(base, metaMap);
+      // GET 可能早于刚提交的 POST 返回，直接 hydrate 会把新任务冲掉。
+      // 保留本地尚未被云端快照包含的项（乐观新增、刚落库的任务）。
+      const tasks = mergeBaseTasks(stateRef.current.tasks, remote) as ProTask[];
       dispatch({ type: 'hydrate', tasks, metaMap });
       revRef.current.clear(); // hydrate 带来服务端最新 rev，本地推进值作废
       writeScoped(uidOf(userRef.current), KEYS.cache, { tasks, metaMap, savedAt: Date.now() });
     } catch (err) {
       const cache = readScoped<{ tasks?: ProTask[]; metaMap?: MetaMap }>(uidOf(userRef.current), KEYS.cache, {});
       if (cache.tasks?.length) {
-        dispatch({ type: 'hydrate', tasks: cache.tasks, metaMap: cache.metaMap ?? {} });
+        const tasks = mergeBaseTasks(stateRef.current.tasks, cache.tasks) as ProTask[];
+        dispatch({ type: 'hydrate', tasks, metaMap: cache.metaMap ?? {} });
         dispatch({ type: 'error', value: isNetworkError(err) ? '当前离线，展示本地缓存' : '同步失败，展示本地缓存' });
       } else {
         dispatch({ type: 'error', value: err instanceof ApiError ? err.message : '加载失败' });
@@ -411,7 +422,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
   const addTask = useCallback(async (text: string, dueDate: string | null, meta: Partial<ProMeta> = {}): Promise<boolean> => {
     const clean = text.trim();
     if (!clean) return false;
-    const tempId = -Date.now();
+    const tempId = nextTempId();
     const optimistic: ProTask = {
       id: tempId, text: clean, completed: false, dueDate, isPinned: false,
       createdAt: new Date().toISOString(), updatedAt: null, meta: makeMeta(meta),
@@ -422,15 +433,34 @@ export function ProProvider({ children }: { children: ReactNode }) {
     try {
       // 保留 Coze 智能分点：一次输入可能返回多条
       const created = await tasksApi.create(clean, dueDate);
+      if (!created.length) {
+        dispatch({ type: 'remove', id: tempId });
+        toast.error('没有识别出作业内容，请换一种写法再试');
+        return false;
+      }
       const real = created.map((raw) => ({ ...normalizeBaseTask(raw), meta: makeMeta(meta) } as ProTask));
       dispatch({ type: 'replaceTemp', tempId, tasks: real });
+
+      // 同步写一份本地缓存：否则断网走缓存回退时，旧快照会把刚加的作业覆盖掉
+      const uid = userRef.current ? uidOf(userRef.current) : null;
+      if (uid) {
+        const cache = readScoped<{ tasks?: ProTask[]; metaMap?: MetaMap }>(uid, KEYS.cache, {});
+        writeScoped(uid, KEYS.cache, {
+          tasks: [...real, ...(cache.tasks ?? []).filter((t) => t.id !== tempId)],
+          metaMap: cache.metaMap ?? {},
+          savedAt: Date.now(),
+        });
+      }
+
       if (Object.keys(meta).length) {
+        let metaFailed = false;
         for (const t of real) {
           try {
             const r = await metaApi.put(t.id, 0, metaPatch(meta as ProMeta));
             dispatch({ type: 'setRev', id: t.id, rev: r.rev });
-          } catch { /* meta 失败不阻塞主流程 */ }
+          } catch { metaFailed = true; }
         }
+        if (metaFailed) toast.error('作业已添加，但科目 / 标签等附加信息没保存上，刷新后可能丢失');
       }
       return true;
     } catch (err) {

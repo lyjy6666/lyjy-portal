@@ -686,7 +686,8 @@ export default function HomeworkPage() {
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ 
           text: taskInput,
-          dueDate: dueDate 
+          // datetime-local 是本地墙上时间，必须转成 UTC 再发给服务端，否则会差 8 小时
+          dueDate: dueDate ? new Date(dueDate).toISOString() : '' 
         }),
       });
       
