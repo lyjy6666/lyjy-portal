@@ -101,7 +101,7 @@ export default function UpdateTimeline({
           />
 
           <div className={`relative overflow-hidden rounded-xl border px-4 py-3 ${release.latest ? p.cardLatest : p.cardNormal}`}>
-            {effects ? <span className="timeline-shimmer" aria-hidden="true" /> : null}
+            {effects && release.latest ? <span className="timeline-shimmer" aria-hidden="true" /> : null}
             {effects && release.latest ? <BorderBeam color="#38bdf8" duration={5} /> : null}
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-sm font-semibold ${release.latest ? p.versionLatest : p.versionNormal}`}>

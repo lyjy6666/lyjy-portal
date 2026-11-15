@@ -1534,8 +1534,8 @@ button, a, input, textarea, select {
   animation: timeline-shimmer 5.2s ease-in-out infinite;
 }
 @keyframes timeline-shimmer {
-  0% { background-position: 0% 0%; }
-  60%, 100% { background-position: 100% 100%; }
+  0% { background-position: 100% 100%; }
+  60%, 100% { background-position: 0% 0%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .timeline-shimmer { display: none; }
