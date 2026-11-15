@@ -17,8 +17,11 @@ type Filter = 'all' | ChangelogSource;
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'portal', label: '门户' },
-  { key: 'homework', label: '作业 Pro' },
-  { key: 'search', label: '搜索 Pro' },
+  { key: 'home', label: '主页' },
+  { key: 'homework', label: '作业' },
+  { key: 'search', label: '搜索' },
+  { key: 'movie', label: '影视' },
+  { key: 'toolbox', label: '工具箱' },
 ];
 
 /**
@@ -55,7 +58,7 @@ export default function UnifiedChangelog({
         <DialogHeader>
           <DialogTitle className="text-base">更新记录</DialogTitle>
           <DialogDescription className="text-slate-400">
-            全站所有模块合并在这里，按时间倒序。这里只是索引，各模块的完整记录仍在自己那边。
+            全站 7 个模块合并在这里，按真实时间倒序。这里只是索引，各模块的完整记录仍在自己那边。
           </DialogDescription>
         </DialogHeader>
 

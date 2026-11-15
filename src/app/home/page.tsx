@@ -61,7 +61,7 @@ const OVERLAY_DARK = 'bg-gradient-to-b from-black/50 via-black/40 to-black/70';
  * 「液态玻璃效果」做成链接，点击弹出使用条件说明 —— 所以需要注入回调，
  * 不能写成模块级常量。
  */
-const buildHomeReleases = (onOpenGlassInfo: () => void): Release[] => [
+export const buildHomeReleases = (onOpenGlassInfo: () => void): Release[] => [
   {
     version: 'V4.2',
     date: '2026.10.30',
