@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, History } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Release } from '@/components/UpdateTimeline';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
 /** 折叠进 V7.0 的历史 preview 内容（四项上新原文） */
 const PREVIEW_ITEMS = [
@@ -15,7 +15,7 @@ const PREVIEW_ITEMS = [
 
 /**
  * V7.0 preview 不再单独占一个版本框，折叠进 V7.0 条目里。
- * 只用 span / button（phrasing content），保证能安全嵌在条目的 span 里。
+ * 只用 span / button（phrasing content），因为 UpdateTimeline 会把每个 item 包在 span 内。
  */
 function PreviewFold() {
   const [open, setOpen] = useState(false);
@@ -66,7 +66,7 @@ const SITE_RELEASES: Release[] = [
       'AI 聊天：Flutter 跨平台客户端，提供 Windows 免安装版与 Android APK，自配任意 OpenAI 兼容接口即可使用。',
       '垂直管制：站内点开即玩的电梯调度模拟器，含值班闯关、自由沙盒与第一人称单人驾驶三种模式。',
       '手机端访问体验优化：自动识别手机并给出「建议使用电脑版 / 访问桌面版」全屏说明，补齐圆环与 Pro 版访问提醒、弹窗滚动与列表布局；趣味应用及无安卓版的产品下载统一置灰并彻底拦截，避免显示错位、乱码与无法安装。',
-      <PreviewFold key="preview" />,
+      <PreviewFold />,
     ],
   },
   {
@@ -108,22 +108,10 @@ const SITE_RELEASES: Release[] = [
 ];
 
 export default function VersionDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  // 默认只展开最新的 V7.0，旧版本点开才看
-  const [openSet, setOpenSet] = useState<Set<string>>(() => new Set([SITE_RELEASES[0].version]));
-
-  const toggle = (version: string) => {
-    setOpenSet((prev) => {
-      const next = new Set(prev);
-      if (next.has(version)) next.delete(version);
-      else next.add(version);
-      return next;
-    });
-  };
-  const allOpen = openSet.size === SITE_RELEASES.length;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10 bg-slate-900/95 text-white shadow-2xl shadow-black/50 backdrop-blur-xl sm:max-w-[620px]">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[680px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
+        {/* 顶部高光条 */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
 
         <DialogHeader>
@@ -131,75 +119,12 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
             <History size={17} className="text-sky-400" />
             更新记录
           </DialogTitle>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 正式版（2026.11.13）</p>
-            <button
-              type="button"
-              onClick={() => setOpenSet(allOpen ? new Set() : new Set(SITE_RELEASES.map((r) => r.version)))}
-              className="ml-auto rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-slate-400 transition hover:border-sky-400/40 hover:text-sky-200"
-            >
-              {allOpen ? '收起全部' : '展开全部'}
-            </button>
-          </div>
+          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 正式版（2026.11.13）</p>
         </DialogHeader>
 
-        <div className="max-h-[62vh] space-y-2 overflow-y-auto py-1 pr-1 [scrollbar-width:thin]">
-          {SITE_RELEASES.map((release) => {
-            const isOpen = openSet.has(release.version);
-            return (
-              <section
-                key={release.version}
-                className={`overflow-hidden rounded-xl border transition-colors ${
-                  release.latest
-                    ? 'border-sky-400/25 bg-sky-500/[0.06]'
-                    : 'border-white/[0.07] bg-white/[0.02]'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggle(release.version)}
-                  aria-expanded={isOpen}
-                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left transition hover:bg-white/[0.03]"
-                >
-                  <span className={`text-sm font-semibold ${release.latest ? 'text-white' : 'text-slate-300'}`}>
-                    {release.version}
-                  </span>
-                  {release.latest ? (
-                    <span className="rounded-full bg-sky-400/15 px-2 py-0.5 text-[10px] font-medium text-sky-300">最新</span>
-                  ) : null}
-                  {release.tag ? (
-                    <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-200">
-                      {release.tag}
-                    </span>
-                  ) : null}
-                  <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-slate-500">{release.date}</span>
-                  <span className="shrink-0 text-[10px] text-slate-600">{release.items.length} 条</span>
-                  <ChevronDown
-                    size={14}
-                    className={`shrink-0 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-
-                {isOpen ? (
-                  <ul className="space-y-1.5 px-3.5 pb-3.5 pt-0.5">
-                    {release.items.map((item, i) => (
-                      <li key={i} className="flex gap-2 text-xs leading-relaxed text-slate-400">
-                        <span
-                          className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${
-                            release.latest ? 'bg-sky-400/80' : 'bg-slate-600'
-                          }`}
-                        />
-                        <span className="min-w-0 flex-1">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            );
-          })}
+        <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <UpdateTimeline releases={SITE_RELEASES} />
         </div>
-
-        <p className="pt-1 text-[10px] text-slate-600">点版本号展开或收起；旧版本只保留关键变化，细节以各子站自己的记录为准。</p>
       </DialogContent>
     </Dialog>
   );
