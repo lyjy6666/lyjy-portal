@@ -123,7 +123,7 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <UpdateTimeline releases={SITE_RELEASES} />
+          <UpdateTimeline releases={SITE_RELEASES} effects />
         </div>
       </DialogContent>
     </Dialog>

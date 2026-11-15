@@ -1509,3 +1509,31 @@ button, a, input, textarea, select {
 .portal-tooltip--mono .portal-pro-main { padding: 0.48rem 0.95rem; font-size: 13px; }
 .portal-tooltip--mono .portal-old-entry { padding: 0.45rem 0.85rem; font-size: 12px; }
 .portal-tooltip--mono .portal-badges > span { font-size: 11px; padding: 0.15rem 0.5rem; }
+
+/* ===== 更新记录卡片：流光扫过 ===== */
+.timeline-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.timeline-shimmer::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+  transform: translateX(-160%);
+  animation: timeline-shimmer 5.2s ease-in-out infinite;
+}
+@keyframes timeline-shimmer {
+  0% { transform: translateX(-160%); }
+  60%, 100% { transform: translateX(340%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timeline-shimmer { display: none; }
+}

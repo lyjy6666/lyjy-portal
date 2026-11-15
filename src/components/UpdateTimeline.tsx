@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { BorderBeam } from '@/components/fx/Fx';
 
 /**
  * 全站统一的「版本历史」时间轴。
@@ -78,10 +79,13 @@ export default function UpdateTimeline({
   releases,
   tone = 'dark',
   className = '',
+  effects = false,
 }: {
   releases: Release[];
   tone?: Tone;
   className?: string;
+  /** 开启装饰动效：卡片流光扫过，最新版本加边缘流光 */
+  effects?: boolean;
 }) {
   const p = palette[tone];
 
@@ -96,7 +100,9 @@ export default function UpdateTimeline({
             }`}
           />
 
-          <div className={`rounded-xl border px-4 py-3 ${release.latest ? p.cardLatest : p.cardNormal}`}>
+          <div className={`relative overflow-hidden rounded-xl border px-4 py-3 ${release.latest ? p.cardLatest : p.cardNormal}`}>
+            {effects ? <span className="timeline-shimmer" aria-hidden="true" /> : null}
+            {effects && release.latest ? <BorderBeam color="#38bdf8" duration={5} /> : null}
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-sm font-semibold ${release.latest ? p.versionLatest : p.versionNormal}`}>
                 {release.version}
