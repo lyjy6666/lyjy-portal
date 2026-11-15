@@ -37,11 +37,13 @@ export async function POST(request: NextRequest) {
     const userId = getUserIdFromHeader(request);
     if (!userId) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
-    const { text, dueDate } = await request.json();
-    if (!text) return NextResponse.json({ error: '请输入作业内容' }, { status: 400 });
+    const { text, dueDate, split } = await request.json();
+    const raw = typeof text === 'string' ? text.trim() : '';
+    if (!raw) return NextResponse.json({ error: '请输入作业内容' }, { status: 400 });
 
-    // AI 智能分点（失败自动回退本地规则）；与原版行为一致，一次输入可能插入多条
-    const { items: taskItems } = await parseHomeworkText(text);
+    // 默认「输入一条就是一条」。AI 智能分点会把一句话拆成多条、还会强行加科目前缀，
+    // 用户普遍认为这是 bug。只有显式 split:true（批量/结构化入口）才启用智能分点。
+    const taskItems = split === true ? (await parseHomeworkText(raw)).items : [raw];
 
     const createdTasks: Record<string, unknown>[] = [];
     for (const item of taskItems) {

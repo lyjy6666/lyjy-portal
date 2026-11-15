@@ -10,11 +10,11 @@ const base = '/api/homework/tasks';
 export const tasksApi = {
   list: () => apiFetch<TasksResponse>(base).then((r) => r.tasks ?? []),
 
-  /** 保留 Coze 智能分点：一次输入可能返回多条任务 */
-  create: (text: string, dueDate: string | null) =>
+  /** 默认输入一条只建一条；split=true 才启用 AI 智能分点（批量入口用） */
+  create: (text: string, dueDate: string | null, split = false) =>
     apiFetch<TasksResponse>(base, {
       method: 'POST',
-      body: JSON.stringify({ text, dueDate }),
+      body: JSON.stringify({ text, dueDate, split }),
     }).then((r) => r.tasks ?? []),
 
   update: (id: number, patch: { text?: string; completed?: boolean; dueDate?: string | null; isPinned?: boolean }) =>

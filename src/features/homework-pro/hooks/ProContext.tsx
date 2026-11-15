@@ -431,7 +431,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
     // 带上 tempId：联网补传时把后续 meta 操作重定向到真实 id
     if (offline) { enqueue({ kind: 'create', tempId: String(tempId), payload: { text: clean, dueDate } }); return true; }
     try {
-      // 保留 Coze 智能分点：一次输入可能返回多条
+      // 默认一条输入对应一条任务；只有显式 split 才会返回多条
       const created = await tasksApi.create(clean, dueDate);
       if (!created.length) {
         dispatch({ type: 'remove', id: tempId });
