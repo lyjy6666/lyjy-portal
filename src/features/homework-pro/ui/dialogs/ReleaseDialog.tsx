@@ -7,6 +7,7 @@ import {
   HOMEWORK_PRO_RELEASES,
   HOMEWORK_PRO_HIGHLIGHTS,
   HOMEWORK_PRO_V02_HIGHLIGHTS,
+  HOMEWORK_PRO_V03_HIGHLIGHTS,
   HOMEWORK_PRO_HIGHLIGHT_TITLE,
   HOMEWORK_PRO_PREVIEW,
 } from './releases';
@@ -30,9 +31,11 @@ export function ReleaseDialog() {
     >
       <div className="space-y-4">
         {HOMEWORK_PRO_RELEASES.map((release) => {
-          const highlights = release.version === 'Pro V0.2'
-            ? HOMEWORK_PRO_V02_HIGHLIGHTS
-            : HOMEWORK_PRO_HIGHLIGHTS;
+          const highlights = release.version === 'Pro V0.3'
+            ? HOMEWORK_PRO_V03_HIGHLIGHTS
+            : release.version === 'Pro V0.2'
+              ? HOMEWORK_PRO_V02_HIGHLIGHTS
+              : HOMEWORK_PRO_HIGHLIGHTS;
           return (
             <section key={release.version} className="hw-release-block">
               <div className="hw-release-head">

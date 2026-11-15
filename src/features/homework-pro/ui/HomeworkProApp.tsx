@@ -6,7 +6,7 @@ import { ProProvider, usePro } from '../hooks/ProContext';
 import { SkinProvider, useSkin } from '../skins/skin';
 import { useTour } from '../hooks/useTour';
 import { useNotifications } from '../hooks/useNotifications';
-import { LayoutA, LayoutB } from './layouts/Layouts';
+import { LayoutB } from './layouts/Layouts';
 import { TaskDetail } from './task/TaskDetail';
 import { SelectionBar } from './task/SelectionBar';
 import { AIGraderDialog } from './dialogs/AIGraderDialog';
@@ -47,7 +47,7 @@ function WithSkin() {
   );
 }
 
-const DEFAULT_VIEW: Record<string, ViewMode> = { A: 'list', B: 'list' };
+const DEFAULT_VIEW: ViewMode = 'list';
 
 function Shell() {
   const pro = usePro();
@@ -61,7 +61,7 @@ function Shell() {
   useEffect(() => {
     if (lastLayout.current !== pro.layout) {
       lastLayout.current = pro.layout;
-      pro.setView(DEFAULT_VIEW[pro.layout] ?? 'list');
+      pro.setView(DEFAULT_VIEW);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pro.layout]);
@@ -81,8 +81,7 @@ function Shell() {
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-[1]"
       >
-        {pro.layout === 'A' && <LayoutA {...props} />}
-        {pro.layout === 'B' && <LayoutB {...props} />}
+        <LayoutB {...props} />
       </motion.div>
 
       <SelectionBar />

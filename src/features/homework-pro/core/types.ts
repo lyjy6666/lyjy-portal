@@ -7,8 +7,8 @@
  */
 
 export type Priority = 'urgent' | 'high' | 'normal' | 'low';
-/** 3 套供用户自选的美学方向。编号见 skins/theme.ts */
-export type SkinId = 'journal' | 'playful' | 'clarity';
+/** 4 套供用户自选的美学方向。编号见 skins/theme.ts */
+export type SkinId = 'journal' | 'playful' | 'clarity' | 'tech';
 export type ViewMode = 'list' | 'board' | 'calendar' | 'stats' | 'today' | 'review' | 'week' | 'achievements';
 export type ListGroupBy = 'subject' | 'time' | 'priority';
 export type BoardGroupBy = 'status' | 'subject' | 'priority';

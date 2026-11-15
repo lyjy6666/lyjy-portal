@@ -20,7 +20,7 @@ import { buildBatchDateUpdates, runBatch } from '../core/batch';
 import { parseImportText } from '../core/importExport';
 import { readScoped, writeScoped, clearUserData, migrateLegacy, hasMigratedLegacy, KEYS } from '../core/storage';
 import { setApiAuth, ApiError, isNetworkError } from '../api/client';
-import { LAYOUT_META, type LayoutId } from '../skins/theme';
+import type { LayoutId } from '../skins/theme';
 import { tasksApi } from '../api/tasks';
 import { metaApi } from '../api/meta';
 import { authApi } from '../api/auth';
@@ -246,25 +246,11 @@ export function ProProvider({ children }: { children: ReactNode }) {
   const loadPrefs = useCallback((u: UserInfo | null) => {
     const id = uidOf(u);
     if (!hasMigratedLegacy(id)) migrateLegacy(id);
-    // 主题由 SkinProvider 单独管理；布局旧编号在这里做一次性映射
+    // 主题由 SkinProvider 单独管理；「侧栏 · 工作台」(A) 已下线，
+    // 老账号里存的 A / 旧编号一律回落到唯一的 B 速览双栏。
     const rawLayout = readScoped<string>(id, 'layout', 'B');
-    const migrated = readScoped<boolean>(id, 'layoutV2', false);
-    let nextLayout: LayoutId = 'B';
-    if (migrated) {
-      nextLayout = rawLayout in LAYOUT_META ? (rawLayout as LayoutId) : 'B';
-    } else {
-      // 旧 B＝侧栏工作台 → 新 A；旧 F＝速览双栏 → 新 B
-      nextLayout = rawLayout === 'F' ? 'B' : 'A';
-      writeScoped(id, 'layoutV2', true);
-      writeScoped(id, 'layout', nextLayout);
-    }
-    // 一次性重置到新默认（B 速览双栏）：用户要求默认值改成 B，
-    // 老账号里存的 A 会被这一次性标志覆盖一次，之后手动切换照常保存。
-    if (!readScoped<boolean>(id, 'layoutV3', false)) {
-      nextLayout = 'B';
-      writeScoped(id, 'layoutV3', true);
-      writeScoped(id, 'layout', 'B');
-    }
+    if (rawLayout !== 'B') writeScoped(id, 'layout', 'B');
+    const nextLayout: LayoutId = 'B';
     setLayoutState(nextLayout);
     setViewState(readScoped<ViewMode>(id, KEYS.view, 'list'));
     setGroupByState(readScoped<ListGroupBy>(id, KEYS.groupBy, 'time'));

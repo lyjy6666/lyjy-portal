@@ -193,4 +193,56 @@
   --hw-subject-7: #c05183; --hw-subject-8: #6a8b35;
 }
 
-/* 主题仅保留 ① ② ③ 三套，编号连续不跳号 */
+/* 主题共 ①②③④ 四套，编号连续不跳号 */
+
+/* ===== ④ 黑白科技：纯黑白基底，只用一抹科技蓝点睛 ===== */
+[data-theme='tech'] {
+  --background: #0b0e14;
+  --foreground: #f2f5fa;
+  --card: #121722;
+  --card-foreground: #f2f5fa;
+  --popover: #121722;
+  --popover-foreground: #f2f5fa;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2230;
+  --secondary-foreground: #f2f5fa;
+  --muted: #1a2230;
+  --muted-foreground: #8b97ab;
+  --accent: #162130;
+  --accent-foreground: #f2f5fa;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #232d3d;
+  --input: #232d3d;
+  --ring: #3b82f6;
+  --radius: 6px;
+
+  --hw-color-scheme: dark;
+  --hw-font-display: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+  --hw-font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+  --hw-font-num: 'SFMono-Regular', 'Consolas', 'Liberation Mono', Menlo, monospace;
+  --hw-title-size: clamp(1.6rem, 2.9vw, 2.15rem);
+  --hw-title-weight: 600;
+  --hw-tracking: -0.01em;
+  --hw-leading: 1.6;
+  --hw-border-w: 1px;
+  --hw-radius-panel: 6px;
+  --hw-radius-chip: 999px;
+  --hw-shadow: none;
+  --hw-panel-bg: #121722;
+  --hw-row-h: 52px;
+  --hw-row-pad: 12px;
+  --hw-gap: 16px;
+  --hw-rule: rgb(255 255 255 / 0.1);
+  --hw-bg-gradient: none;
+  --hw-texture: none;
+  --hw-texture-opacity: 0;
+
+  --hw-prio-urgent: #ef4444; --hw-prio-high: #f59e0b;
+  --hw-prio-normal: #8b97ab; --hw-prio-low: #5c6779;
+  --hw-overdue: #ef4444; --hw-due-soon: #f59e0b;
+  --hw-subject-1: #6b8cff; --hw-subject-2: #3b82f6; --hw-subject-3: #4aa8d8;
+  --hw-subject-4: #7c93b8; --hw-subject-5: #9aa8bd; --hw-subject-6: #5b87c5;
+  --hw-subject-7: #8b9dc9; --hw-subject-8: #6f8bb0;
+}

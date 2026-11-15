@@ -138,8 +138,8 @@
   line-height: 1.5;
   min-height: 42px;
   outline: none;
-  /* Pro 三套皮肤都是浅色；锁定配色，系统深色时原生日期控件不会画成深底深字 */
-  color-scheme: light;
+  /* 按皮肤给值：浅色皮肤 light，④ 黑白科技 dark，原生控件才不会画错 */
+  color-scheme: var(--hw-color-scheme, light);
 }
 /**
  * 默认吃满容器，但必须放在 components 层里。
@@ -1280,3 +1280,11 @@ ol.hw-md-list { list-style: decimal; }
   .hw-quota-entry { transition: none; }
   .hw-quota-card .fx-border-beam { animation: none; }
 }
+
+/* ===== ④ 黑白科技：细线、零装饰、只用科技蓝点睛 ===== */
+[data-theme='tech'] .hw-panel { border-radius: 6px; background: var(--hw-panel-bg); box-shadow: none; }
+[data-theme='tech'] .hw-chip { border-color: rgb(255 255 255 / 0.16); background: rgb(255 255 255 / 0.04); }
+[data-theme='tech'] .hw-btn[data-variant='primary'] { box-shadow: 0 0 0 1px rgb(59 130 246 / 0.4); }
+[data-theme='tech'] .hw-nav-item { border-radius: 6px; }
+[data-theme='tech'] .hw-ask-bar i[data-key='B'],
+[data-theme='tech'] .hw-usage-track i[data-key='B'] { background: var(--primary); }

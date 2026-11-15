@@ -3,10 +3,9 @@
 import type { RefObject } from 'react';
 import { QuickAddBar } from '../task/QuickAddBar';
 import {
-  Brand, TopBar, MainNav, ViewHeading, ToolMenu, StatusLine,
+  TopBar, MainNav, ViewHeading,
   GlancePanel, ToolDock, ContentRouter, Footer,
 } from './parts';
-import { LayoutPicker } from './LayoutPicker';
 import { AIAskDock } from '../features/AIAsk';
 
 type LayoutProps = {
@@ -22,44 +21,6 @@ function Content({ inputRef }: { inputRef: RefObject<HTMLTextAreaElement | null>
       <QuickAddBar inputRef={inputRef} />
       <ContentRouter />
     </>
-  );
-}
-
-/* ============================================================ A 侧栏 · 工作台 */
-export function LayoutA({ searchRef, inputRef }: LayoutProps) {
-  return (
-    <div className="flex min-h-screen">
-      <aside
-        className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-3 overflow-y-auto border-r p-3 hw-scroll md:flex"
-        style={{ borderColor: 'var(--hw-rule)' }}
-      >
-        <Brand compact />
-        <div className="hw-hr" />
-        <p className="hw-eyebrow">视图</p>
-        <MainNav vertical />
-        <ToolDock vertical />
-        <AIAskDock />
-        <div className="mt-auto space-y-2 pt-4">
-          <StatusLine />
-          {/* 布局②桌面端唯一的布局切换入口，不能删；里面只剩布局、没有皮肤 */}
-          <LayoutPicker />
-          {/* 「前往原版」「退出登录」已经在 ToolMenu 里，这里不再重复放一份 */}
-          <ToolMenu vertical />
-        </div>
-      </aside>
-
-      <main className="min-w-0 flex-1 px-4 lg:px-8">
-        <TopBar searchRef={searchRef} minimal showBrand={false} />
-        <div className="hw-shell max-w-[1080px] pb-10 pt-5">
-          <div className="mb-4 md:hidden"><MainNav /></div>
-          {/* 侧栏在窄屏隐藏，工具区移到正文上方，否则手机上摸不到智能排期 / AI 批改 */}
-          <div className="mb-4 md:hidden"><ToolDock /></div>
-          <div className="mb-4 md:hidden"><AIAskDock /></div>
-          <Content inputRef={inputRef} />
-          <Footer />
-        </div>
-      </main>
-    </div>
   );
 }
 

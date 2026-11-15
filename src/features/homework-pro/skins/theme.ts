@@ -13,7 +13,7 @@ export type ThemeMeta = {
 };
 
 /**
- * 3 套视觉主题，编号按**展示顺序**连续不跳号：
+ * 4 套视觉主题，编号按**展示顺序**连续不跳号：
  * 默认的手账纸感排第一 → ①；极简晨白与其交换位置 → ②。
  */
 export const THEME_META: Record<ThemeId, ThemeMeta> = {
@@ -32,22 +32,25 @@ export const THEME_META: Record<ThemeId, ThemeMeta> = {
     desc: '亮白底 + 蓝黄粉大色块、粗黑体、大圆角，年轻轻快。',
     tone: 'light', swatch: ['#FFFFFC', '#2563EB', '#FACC15'],
   },
+  tech: {
+    index: '④', name: '黑白科技', short: '克制极简',
+    desc: '纯黑白基底，只用一抹科技蓝点睛；细线、零纹理、零装饰。',
+    tone: 'dark', swatch: ['#0B0E14', '#F2F5FA', '#3B82F6'],
+  },
 };
 
-/** 展示顺序：默认主题排第一（① 手账纸感），① / ② 已按用户要求互换 */
-export const THEME_ORDER: ThemeId[] = ['journal', 'clarity', 'playful'];
+/** 展示顺序：默认主题排第一（① 手账纸感） */
+export const THEME_ORDER: ThemeId[] = ['journal', 'clarity', 'playful', 'tech'];
 
 /** 兼容旧引用 */
 export const SKIN_META = THEME_META;
 export const SKIN_ORDER = THEME_ORDER;
 
 /**
- * 两套布局，编号按**展示顺序**连续不跳号：
- * 默认的「速览 · 双栏」排第一 → 显示为 ①；「侧栏 · 工作台」为 ②。
+ * 布局只保留「速览 · 双栏」一套；旧「侧栏 · 工作台」(A) 已下线。
  */
-export type LayoutId = 'A' | 'B';
+export type LayoutId = 'B';
 export const LAYOUT_META: Record<LayoutId, { index: string; name: string; desc: string }> = {
   B: { index: '①', name: '速览 · 双栏', desc: '左边作业清单，右边本周速览与工具区，一屏看完。' },
-  A: { index: '②', name: '侧栏 · 工作台', desc: '左侧固定导航，右侧整块作业区，桌面上最稳。' },
 };
-export const LAYOUT_ORDER: LayoutId[] = ['B', 'A'];
+export const LAYOUT_ORDER: LayoutId[] = ['B'];
