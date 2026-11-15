@@ -1,0 +1,78 @@
+.page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  overflow: hidden;
+  background:
+    radial-gradient(1000px 520px at 50% -8%, rgba(251, 191, 36, 0.14), transparent 62%),
+    radial-gradient(800px 420px at 85% 10%, rgba(56, 189, 248, 0.1), transparent 60%),
+    #05070c;
+  color: #e2e8f0;
+}
+
+.stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(1px 1px at 14% 24%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 32% 72%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 48% 16%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 66% 84%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 82% 36%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 38% 46%, rgba(251, 191, 36, 0.4), transparent);
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  text-align: center;
+}
+
+.kicker {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: #a16207;
+}
+
+.title {
+  margin: 0.9rem 0 0;
+  font-family: Georgia, 'Songti SC', 'SimSun', serif;
+  font-size: clamp(1.6rem, 4.2vw, 2.5rem);
+  line-height: 1.5;
+  color: #f8fafc;
+}
+
+.text {
+  margin: 1.1rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.95;
+  color: #94a3b8;
+}
+
+.date {
+  margin: 1.8rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: #475569;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 2.2rem;
+  padding-bottom: 0.15rem;
+  font-size: 0.8rem;
+  color: #fbbf24;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  transition: color 0.2s, border-color 0.2s;
+}
+.back:hover { color: #fde68a; border-color: #fde68a; }
