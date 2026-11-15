@@ -138,7 +138,7 @@
   line-height: 1.5;
   min-height: 42px;
   outline: none;
-  /* 按皮肤给值：浅色皮肤 light，④ 黑白科技 dark，原生控件才不会画错 */
+  /* 按皮肤给值：浅色皮肤 light，② 黑白科技 dark，原生控件才不会画错 */
   color-scheme: var(--hw-color-scheme, light);
 }
 /**
@@ -1001,13 +1001,7 @@ body.hw-intro-active [data-radix-popper-content-wrapper] {
 [data-theme='playful'] .hw-chip { font-weight: 700; border-radius: 999px; }
 [data-theme='playful'] .hw-display { color: var(--primary); }
 
-/* ============================================================== 主题三 · 极简晨白 */
 /* 零装饰：不加大标题、不加纹理、不加首字着色，只留清晰的层级 */
-[data-theme='clarity'] .hw-chip { border-color: transparent; background: var(--muted); }
-[data-theme='clarity'] .hw-chip[data-active='true'] { background: var(--accent); color: var(--primary); }
-[data-theme='clarity'] .hw-btn[data-variant='primary'] { box-shadow: 0 2px 8px rgb(47 111 237 / 0.2); }
-[data-theme='clarity'] .hw-eyebrow { letter-spacing: 0.16em; font-weight: 650; }
-[data-theme='clarity'] .hw-nav-item { border-radius: var(--hw-radius-panel) var(--hw-radius-panel) 0 0; }
 
 /* ================================================================ 响应式 */
 @media (max-width: 640px) {
@@ -1281,7 +1275,7 @@ ol.hw-md-list { list-style: decimal; }
   .hw-quota-card .fx-border-beam { animation: none; }
 }
 
-/* ===== ④ 黑白科技：细线、零装饰、只用科技蓝点睛 ===== */
+/* ===== ② 黑白科技：细线、零装饰、只用科技蓝点睛 ===== */
 [data-theme='tech'] .hw-panel { border-radius: 6px; background: var(--hw-panel-bg); box-shadow: none; }
 [data-theme='tech'] .hw-chip { border-color: rgb(255 255 255 / 0.16); background: rgb(255 255 255 / 0.04); }
 [data-theme='tech'] .hw-btn[data-variant='primary'] { box-shadow: 0 0 0 1px rgb(59 130 246 / 0.4); }

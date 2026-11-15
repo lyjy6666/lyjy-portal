@@ -31,7 +31,7 @@ export const HOMEWORK_PRO_V02_HIGHLIGHTS: ProHighlight[] = [
 
 export const HOMEWORK_PRO_V03_HIGHLIGHTS: ProHighlight[] = [
   { no: '04', title: '添加作业更稳', desc: '同步刷新不再冲掉新作业；改用本地克制拆分，一条归一条、多科目自动分开' },
-  { no: '05', title: '黑白科技主题', desc: '新增第 ④ 套视觉主题，黑白基底 + 科技蓝点缀；侧栏工作台下线，统一速览双栏' },
+  { no: '05', title: '黑白科技主题', desc: '新增第 ② 套视觉主题，黑白基底 + 科技蓝点缀；侧栏工作台下线，统一速览双栏' },
 ];
 
 /** 每个版本的大 Card 标题，避免 V0.1 里提前出现 V0.2 的能力 */
@@ -48,7 +48,7 @@ export const HOMEWORK_PRO_RELEASES: Release[] = [
     tag: '体验更新',
     latest: true,
     items: [
-      '新增第 ④ 套视觉主题「黑白科技」：黑白基底 + 科技蓝点缀，克制极简',
+      '新增第 ② 套视觉主题「黑白科技」：黑白基底 + 科技蓝点缀，克制极简',
       '下线「侧栏 · 工作台」布局，统一为「速览 · 双栏」',
       '个人中心新增「购买 AI 用量额度」三档展示（拟定价，支付通道未开放）',
       '修复添加作业被同步刷新冲掉、以及「假成功」提示的问题',

@@ -5,7 +5,7 @@
  * globals.css 的 @theme inline 用 var(--background) 引用而非拷贝，
  * 覆盖同名变量即可让 Tailwind 工具类在 SkinProvider 子树内生效。
  *
- * 最终保留 ① 手账纸感 / ② 明快俏皮 / ③ 极简晨白 三套自选主题。
+ * 最终保留 ① 手账纸感 / ② 黑白科技 / ③ 明快俏皮 三套自选主题。
  * ③ 刻意零纹理、零装饰、低对比，用留白和细线分组，
  * 专门解决「功能多起来界面显得乱」。
  */
@@ -141,61 +141,10 @@
   --hw-subject-7: #db2777; --hw-subject-8: #65a30d;
 }
 
-/* ================================================================ ③ 极简晨白 */
-[data-theme='clarity'] {
-  --background: #fbfcfe;
-  --foreground: #16202e;
-  --card: #ffffff;
-  --card-foreground: #16202e;
-  --popover: #ffffff;
-  --popover-foreground: #16202e;
-  --primary: #2f6fed;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f4f9;
-  --secondary-foreground: #16202e;
-  --muted: #f1f4f9;
-  --muted-foreground: #6b7688;
-  --accent: #eaf1ff;
-  --accent-foreground: #16202e;
-  --destructive: #d64550;
-  --destructive-foreground: #ffffff;
-  --border: #dfe5ee;
-  --input: #dfe5ee;
-  --ring: #2f6fed;
-  --radius: 10px;
 
-  --hw-font-display: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
-  --hw-font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
-  --hw-font-num: 'SFMono-Regular', 'Consolas', 'Liberation Mono', Menlo, monospace;
-  --hw-title-size: clamp(1.6rem, 2.9vw, 2.15rem);
-  --hw-title-weight: 650;
-  --hw-tracking: -0.015em;
-  --hw-leading: 1.6;
-  --hw-border-w: 1px;
-  --hw-radius-panel: 10px;
-  --hw-radius-chip: 999px;
-  /* 轻到几乎看不见的阴影：靠间距分层，不靠色块 */
-  --hw-shadow: 0 1px 2px rgb(16 32 56 / 0.04);
-  --hw-panel-bg: #ffffff;
-  --hw-row-h: 52px;
-  --hw-row-pad: 12px;
-  --hw-gap: 16px;
-  --hw-rule: rgb(22 32 46 / 0.09);
-  --hw-bg-gradient: none;
-  --hw-texture: none;
-  --hw-texture-opacity: 0;
+/* 主题共 ①②③ 三套，编号连续不跳号 */
 
-  --hw-prio-urgent: #d64550; --hw-prio-high: #d98324;
-  --hw-prio-normal: #6b7688; --hw-prio-low: #9aa5b4;
-  --hw-overdue: #d64550; --hw-due-soon: #d98324;
-  --hw-subject-1: #d64550; --hw-subject-2: #2f6fed; --hw-subject-3: #2f9e6f;
-  --hw-subject-4: #8264c9; --hw-subject-5: #d98324; --hw-subject-6: #218fa3;
-  --hw-subject-7: #c05183; --hw-subject-8: #6a8b35;
-}
-
-/* 主题共 ①②③④ 四套，编号连续不跳号 */
-
-/* ===== ④ 黑白科技：纯黑白基底，只用一抹科技蓝点睛 ===== */
+/* ===== ② 黑白科技：纯黑白基底，只用一抹科技蓝点睛 ===== */
 [data-theme='tech'] {
   --background: #0b0e14;
   --foreground: #f2f5fa;

@@ -23,11 +23,11 @@ export function LayoutPicker() {
       </button>
 
       <ProDialog open={open} onOpenChange={setOpen} title="外观设置"
-        desc="速览 · 双栏布局，搭配 ①②③④ 四套视觉主题，点击即时生效。" className="sm:max-w-[720px]">
+        desc="速览 · 双栏布局，搭配 ①②③ 三套视觉主题，点击即时生效。" className="sm:max-w-[720px]">
         <div className="space-y-5">
           <section>
             <p className="hw-eyebrow">视觉主题</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {THEME_ORDER.map((id: SkinId) => {
                 const meta = THEME_META[id];
                 const active = skin === id;

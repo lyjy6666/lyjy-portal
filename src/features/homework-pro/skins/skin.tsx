@@ -33,7 +33,7 @@ type SkinValue = {
 };
 
 const SkinContext = createContext<SkinValue>({
-  skin: 'clarity', setSkin: () => {}, motion: true, portalEl: null,
+  skin: 'journal', setSkin: () => {}, motion: true, portalEl: null,
 });
 
 export function useSkin(): SkinValue { return useContext(SkinContext); }
@@ -45,10 +45,11 @@ export function SkinProvider({ children, uid }: { children: ReactNode; uid: numb
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    // 已下线的旧主题读到后统一落回默认主题
-    const saved = readScoped<SkinId>(uid, KEYS.skin, 'journal');
-    let next: SkinId = saved in SKIN_META ? saved : 'journal';
-    if (!(saved in SKIN_META)) writeScoped(uid, KEYS.skin, next);
+    // ② 极简晨白已下线，原位置换成黑白科技；老账号选了 ② 直接落到新 ②
+    const saved = readScoped<string>(uid, KEYS.skin, 'journal');
+    const effective = saved === 'clarity' ? 'tech' : saved;
+    let next: SkinId = effective in SKIN_META ? (effective as SkinId) : 'journal';
+    if (effective !== saved || !(effective in SKIN_META)) writeScoped(uid, KEYS.skin, next);
     // 一次性重置到新默认主题（① 手账纸感）：用户要求默认换成这一套。
     // skinV2 是上一轮重置用过的标志，老账号已经写过，所以这里必须用 skinV3。
     if (!readScoped<boolean>(uid, 'skinV3', false)) {

@@ -13,8 +13,8 @@ export type ThemeMeta = {
 };
 
 /**
- * 4 套视觉主题，编号按**展示顺序**连续不跳号：
- * 默认的手账纸感排第一 → ①；极简晨白与其交换位置 → ②。
+ * 3 套视觉主题，编号按**展示顺序**连续不跳号：
+ * 默认的手账纸感排第一 → ①；黑白科技占原来的 ②，明快俏皮为 ③。
  */
 export const THEME_META: Record<ThemeId, ThemeMeta> = {
   journal: {
@@ -22,25 +22,20 @@ export const THEME_META: Record<ThemeId, ThemeMeta> = {
     desc: '暖纸横线、楷体手写感、柔和彩铅色，轻松不压迫。',
     tone: 'light', swatch: ['#FBF3E4', '#5B4636', '#E9A23B'],
   },
-  clarity: {
-    index: '②', name: '极简晨白', short: '清爽克制',
-    desc: '冷白底、一抹蓝、极细线、零纹理零装饰，层级清楚最耐看。',
-    tone: 'light', swatch: ['#FBFCFE', '#16202E', '#2F6FED'],
-  },
   playful: {
     index: '③', name: '明快俏皮', short: '大色块',
     desc: '亮白底 + 蓝黄粉大色块、粗黑体、大圆角，年轻轻快。',
     tone: 'light', swatch: ['#FFFFFC', '#2563EB', '#FACC15'],
   },
   tech: {
-    index: '④', name: '黑白科技', short: '克制极简',
+    index: '②', name: '黑白科技', short: '克制极简',
     desc: '纯黑白基底，只用一抹科技蓝点睛；细线、零纹理、零装饰。',
     tone: 'dark', swatch: ['#0B0E14', '#F2F5FA', '#3B82F6'],
   },
 };
 
-/** 展示顺序：默认主题排第一（① 手账纸感） */
-export const THEME_ORDER: ThemeId[] = ['journal', 'clarity', 'playful', 'tech'];
+/** 展示顺序：默认 ① 手账纸感；② 由下线的极简晨白换成黑白科技 */
+export const THEME_ORDER: ThemeId[] = ['journal', 'tech', 'playful'];
 
 /** 兼容旧引用 */
 export const SKIN_META = THEME_META;

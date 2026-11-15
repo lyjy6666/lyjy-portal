@@ -16,7 +16,7 @@ import { ProDialog } from '../common/bits';
  */
 
 const PRO_POINTS = [
-  { icon: LayoutDashboard, title: '速览双栏 + 四套主题', desc: '统一速览双栏布局；① 手账纸感 / ② 极简晨白 / ③ 明快俏皮 / ④ 黑白科技，随时切换。' },
+  { icon: LayoutDashboard, title: '速览双栏 + 三套主题', desc: '统一速览双栏布局；① 手账纸感 / ② 黑白科技 / ③ 明快俏皮，随时切换。' },
   { icon: Camera, title: 'AI 记作业', desc: '拍照、说一句话、或粘一整段，自动拆成多条并补上科目。' },
   { icon: Gauge, title: 'AI 用时推测', desc: '按年级 + 薄弱项 + 作业内容，逐条估算完成时间。' },
   { icon: CalendarRange, title: 'AI 智能排期', desc: '独立整页，把作业均衡分到每一天，超载的日期会标红。' },
