@@ -35,9 +35,24 @@ function toDateString(value: unknown): string | null {
   return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
 }
 
-function daysUntil(date: string) {
-  const target = new Date(`${date}T00:00:00+08:00`).getTime();
-  return Math.max(0, Math.ceil((target - Date.now()) / 86400000));
+/** 两个 YYYY-MM-DD 之间差几天（只看日期，不掺具体时刻） */
+function daysBetween(from: string, to: string) {
+  const a = new Date(`${from}T00:00:00+08:00`).getTime();
+  const b = new Date(`${to}T00:00:00+08:00`).getTime();
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+/**
+ * 判断「今天」用哪个日期。
+ * 生产环境只信服务端时钟；开发环境允许 ?asOf=YYYY-MM-DD 覆盖，
+ * 因为 Node 进程用单调时钟推算时间，进程启动后改系统时间它感知不到。
+ */
+function resolveToday(request: NextRequest): string {
+  if (process.env.NODE_ENV !== 'production') {
+    const asOf = request.nextUrl.searchParams.get('asOf');
+    if (asOf && /^\d{4}-\d{2}-\d{2}$/.test(asOf)) return asOf;
+  }
+  return shanghaiToday();
 }
 
 /** 查信：到期前只告诉「有没有、还有几天」，绝不返回正文 */
@@ -60,12 +75,13 @@ export async function GET(request: NextRequest) {
 
     // 每封信按自己写入时的 unlock_at 判断，不再用全局常量
     const rowUnlock = toDateString(rows[0].unlock_at) ?? UNLOCK_AT;
-    const unlocked = shanghaiToday() >= rowUnlock;
+    const today = resolveToday(request);
+    const unlocked = today >= rowUnlock;
     return Response.json({
       exists: true,
       unlocked,
       unlockAt: rowUnlock,
-      daysLeft: daysUntil(rowUnlock),
+      daysLeft: daysBetween(today, rowUnlock),
       createdAt: rows[0].created_at,
       ...(unlocked ? { content: rows[0].content as string } : {}),
     });
@@ -104,7 +120,7 @@ export async function POST(request: NextRequest) {
       ON CONFLICT (username) DO UPDATE
         SET content = EXCLUDED.content, updated_at = NOW()
     `;
-    return Response.json({ ok: true, username, unlockAt: UNLOCK_AT, daysLeft: daysUntil(UNLOCK_AT) });
+    return Response.json({ ok: true, username, unlockAt: UNLOCK_AT, daysLeft: daysBetween(resolveToday(request), UNLOCK_AT) });
   } catch (err) {
     console.error('capsule POST error:', err);
     return Response.json({ error: '保存失败，请稍后再试' }, { status: 500 });
