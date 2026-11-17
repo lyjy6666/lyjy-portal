@@ -27,8 +27,16 @@ function shanghaiToday(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
 }
 
-function daysLeft() {
-  const target = new Date(`${UNLOCK_AT}T00:00:00+08:00`).getTime();
+/** 把数据库里的 DATE 统一成 YYYY-MM-DD（按东八区） */
+function toDateString(value: unknown): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
+}
+
+function daysUntil(date: string) {
+  const target = new Date(`${date}T00:00:00+08:00`).getTime();
   return Math.max(0, Math.ceil((target - Date.now()) / 86400000));
 }
 
@@ -50,12 +58,14 @@ export async function GET(request: NextRequest) {
 
     if (!rows.length) return Response.json({ exists: false });
 
-    const unlocked = shanghaiToday() >= UNLOCK_AT;
+    // 每封信按自己写入时的 unlock_at 判断，不再用全局常量
+    const rowUnlock = toDateString(rows[0].unlock_at) ?? UNLOCK_AT;
+    const unlocked = shanghaiToday() >= rowUnlock;
     return Response.json({
       exists: true,
       unlocked,
-      unlockAt: UNLOCK_AT,
-      daysLeft: daysLeft(),
+      unlockAt: rowUnlock,
+      daysLeft: daysUntil(rowUnlock),
       createdAt: rows[0].created_at,
       ...(unlocked ? { content: rows[0].content as string } : {}),
     });
@@ -94,7 +104,7 @@ export async function POST(request: NextRequest) {
       ON CONFLICT (username) DO UPDATE
         SET content = EXCLUDED.content, updated_at = NOW()
     `;
-    return Response.json({ ok: true, username, unlockAt: UNLOCK_AT, daysLeft: daysLeft() });
+    return Response.json({ ok: true, username, unlockAt: UNLOCK_AT, daysLeft: daysUntil(UNLOCK_AT) });
   } catch (err) {
     console.error('capsule POST error:', err);
     return Response.json({ error: '保存失败，请稍后再试' }, { status: 500 });
