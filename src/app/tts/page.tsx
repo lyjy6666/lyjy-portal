@@ -355,6 +355,39 @@ export default function NewsReaderPage() {
     return true;
   };
 
+  // 浏览器自动播放策略：在用户点击的同步栈里"解锁"音频，否则 await 网络请求后再 play() 会被拦截，
+  // 表现就是界面显示"播放中"却一点声音都没有。这里在手势内 resume AudioContext + 播一段静音 WAV。
+  const unlockAudioPlayback = () => {
+    if (typeof window === 'undefined') return;
+    // Web Audio：解除页面级 autoplay 限制
+    try {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (Ctx) {
+        const ctx = new Ctx();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        void ctx.resume().catch(() => {});
+      }
+    } catch {
+      /* 不支持 Web Audio 时，退回静音媒体播放 */
+    }
+    // HTMLAudio：兼容只按媒体元素判断 autoplay 的浏览器
+    try {
+      const silent = new Audio(
+        'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQ4AAAD//wAAAAAAAAAAAAAAAAAAAAA='
+      );
+      silent.volume = 0;
+      void silent.play().catch(() => {});
+    } catch {
+      /* 忽略 */
+    }
+  };
+
   const handleOcr = async (file: File) => {
     // 图片识别：内测期间登录即可使用
     if (!requireVip()) return;
@@ -398,6 +431,8 @@ export default function NewsReaderPage() {
   };
 
   const handleGenerate = async () => {
+    // 必须在用户点击的同步调用栈里解锁音频，下面 await 网络请求后再 play() 才不会被自动播放策略拦截
+    unlockAudioPlayback();
     if (!text.trim()) {
       setError('请输入要朗读的文本');
       return;
@@ -465,11 +500,23 @@ export default function NewsReaderPage() {
         if (voiceAudioRef.current) {
           voiceAudioRef.current.src = edgeAudioUrl;
           voiceAudioRef.current.volume = voiceVolume / 100;
+          voiceAudioRef.current.load();
         }
         setIsVoiceEnded(false);
+        // 如实反映播放状态：成功才算"播放中"，失败给出可见提示而不是静默假装播放
+        let started = false;
         if (voiceAudioRef.current) {
-          await voiceAudioRef.current.play().catch(() => {});
-          setIsPlaying(true);
+          try {
+            await voiceAudioRef.current.play();
+            started = true;
+            setIsPlaying(true);
+          } catch {
+            started = false;
+          }
+        }
+        if (!started) {
+          setError('浏览器拦截了自动播放，请点击中间的播放按钮开始朗读');
+          setIsPlaying(false);
         }
         // 音频缓存失败不影响主流程（内部已静默降级）
         void putAudio(newItem.id, edgeAudioUrl);
@@ -528,7 +575,10 @@ export default function NewsReaderPage() {
         voiceAudioRef.current.currentTime = 0;
         setIsVoiceEnded(false);
       }
-      voiceAudioRef.current.play();
+      void voiceAudioRef.current.play().catch(() => {
+        setError('播放失败，请再点一次播放按钮');
+        setIsPlaying(false);
+      });
       setIsPlaying(true);
       // 仅当背景音乐开关开启时才同步播放 BGM
       if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
