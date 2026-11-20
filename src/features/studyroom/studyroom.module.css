@@ -64,9 +64,23 @@
 
 .brandTitle {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.06em;
+}
+
+.versionChip {
+  padding: 3px 8px;
+  border: 1px solid rgba(207, 112, 71, 0.5);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #f4c79f;
+  background: rgba(207, 112, 71, 0.12);
 }
 
 .brandSub {

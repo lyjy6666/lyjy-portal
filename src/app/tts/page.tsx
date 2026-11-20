@@ -11,12 +11,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles, Download, SlidersHorizontal } from 'lucide-react';
 import AudioEditor from '@/components/AudioEditor';
+import { VersionHistoryDialog } from '@/components/VersionHistoryDialog';
+import type { Release } from '@/components/UpdateTimeline';
 import AuthDialog from '@/components/tts/AuthDialog';
 import VipPricingDialog from '@/components/tts/VipPricingDialog';
 import type { TtsUser } from '@/components/tts/types';
 import { getAudio, putAudio, deleteAudio, clearAudio } from './lib/audioCache';
 import { exportMixedWav } from './lib/audioMix';
 import { createWorker } from 'tesseract.js';
+
+/** 语音朗读版本历史：越靠前越新 */
+const TTS_RELEASES: Release[] = [
+  {
+    version: 'V3.0', date: '2026.11.20', latest: true, tag: '功能更新',
+    items: [
+      '修复 Edge TTS 鉴权令牌升级到 v2 后的 403，恢复在线合成，不再误降级到浏览器语音。',
+      '新增一键下载 MP3，生成后可直接保存音频。',
+      '新增语音 + 背景音乐混音导出 WAV，按当前音量与播放位置合成。',
+      '历史音频缓存到本机 IndexedDB，恢复历史不必重新生成。',
+      'Edge 合成失败时自动降级浏览器自带语音；登录改为加盐密码存储并加失败限流。',
+    ],
+  },
+  { version: 'V2.2', date: '2026.10.7', items: ['音色扩充到 14 种，按普通话、粤语与台湾口音分组', '补充背景音乐上传与独立音量控制'] },
+  { version: 'V2.1', date: '2026.8.16', items: ['新增图片 OCR 识别后朗读', '新增长文本模式，上限 10000 字'] },
+  { version: 'V2.0', date: '2026.7.16', items: ['语音朗读系统上线：Edge 神经语音、语速调节、生成历史与音频编辑器'] },
+];
 
 const VOICE_OPTIONS = {
   '普通话·女声': [
@@ -1269,6 +1288,14 @@ export default function NewsReaderPage() {
           <i className="fa-solid fa-house text-white"></i>
         </Link>
       </div>
+
+      {/* 更新记录 */}
+      <VersionHistoryDialog
+        releases={TTS_RELEASES}
+        subtitle="语音朗读系统 · 版本历史"
+        tone="dark"
+        position="bottom-left"
+      />
 
       {/* 音频编辑器弹窗 */}
       <AudioEditor

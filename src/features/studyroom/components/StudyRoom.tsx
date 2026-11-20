@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, House, Timer as TimerIcon } from 'lucide-react';
+import { BookOpen, House } from 'lucide-react';
+import { UpdateRecords } from '@/components/update-records';
 import { SoundConfig, SoundType } from '@/lib/types';
 import { playAlarm } from '@/lib/pomodoro-utils';
 import { DEFAULT_GOAL, STORAGE_KEYS, isWorkMode } from '../lib/constants';
@@ -160,16 +161,16 @@ export function StudyRoom() {
               <BookOpen size={22} />
             </div>
             <div>
-              <h1 className={styles.brandTitle}>LYJY 自习室</h1>
-              <p className={styles.brandSub}>安静一点 · 专注久一点</p>
+              <h1 className={styles.brandTitle}>
+                LYJY 自习室
+                <span className={styles.versionChip}>V2.0 · 全新重构</span>
+              </h1>
+              <p className={styles.brandSub}>番茄钟全新重构 · 安静一点，专注久一点</p>
             </div>
           </div>
           <div className={styles.headerActions}>
             <Link className={styles.ghostLink} href="/">
               <House size={14} /> 返回首页
-            </Link>
-            <Link className={styles.ghostLink} href="/pomodoro">
-              <TimerIcon size={14} /> 原版番茄钟
             </Link>
           </div>
         </header>
@@ -225,7 +226,7 @@ export function StudyRoom() {
         </main>
 
         <div className={styles.footnote}>
-          数据保存在本机浏览器 · 与原版番茄钟共享任务与统计 · <kbd>Space</kbd> 开始/暂停 · <kbd>R</kbd> 重置
+          数据保存在本机浏览器 · 沿用原版番茄钟的任务与统计记录 · <kbd>Space</kbd> 开始/暂停 · <kbd>R</kbd> 重置
         </div>
       </div>
 
@@ -239,6 +240,8 @@ export function StudyRoom() {
           onExpand={() => setIsMinimized(false)}
         />
       )}
+
+      <UpdateRecords />
     </div>
   );
 }

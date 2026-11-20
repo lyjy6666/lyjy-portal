@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { SkinProvider, useSkin, SKIN_META, SKIN_ORDER, type SkinId } from './skins/skin';
 import { fontClassNames } from './skins/fonts';
+import { VersionHistoryDialog } from '@/components/VersionHistoryDialog';
+import type { Release } from '@/components/UpdateTimeline';
 import dynamic from 'next/dynamic';
 
 /**
@@ -20,6 +22,31 @@ const DocumentTool = dynamic(() => import('./ui/DocumentTool'), { ssr: false });
 const MediaTool = dynamic(() => import('./ui/MediaTool'), { ssr: false });
 const DevTool = dynamic(() => import('./ui/DevTool'), { ssr: false });
 const AboutTool = dynamic(() => import('./ui/AboutTool'), { ssr: false });
+
+/** 格式转换工具箱版本历史：新版 + 原版历史，越靠前越新 */
+const TOOLBOX_RELEASES: Release[] = [
+  {
+    version: 'V3.1.0', date: '2026.11.20', latest: true, tag: '功能更新',
+    items: [
+      '新增 PDF 合并、拆分（每页或页码范围）与旋转，加密文件明确报错。',
+      '新增 PDF 转图片与内嵌图片提取，解析器随站点本地部署。',
+      '新增「图片加工」：长图拼接、九宫格切图、固定比例裁剪、EXIF 清除。',
+      '音视频支持裁剪、淡入淡出与多段拼接；文本数据新增批量处理。',
+    ],
+  },
+  {
+    version: 'V3.0.0', date: '2026.10.7', tag: '整体重写',
+    items: [
+      '9 个工具全部重写，修复已知计算错误与虚假格式选项。',
+      '文档转 PDF 支持中文，图片、代码、ZIP 与开发工具全部本地处理。',
+      '新增「说明」页，列清能力边界与做不到的事。',
+    ],
+  },
+  { version: 'V2.3', date: '2026.7.29', items: ['新增了水印工具'] },
+  { version: 'V2.2', date: '2026.7.9', items: ['修复了一些已知问题'] },
+  { version: 'V2.1', date: '2026.3.1', items: ['新增了大量功能', '增加了独立桌面应用', '已经修复了已知问题'] },
+  { version: 'V2.0', date: '2026.1.31', items: ['网站焕新上线了，原网站已停用', '修复了已知问题，界面美观提升'] },
+];
 
 export type ToolTab = {
   id: string;
@@ -280,6 +307,12 @@ function Shell() {
         </div>
         <TabContent tab={tab} />
       </main>
+
+      <VersionHistoryDialog
+        releases={TOOLBOX_RELEASES}
+        subtitle="格式转换工具箱 · 版本历史"
+        tone="light"
+      />
 
       <footer className="mt-10 pb-2">
         <hr className="tb-hr mb-4" />

@@ -24,26 +24,89 @@ const EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 const EDGE_TTS_BASE = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
 const CHROMIUM_FULL_VERSION = '143.0.3650.75';
 const CHROMIUM_MAJOR_VERSION = CHROMIUM_FULL_VERSION.split('.')[0];
-const SEC_MS_GEC_VERSION = `1-${CHROMIUM_FULL_VERSION}`;
+// 微软 2026-10 起要求 v2 令牌，v1 握手直接 403
+const SEC_MS_GEC_VERSION = `2-${CHROMIUM_FULL_VERSION}`;
 
 // Windows 文件时间基准（秒）
-const WIN_EPOCH_SECONDS = 11644473600;
-const S_TO_100NS = 10_000_000; // 1 秒 = 10^7 个 100 纳秒间隔
+const WIN_EPOCH_SECONDS = 11644473600n;
+const PREFIX = Buffer.from(
+  ['Q29weXJpZ2h0IChDKSBNaWNyb3NvZnQg', 'Q29ycG9yYXRpb24uIEFsbCByaWdodHMgcmVzZXJ2ZWQu'].join(''),
+  'base64'
+);
+const COEFFICIENTS: [number, number][] = [
+  [0xE82E91B1, 0xB32700D0], [0x44DE24C6, 0x88DFF51D], [0x3BEB65BC, 0x29514038],
+  [0xC89C5933, 0xB328CBDF], [0x8D1EC211, 0xD405B4D5], [0x314EF5D5, 0x26E55F3C],
+  [0xE92491B1, 0x607801C6], [0xF0A5B9D5, 0x82B2C1FB], [0x06064CF3, 0xFA51A3DA],
+  [0xDA79FA60, 0x207CC464], [0xBED20560, 0x3C3C74F3], [0x89F9C9F8, 0xD2D14B61],
+  [0x35FA38C6, 0xBB04A2C1], [0xCB49E3C6, 0xC5626167],
+];
 
-// 生成 Sec-MS-GEC 鉴权参数
-// 参考: edge-tts Python 包 drm.py
+const mul = Math.imul;
+const rol16 = (x: number) => ((x << 16) | (x >>> 16)) >>> 0;
+
+/** v2 令牌的 CS64 摘要，逐行对齐 edge-tts 7.3.x / node-edge-tts 1.2.12 */
+function cs64Digest(data: Buffer, shaDigest: Buffer): Buffer {
+  const keyA = (shaDigest.readUInt32LE(0) | 1) >>> 0;
+  const keyB = (shaDigest.readUInt32LE(4) | 1) >>> 0;
+  const factors = [mul(keyA, 0x82893933) >>> 0, mul(keyB, 0x82893933) >>> 0];
+  const terms = COEFFICIENTS.map(([c], i) => mul(c, factors[i % 2]) >>> 0);
+  const offsets = COEFFICIENTS.map(([, o]) => o);
+
+  const padded = Buffer.alloc(Math.ceil((data.length + 1) / 8) * 8);
+  padded.set(data, 1);
+  for (let i = 0; i < padded.length / 4; i++) {
+    const word = padded.readUInt32LE(i * 4);
+    let term = mul(word, i % 2 === 0 ? keyA : keyB);
+    let offset = mul(rol16(word), i % 2 === 0 ? 0xEF0569FB : 0xC31713DB);
+    if (i === 0) {
+      term = (term + mul(0xF2F90B1A, factors[0])) >>> 0;
+      offset = (offset + 0x0B1A0000) >>> 0;
+    }
+    terms.push(term >>> 0);
+    offsets.push(offset >>> 0);
+  }
+
+  let swapAcc = 0;
+  let swapLast = 0;
+  let state = 0;
+  let acc = 0;
+  for (let i = 0; i < terms.length; i += 2) {
+    const x = terms[i];
+    const y = terms[i + 1];
+    let t = rol16((offsets[i] + x) >>> 0);
+    let q = mul(t, 0x76F50F34);
+    swapAcc += (mul(rol16(q), 0xC3EFEA97) + q) >>> 0;
+    t = rol16((offsets[i + 1] + y) >>> 0);
+    q = mul(t, 0x1881CE3C);
+    swapLast = (mul(rol16(q), 0x35BD1EC9) + q) >>> 0;
+    swapAcc = (swapAcc + swapLast) >>> 0;
+
+    state = (mul(state, keyA) + x) >>> 0;
+    for (const k of [0xCF98B111, 0x87085B9F, 0x12CEB96D, 0x257E1D83]) {
+      state = mul(rol16(state), k) >>> 0;
+    }
+    acc += state;
+    t = (mul(state, keyB) + y) >>> 0;
+    t = mul(rol16(t), 0xA27416F5) >>> 0;
+    t = mul(rol16(t), 0xD38396FF) >>> 0;
+    state = mul(rol16(mul(rol16(t), 0x7C932B89)), 0xBFA49F69) >>> 0;
+    acc = (acc + state) >>> 0;
+  }
+
+  const result = Buffer.allocUnsafe(8);
+  result.writeUInt32LE((swapLast ^ state) >>> 0, 0);
+  result.writeUInt32LE((swapAcc ^ acc) >>> 0, 4);
+  return result;
+}
+
+/** Sec-MS-GEC v2：CS64-SHA256 格式 */
 function generateSecMsGec(): string {
-  // 当前 Unix 时间戳（秒）
-  let ticks = Math.floor(Date.now() / 1000);
-  // 转为 Windows 文件时间（秒）
-  ticks += WIN_EPOCH_SECONDS;
-  // 向下取整到 5 分钟边界
-  ticks -= ticks % 300;
-  // 转为 100 纳秒间隔
-  ticks *= S_TO_100NS;
-  // 哈希格式: "{ticks}{TOKEN}" — 注意 TOKEN 在后面！
-  const strToHash = `${ticks}${EDGE_TTS_TOKEN}`;
-  return createHash('sha256').update(strToHash, 'ascii').digest('hex').toUpperCase();
+  const epochSeconds = BigInt(Math.floor(Date.now() / 1000)) + WIN_EPOCH_SECONDS;
+  const roundedSeconds = epochSeconds - (epochSeconds % 300n);
+  const ticks = roundedSeconds * 10000000n;
+  const data = Buffer.from(`${ticks}${EDGE_TTS_TOKEN}`, 'ascii');
+  const sha = createHash('sha256').update(PREFIX).update(data).digest();
+  return `${cs64Digest(data, sha).toString('hex').toUpperCase()}-${sha.toString('hex').toUpperCase()}`;
 }
 
 // 生成随机 MUID

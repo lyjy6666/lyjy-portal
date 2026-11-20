@@ -45,7 +45,7 @@ export function StatsPanel({ statistics }: StatsPanelProps) {
     <div className={styles.card}>
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle}>专注记录</h2>
-        <span className={styles.cardSub}>与原版番茄钟共享数据</span>
+        <span className={styles.cardSub}>兼容原版番茄钟历史数据</span>
       </div>
 
       <div className={styles.statsGrid}>

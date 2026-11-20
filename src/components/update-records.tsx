@@ -14,7 +14,15 @@ import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 
 /** 番茄钟的版本历史（越靠前越新） */
 const POMODORO_RELEASES: Release[] = [
-  { version: 'v1.0', date: '2026.4.3', latest: true, items: ['番茄钟上线了'] },
+  {
+    version: 'V2.0', date: '2026.11.20', latest: true, tag: '全新重构',
+    items: [
+      '全新重构为 LYJY 自习室：深色暖光界面、今日目标与快捷键。',
+      '计时改用绝对时间，切后台不漂移；统计按真实模式时长入账。',
+      '白噪音随专注 / 休息自动启停，任务和统计与原版数据互通。',
+    ],
+  },
+  { version: 'v1.0', date: '2026.4.3', items: ['番茄钟上线了'] },
 ];
 
 export function UpdateRecords() {

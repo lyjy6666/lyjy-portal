@@ -12,7 +12,7 @@ export const ANNIVERSARY_DAY = '2026-12-18';
 export const ARCHIVE_STATS = {
   snapshots: 36,
   playable: 13,
-  services: 23,
+  services: 22,
   peakPerDay: 150000,
   maxSnapshot: 386231,
   lines: 4,

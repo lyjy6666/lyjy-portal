@@ -100,8 +100,7 @@ export const serviceCategories: ServiceCategory[] = [
       // 刻意不设 sunset：V7.0 预告承诺「新旧两版并存，请放心使用」
       oldNote: '两版并存 · 数据互通',
     },
-    { id: 'pomodoro', name: '番茄钟', icon: 'fa-stopwatch', color: 'orange', url: '/pomodoro', desc: '专注计时、任务管理、统计' },
-    { id: 'studyroom', name: 'LYJY 自习室', icon: 'fa-book-open-reader', color: 'orange', url: '/studyroom', desc: '全新自习室：专注计时、今日计划、白噪音与记录', badge: '新版' },
+    { id: 'pomodoro', name: '番茄钟 · LYJY 自习室', icon: 'fa-book-open-reader', color: 'orange', url: '/pomodoro', desc: '全新重构：专注计时、今日计划、白噪音与记录', badge: 'V2.0' },
     { id: 'tts', name: '语音朗读', icon: 'fa-microphone-lines', color: 'pink', url: '/tts', desc: 'TTS 语音合成' },
   ] },
   { id: 'entertainment', name: '娱乐休闲', icon: 'fa-play', color: 'red', services: [
