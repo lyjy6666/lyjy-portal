@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, CalendarHeart, Newspaper, Rocket, Sparkles } from 'lucide-react';
+import { Bell, CalendarHeart, ChevronDown, Newspaper, Rocket, Sparkles, TriangleAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /**
@@ -31,6 +31,7 @@ export default function NextVersionDialog({
 }) {
   // 催更状态：idle 未点 / sending 发送中 / sent 已催更 / error 失败可重试
   const [nudge, setNudge] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   // 每次打开弹窗时读取本地「已催更」记录（每个浏览器只能点一次）
   useEffect(() => {
@@ -76,6 +77,29 @@ export default function NextVersionDialog({
       <DialogContent className="cs-dialog-pop max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[720px] bg-slate-900/95 text-white border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl">
         {/* 顶部高光条 */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+
+        {/* 暂缓更新通知 */}
+        <div className="cs-reveal cs-reveal-1 rounded-xl border border-rose-400/40 bg-rose-500/10 p-3">
+          <button
+            type="button"
+            onClick={() => setNoticeOpen((v) => !v)}
+            aria-expanded={noticeOpen}
+            className="flex w-full items-center gap-2 text-left"
+          >
+            <TriangleAlert size={15} className="shrink-0 text-rose-300" />
+            <span className="text-xs font-semibold text-rose-100">暂缓更新通知</span>
+            <span className="ml-auto flex shrink-0 items-center gap-0.5 text-[11px] text-rose-200/80">
+              查看详情
+              <ChevronDown size={13} className={`transition-transform ${noticeOpen ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
+          {noticeOpen && (
+            <p className="mt-2 border-t border-rose-400/20 pt-2 text-[11px] leading-relaxed text-rose-100/80">
+              作者近期参加科创社团比赛，周末主要投入比赛，本站更新节奏会放慢。
+              500 天纪念日仍会按时上线，AI 那边不一定，要看比赛结束后的安排。
+            </p>
+          )}
+        </div>
 
         <DialogHeader className="cs-reveal cs-reveal-1">
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
