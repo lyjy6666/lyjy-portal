@@ -12,6 +12,7 @@
  */
 
 import type { TaskContext } from './tasks';
+import { yieldToUI } from './tasks';
 
 /* ============================================================
    格式与编码器映射（这是修 WebM bug 的关键）
@@ -121,8 +122,9 @@ type FFmpegLike = {
   writeFile: (name: string, data: Uint8Array) => Promise<boolean>;
   readFile: (name: string) => Promise<Uint8Array | string>;
   deleteFile: (name: string) => Promise<boolean>;
-  on: (event: string, cb: (data: { progress: number }) => void) => void;
-  off: (event: string, cb: (data: { progress: number }) => void) => void;
+  // message 用于 log 事件（探测时长）；progress 用于进度事件
+  on: (event: string, cb: (data: { progress: number; message?: string }) => void) => void;
+  off: (event: string, cb: (data: { progress: number; message?: string }) => void) => void;
   terminate: () => void;
   loaded: boolean;
 };
@@ -260,4 +262,187 @@ export async function extractFrame(
     needsGpl: false,
   };
   return convertMedia(file, plan, ctx, ['-ss', String(Math.max(0, timeSec))]);
+}
+
+/* ============================================================
+   音频剪辑 / 拼接
+   ============================================================ */
+
+function baseName(name: string): string {
+  return name.replace(/\.[^.]+$/, '') || 'audio';
+}
+
+/** 跑一次 ffmpeg 并读回结果；所有 MEMFS 文件的清理由调用方在 finally 里负责 */
+async function executeToBlob(
+  ffmpeg: FFmpegLike,
+  args: string[],
+  outputName: string,
+  mime: string,
+  ctx: TaskContext
+): Promise<Blob> {
+  const onProgress = (e: { progress: number }) => {
+    const p = Math.max(0, Math.min(1, e.progress || 0));
+    ctx.progress(0.35 + p * 0.55, `处理中… ${Math.round(p * 100)}%`);
+  };
+
+  ffmpeg.on('progress', onProgress);
+  ctx.progress(0.3, '开始处理…');
+  try {
+    const code = await ffmpeg.exec(args);
+    if (code !== 0) {
+      throw new Error(`FFmpeg 处理失败（退出码 ${code}）。可能是源文件格式不支持或参数不匹配。`);
+    }
+    ctx.throwIfCancelled();
+    ctx.progress(0.92, '读取结果…');
+
+    const data = await ffmpeg.readFile(outputName);
+    if (typeof data === 'string') throw new Error('处理输出异常');
+    // 必须复制，MEMFS 的 buffer 在 deleteFile 后失效
+    const blob = new Blob([new Uint8Array(data)], { type: mime });
+    if (blob.size === 0) throw new Error('处理输出为空，请检查源文件是否完整');
+    ctx.progress(1, '完成');
+    return blob;
+  } finally {
+    ffmpeg.off('progress', onProgress);
+  }
+}
+
+/**
+ * 探测源音频总时长（秒）。
+ * ffmpeg 只带 -i 时会打印 Duration 并以非零码退出，这里只取日志、不关心退出码。
+ */
+async function probeDuration(
+  ffmpeg: FFmpegLike,
+  inputName: string,
+  ctx: TaskContext
+): Promise<number | null> {
+  const logs: string[] = [];
+  const onLog = (e: { progress: number; message?: string }) => {
+    if (e.message) logs.push(e.message);
+  };
+  ffmpeg.on('log', onLog);
+  try {
+    await ffmpeg.exec(['-i', inputName]);
+  } catch {
+    /* 没有输出文件时 ffmpeg 通常返回非零，忽略 */
+  } finally {
+    ffmpeg.off('log', onLog);
+  }
+  ctx.throwIfCancelled();
+
+  const m = logs.join('\n').match(/Duration:\s*(\d{1,2}):(\d{2}):(\d{2}(?:\.\d+)?)/);
+  if (!m) return null;
+  return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+export type EditAudioOptions = {
+  /** 开始秒数 */
+  startSec: number;
+  /** 不填 / 0 表示处理到结尾 */
+  durationSec?: number;
+  fadeInSec: number;
+  fadeOutSec: number;
+  format: AudioFormat;
+  bitrate: number;
+};
+
+/** 裁剪 + 淡入淡出。所有 MEMFS 文件都在 finally 里清理。 */
+export async function editAudio(
+  file: File,
+  opts: EditAudioOptions,
+  ctx: TaskContext
+): Promise<MediaConvertResult> {
+  const plan = planAudio(opts.format, opts.bitrate);
+  const ffmpeg = await loadFFmpeg(plan.needsGpl);
+
+  const inExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'bin';
+  const inputName = `edit_in.${inExt}`;
+  const outputName = `edit_out.${plan.ext}`;
+
+  ctx.progress(0.08, '写入文件…');
+  try {
+    await ffmpeg.writeFile(inputName, new Uint8Array(await file.arrayBuffer()));
+    ctx.throwIfCancelled();
+
+    const start = Math.max(0, opts.startSec || 0);
+    const fadeIn = Math.max(0, opts.fadeInSec || 0);
+    const fadeOut = Math.max(0, opts.fadeOutSec || 0);
+
+    let duration = Math.max(0, opts.durationSec || 0);
+    // 淡出必须知道结束时间；「到结尾」时先探测源时长
+    if (fadeOut > 0 && duration === 0) {
+      const sourceDuration = await probeDuration(ffmpeg, inputName, ctx);
+      if (sourceDuration === null) {
+        throw new Error('无法确定音频时长，请填写时长后再使用淡出');
+      }
+      duration = Math.max(0, sourceDuration - start);
+    }
+
+    const filters: string[] = [];
+    if (fadeIn > 0) filters.push(`afade=t=in:st=0:d=${fadeIn}`);
+    if (fadeOut > 0 && duration > 0) {
+      filters.push(`afade=t=out:st=${Math.max(0, duration - fadeOut)}:d=${fadeOut}`);
+    }
+
+    const args: string[] = ['-ss', String(start), '-i', inputName, '-vn'];
+    if (duration > 0) args.push('-t', String(duration));
+    if (filters.length) args.push('-af', filters.join(','));
+    args.push(...plan.args, outputName);
+
+    const blob = await executeToBlob(ffmpeg, args, outputName, plan.mime, ctx);
+    return { blob, filename: `${baseName(file.name)}_edit.${plan.ext}`, ext: plan.ext };
+  } finally {
+    await ffmpeg.deleteFile(inputName).catch(() => {});
+    await ffmpeg.deleteFile(outputName).catch(() => {});
+  }
+}
+
+export type ConcatAudioOptions = { format: AudioFormat; bitrate: number };
+
+/** 多段音频按顺序拼接（concat demuxer + 统一重编码，支持混合输入格式） */
+export async function concatAudio(
+  files: File[],
+  opts: ConcatAudioOptions,
+  ctx: TaskContext
+): Promise<MediaConvertResult> {
+  if (files.length < 2) throw new Error('拼接至少需要 2 个音频文件');
+  const plan = planAudio(opts.format, opts.bitrate);
+  const ffmpeg = await loadFFmpeg(plan.needsGpl);
+
+  const listName = 'concat_list.txt';
+  const outputName = `concat_out.${plan.ext}`;
+  const written: string[] = [];
+
+  ctx.progress(0.08, '写入音频…');
+  try {
+    const lines: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      ctx.throwIfCancelled();
+      ctx.progress(0.08 + (i / files.length) * 0.22, `写入第 ${i + 1}/${files.length} 个音频…`);
+      const ext =
+        files[i].name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'bin';
+      const name = `part${i}.${ext}`; // 纯 ASCII 且无引号，符合 concat list 格式
+      await ffmpeg.writeFile(name, new Uint8Array(await files[i].arrayBuffer()));
+      written.push(name);
+      lines.push(`file '${name}'`);
+      await yieldToUI();
+    }
+
+    ctx.throwIfCancelled();
+    // list 文件必须无 BOM，UTF-8
+    await ffmpeg.writeFile(listName, new TextEncoder().encode(`${lines.join('\n')}\n`));
+
+    const blob = await executeToBlob(
+      ffmpeg,
+      ['-f', 'concat', '-safe', '0', '-i', listName, '-vn', ...plan.args, outputName],
+      outputName,
+      plan.mime,
+      ctx
+    );
+    return { blob, filename: `${baseName(files[0].name)}_joined.${plan.ext}`, ext: plan.ext };
+  } finally {
+    for (const name of [...written, listName, outputName]) {
+      await ffmpeg.deleteFile(name).catch(() => {});
+    }
+  }
 }

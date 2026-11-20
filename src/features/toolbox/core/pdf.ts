@@ -9,8 +9,8 @@
  *   - **中文乱码**：旧版用 pdf.text() 配内置字体，中文全部丢失。
  *     这里提供两种中文方案（见下），让用户自己选。
  *
- * 能力边界（不做的就不写进界面）：
- *   PDF 合并 / 拆分 / 旋转 / PDF→图片 需要 pdf-lib 与 pdfjs-dist，当前未安装。
+ * 这里只负责「生成 PDF」；PDF 的合并 / 拆分 / 旋转 / 转图片 / 提取图片
+ * 在 pdfOps.ts 中实现（pdf-lib 与 pdfjs-dist 均为本地依赖）。
  */
 
 import { jsPDF } from 'jspdf';

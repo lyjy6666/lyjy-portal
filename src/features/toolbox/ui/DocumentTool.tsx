@@ -5,6 +5,16 @@ import { DropZone, Notice, ToolPanel, ToolProgress, CopyButton } from './primiti
 import { useTask } from './useTask';
 import { formatBytes } from '../core/tasks';
 import { parseCsv } from '../core/dataConvert';
+import { createZip } from '../core/compress';
+import {
+  extractEmbeddedImages,
+  mergePdfs,
+  pdfToImages,
+  rotatePdf,
+  splitPdf,
+  type RotateTarget,
+  type SplitMode,
+} from '../core/pdfOps';
 import {
   PAGE_SIZES,
   docxToHtml,
@@ -19,12 +29,27 @@ import {
   type PageSize,
 } from '../core/pdf';
 
-type Sub = 'image' | 'text' | 'table' | 'ocr' | 'docx';
+type Sub =
+  | 'image'
+  | 'text'
+  | 'table'
+  | 'ocr'
+  | 'docx'
+  | 'merge'
+  | 'split'
+  | 'rotate'
+  | 'topng'
+  | 'extract';
 
 const SUBS: { id: Sub; name: string; icon: string }[] = [
   { id: 'image', name: '图片转 PDF', icon: 'fa-images' },
   { id: 'text', name: '文本转 PDF', icon: 'fa-file-lines' },
   { id: 'table', name: '表格转 PDF', icon: 'fa-table' },
+  { id: 'merge', name: 'PDF 合并', icon: 'fa-object-group' },
+  { id: 'split', name: 'PDF 拆分', icon: 'fa-scissors' },
+  { id: 'rotate', name: 'PDF 旋转', icon: 'fa-rotate-right' },
+  { id: 'topng', name: 'PDF 转图片', icon: 'fa-file-image' },
+  { id: 'extract', name: '提取 PDF 图片', icon: 'fa-images' },
   { id: 'ocr', name: '图片识字', icon: 'fa-eye' },
   { id: 'docx', name: 'Word 转网页', icon: 'fa-file-word' },
 ];
@@ -112,6 +137,32 @@ export default function DocumentTool() {
   // DOCX
   const [docxHtml, setDocxHtml] = useState('');
   const [docxMsgs, setDocxMsgs] = useState<string[]>([]);
+
+  // PDF 合并
+  const [mergeFiles, setMergeFiles] = useState<File[]>([]);
+
+  // PDF 拆分
+  const [splitFile, setSplitFile] = useState<File | null>(null);
+  const [splitByRange, setSplitByRange] = useState(false);
+  const [splitSpec, setSplitSpec] = useState('1-3,5');
+
+  // PDF 旋转
+  const [rotateFile, setRotateFile] = useState<File | null>(null);
+  const [rotateAngle, setRotateAngle] = useState<90 | 180 | 270>(90);
+  const [rotateByRange, setRotateByRange] = useState(false);
+  const [rotateSpec, setRotateSpec] = useState('1');
+
+  // PDF 转图片
+  const [pdfImageFile, setPdfImageFile] = useState<File | null>(null);
+  const [pdfScale, setPdfScale] = useState(1.5);
+
+  // 提取 PDF 内嵌图片
+  const [extractFile, setExtractFile] = useState<File | null>(null);
+  const [extractInfo, setExtractInfo] = useState<{
+    total: number;
+    ok: number;
+    failed: number;
+  } | null>(null);
 
   return (
     <div className="space-y-4">
@@ -417,10 +468,303 @@ export default function DocumentTool() {
         </ToolPanel>
       )}
 
+      {sub === 'merge' && (
+        <ToolPanel
+          title="PDF 合并"
+          subtitle="按选择顺序把多个 PDF 拼成一个；加密或损坏的文件会明确报错，不会静默丢页"
+        >
+          <DropZone
+            accept=".pdf,application/pdf"
+            multiple
+            icon="fa-object-group"
+            onFiles={setMergeFiles}
+            hint="至少 2 个 PDF，按选择顺序合并"
+          />
+          {mergeFiles.length > 0 && (
+            <ul className="mt-3 space-y-1 text-[11px]">
+              {mergeFiles.map((f, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                  <span style={{ color: 'var(--muted-foreground)' }}>{formatBytes(f.size)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="tb-btn tb-btn-primary mt-4"
+            disabled={mergeFiles.length < 2 || state.status === 'running'}
+            onClick={async () => {
+              const blob = await run((ctx) => mergePdfs(mergeFiles, ctx));
+              if (blob) downloadBlob(blob, 'merged.pdf');
+            }}
+          >
+            <i className="fa-solid fa-object-group text-[11px]" />
+            合并 PDF
+          </button>
+          <ToolProgress state={state} onCancel={cancel} />
+        </ToolPanel>
+      )}
+
+      {sub === 'split' && (
+        <ToolPanel title="PDF 拆分" subtitle="每页一页，或按页码范围拆成多个 PDF 后打包下载">
+          <DropZone
+            accept=".pdf,application/pdf"
+            icon="fa-scissors"
+            onFiles={(f) => setSplitFile(f[0])}
+            hint="页码从 1 开始，例如 1-3,5 表示保留第 1、2、3、5 页"
+          />
+          {splitFile && (
+            <p className="mt-3 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {splitFile.name} · {formatBytes(splitFile.size)}
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {([
+              [false, '每一页一个文件'],
+              [true, '按页码范围'],
+            ] as const).map(([byRange, label]) => (
+              <button
+                key={String(byRange)}
+                type="button"
+                className="tb-btn"
+                onClick={() => setSplitByRange(byRange)}
+                style={{
+                  background: splitByRange === byRange ? 'var(--primary)' : undefined,
+                  color: splitByRange === byRange ? 'var(--primary-foreground)' : undefined,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {splitByRange && (
+            <label className="mt-3 block text-[12px]">
+              <span className="tb-label mb-1 block">页码范围</span>
+              <input
+                value={splitSpec}
+                onChange={(e) => setSplitSpec(e.target.value)}
+                className="w-full px-2 py-1.5 font-mono text-[12px] outline-none"
+                style={inputStyle}
+                placeholder="1-3,5"
+              />
+              <span className="mt-1 block text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+                范围格式错误、页码越界都会明确提示，不会拆出空白页。
+              </span>
+            </label>
+          )}
+          <button
+            type="button"
+            className="tb-btn tb-btn-primary mt-4"
+            disabled={!splitFile || state.status === 'running'}
+            onClick={async () => {
+              if (!splitFile) return;
+              const mode: SplitMode = splitByRange
+                ? { kind: 'ranges', spec: splitSpec }
+                : { kind: 'each' };
+              const zip = await run(async (ctx) => {
+                const pages = await splitPdf(splitFile, mode, ctx);
+                return createZip(pages, ctx);
+              });
+              if (zip) downloadBlob(zip, `${splitFile.name.replace(/\.pdf$/i, '')}_split.zip`);
+            }}
+          >
+            <i className="fa-solid fa-scissors text-[11px]" />
+            拆分并下载 ZIP
+          </button>
+          <ToolProgress state={state} onCancel={cancel} />
+        </ToolPanel>
+      )}
+
+      {sub === 'rotate' && (
+        <ToolPanel title="PDF 旋转" subtitle="顺时针旋转；可旋转全部页或指定页，结果直接下载单个 PDF">
+          <DropZone
+            accept=".pdf,application/pdf"
+            icon="fa-rotate-right"
+            onFiles={(f) => setRotateFile(f[0])}
+          />
+          {rotateFile && (
+            <p className="mt-3 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {rotateFile.name} · {formatBytes(rotateFile.size)}
+            </p>
+          )}
+          <p className="tb-label mb-2 mt-4">旋转角度</p>
+          <div className="flex flex-wrap gap-1.5">
+            {([90, 180, 270] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                className="tb-btn"
+                onClick={() => setRotateAngle(a)}
+                style={{
+                  background: rotateAngle === a ? 'var(--primary)' : undefined,
+                  color: rotateAngle === a ? 'var(--primary-foreground)' : undefined,
+                }}
+              >
+                {a}°
+              </button>
+            ))}
+          </div>
+          <p className="tb-label mb-2 mt-4">旋转范围</p>
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              [false, '全部页'],
+              [true, '指定页'],
+            ] as const).map(([byRange, label]) => (
+              <button
+                key={String(byRange)}
+                type="button"
+                className="tb-btn"
+                onClick={() => setRotateByRange(byRange)}
+                style={{
+                  background: rotateByRange === byRange ? 'var(--primary)' : undefined,
+                  color: rotateByRange === byRange ? 'var(--primary-foreground)' : undefined,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {rotateByRange && (
+            <label className="mt-3 block text-[12px]">
+              <span className="tb-label mb-1 block">页码范围</span>
+              <input
+                value={rotateSpec}
+                onChange={(e) => setRotateSpec(e.target.value)}
+                className="w-full px-2 py-1.5 font-mono text-[12px] outline-none"
+                style={inputStyle}
+                placeholder="1-3,5"
+              />
+            </label>
+          )}
+          <button
+            type="button"
+            className="tb-btn tb-btn-primary mt-4"
+            disabled={!rotateFile || state.status === 'running'}
+            onClick={async () => {
+              if (!rotateFile) return;
+              const target: RotateTarget = rotateByRange
+                ? { kind: 'ranges', spec: rotateSpec }
+                : { kind: 'all' };
+              const blob = await run((ctx) => rotatePdf(rotateFile, rotateAngle, target, ctx));
+              if (blob) downloadBlob(blob, `${rotateFile.name.replace(/\.pdf$/i, '')}_rotated.pdf`);
+            }}
+          >
+            <i className="fa-solid fa-rotate-right text-[11px]" />
+            旋转并下载
+          </button>
+          <ToolProgress state={state} onCancel={cancel} />
+        </ToolPanel>
+      )}
+
+      {sub === 'topng' && (
+        <ToolPanel
+          title="PDF 转图片"
+          subtitle="用本地 pdf.js 逐页渲染为 PNG；渲染引擎与 worker 都随项目部署，不请求 CDN"
+        >
+          <DropZone
+            accept=".pdf,application/pdf"
+            icon="fa-file-image"
+            onFiles={(f) => setPdfImageFile(f[0])}
+          />
+          {pdfImageFile && (
+            <p className="mt-3 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {pdfImageFile.name} · {formatBytes(pdfImageFile.size)}
+            </p>
+          )}
+          <label className="mt-4 block text-[12px]">
+            <span className="tb-label mb-1 block">渲染倍率 {pdfScale}×（越大越清晰，也越占内存）</span>
+            <input
+              type="range"
+              min={0.5}
+              max={3}
+              step={0.5}
+              value={pdfScale}
+              onChange={(e) => setPdfScale(Number(e.target.value))}
+              className="w-full"
+              style={{ accentColor: 'var(--primary)' }}
+            />
+          </label>
+          <button
+            type="button"
+            className="tb-btn tb-btn-primary mt-4"
+            disabled={!pdfImageFile || state.status === 'running'}
+            onClick={async () => {
+              if (!pdfImageFile) return;
+              const zip = await run(async (ctx) => {
+                const pages = await pdfToImages(pdfImageFile, pdfScale, ctx);
+                return createZip(pages, ctx);
+              });
+              if (zip) downloadBlob(zip, `${pdfImageFile.name.replace(/\.pdf$/i, '')}_png.zip`);
+            }}
+          >
+            <i className="fa-solid fa-file-image text-[11px]" />
+            转 PNG 并打包下载
+          </button>
+          <ToolProgress state={state} onCancel={cancel} />
+        </ToolPanel>
+      )}
+
+      {sub === 'extract' && (
+        <ToolPanel
+          title="提取 PDF 内嵌图片"
+          subtitle="提取原图（JPEG 直接导出，其余转成 PNG）；无法重建的图片会如实统计，不会假装成功"
+        >
+          <DropZone
+            accept=".pdf,application/pdf"
+            icon="fa-images"
+            onFiles={(f) => {
+              setExtractFile(f[0]);
+              setExtractInfo(null);
+            }}
+          />
+          {extractFile && (
+            <p className="mt-3 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {extractFile.name} · {formatBytes(extractFile.size)}
+            </p>
+          )}
+          <button
+            type="button"
+            className="tb-btn tb-btn-primary mt-4"
+            disabled={!extractFile || state.status === 'running'}
+            onClick={async () => {
+              if (!extractFile) return;
+              const out = await run(async (ctx) => {
+                const r = await extractEmbeddedImages(extractFile, ctx);
+                const zip = r.images.length ? await createZip(r.images, ctx) : null;
+                return { ...r, zip };
+              });
+              if (!out) return;
+              setExtractInfo({ total: out.total, ok: out.images.length, failed: out.failed });
+              if (out.zip) {
+                downloadBlob(out.zip, `${extractFile.name.replace(/\.pdf$/i, '')}_images.zip`);
+              }
+            }}
+          >
+            <i className="fa-solid fa-images text-[11px]" />
+            提取并打包下载
+          </button>
+          <ToolProgress state={state} onCancel={cancel} />
+          {extractInfo && (
+            <div className="mt-4">
+              <Notice tone={extractInfo.failed ? 'warn' : 'info'}>
+                共发现 {extractInfo.total} 张内嵌图片：成功提取 {extractInfo.ok} 张
+                {extractInfo.failed > 0 &&
+                  `，另有 ${extractInfo.failed} 张因编码方式无法在浏览器中重建而跳过（没有伪造结果）`}
+                。{extractInfo.total === 0 && '这个 PDF 没有可提取的内嵌图片。'}
+              </Notice>
+            </div>
+          )}
+        </ToolPanel>
+      )}
+
       <Notice tone="info">
-        <strong>关于 PDF 操作的范围：</strong>当前支持「生成 PDF」（图片 / 文本 / 表格）。
-        PDF 的<b>合并、拆分、旋转、转图片</b>需要 pdf-lib 与 pdfjs-dist 两个库，当前未安装，
-        所以界面上没有这些入口 —— 不做假按钮。
+        <strong>关于 PDF 操作：</strong>生成（图片 / 文本 / 表格）、合并、拆分、旋转、转 PNG、
+        提取内嵌图片均已在上方子标签中提供，全部在本地浏览器完成、文件不上传。
+        加密或损坏的 PDF 会明确报错；无法提取的内嵌图片会如实告知数量。
       </Notice>
     </div>
   );

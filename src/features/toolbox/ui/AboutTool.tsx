@@ -20,8 +20,20 @@ const CAPABILITIES: { group: string; icon: string; items: string[] }[] = [
       '多张图片合成 PDF（页边距、纸张、方向、完整放入或铺满）',
       '文本转 PDF —— 两种方案：图片渲染（中文完美）或文字版（可选中，仅英文）',
       '表格转 PDF（中文正常显示）',
+      'PDF 合并、拆分（每页一页 / 页码范围）、顺时针旋转（全部页或指定页）',
+      'PDF 逐页渲染为 PNG；提取内嵌图片，无法提取的会如实统计数量',
       '图片识字 OCR（中英文，基于 tesseract.js）',
       'Word (.docx) 转 HTML',
+    ],
+  },
+  {
+    group: '图片加工',
+    icon: 'fa-scissors',
+    items: [
+      '长图拼接：横向 / 纵向 / 网格，间距、背景色、输出宽度可调',
+      '九宫格及任意行列切图（多张 PNG 打包下载）',
+      '固定比例居中裁剪：1:1 / 4:3 / 16:9 / 9:16',
+      'EXIF 清除：canvas 重绘后回扫标记，仍带 Exif 就报错；重绘会丢掉全部元数据',
     ],
   },
   {
@@ -32,6 +44,7 @@ const CAPABILITIES: { group: string; icon: string; items: string[] }[] = [
       '格式化与压缩、解析结果预览',
       'CSV 全程按字符串处理，前导零与长数字不会丢精度',
       '解析失败会明确报错，不会给出半成品',
+      '文本批处理：正则 / 字面量替换、行去重、去空行、排序、大小写、前后缀与实时统计',
     ],
   },
   {
@@ -50,6 +63,7 @@ const CAPABILITIES: { group: string; icon: string; items: string[] }[] = [
       '视频转 MP4 / WebM / MKV / MOV / GIF（按容器选择兼容的编码器组合）',
       '提取音频并转 MP3 / WAV / AAC / OGG / FLAC',
       '抽取指定时刻的画面为 PNG',
+      '音频剪辑：裁剪、淡入淡出（afade）、多文件按顺序拼接（concat demuxer）',
       '真实进度与取消，转码结束后自动释放内存',
     ],
   },
@@ -79,10 +93,6 @@ const CAPABILITIES: { group: string; icon: string; items: string[] }[] = [
 ];
 
 const LIMITS: { item: string; why: string }[] = [
-  {
-    item: 'PDF 合并 / 拆分 / 旋转 / 转图片',
-    why: '需要 pdf-lib 与 pdfjs-dist 两个库，当前未安装。界面上没有这些入口，不做假按钮。',
-  },
   {
     item: 'PDF 文字可选中（中文）',
     why: 'PDF 内置字体不含中文，嵌入中文字体需要 5~15MB 的字体文件。所以中文用「图片渲染」方案，代价是文字不可选中。',
@@ -122,20 +132,20 @@ export default function AboutTool() {
             className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
             style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
-            V3.0.0
+            V3.1.0
           </span>
-          <span className="text-[12px] font-semibold">整体重写版</span>
+          <span className="text-[12px] font-semibold">Pro 增强版</span>
           <span className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
-            2026.10.7
+            2026.11.20
           </span>
         </div>
         <ul className="mt-3 space-y-1 text-[12px] leading-relaxed">
-          <li>· 修复全部已知计算错误：JS 压缩破坏字符串、文档转 PDF 单位混用导致内容丢失、音频假格式、WebM 必失败、假 MD5、条码识别用错库等</li>
-          <li>· 文档转 PDF 支持中文，两种方案可选（图片渲染 / 文字版）</li>
-          <li>· 音视频转换的输出格式与所选一致；进度均为真实进度</li>
-          <li>· 全部转换在本地浏览器完成，文件不上传</li>
-          <li>· 新增「做不到的事」清单，界面不再有虚假承诺</li>
-          <li>· 核心逻辑有 100+ 个自动化测试覆盖</li>
+          <li>· 新增 PDF 合并 / 拆分（每页或页码范围）/ 旋转，加密或损坏文件明确报错</li>
+          <li>· 新增 PDF 转 PNG 与内嵌图片提取，无法提取的如实统计，不伪造结果</li>
+          <li>· 新增图片加工：长图拼接、九宫格切图、固定比例裁剪、EXIF 清除（回扫确认）</li>
+          <li>· 新增音频剪辑：裁剪、淡入淡出与多文件拼接，输出 MP3 / WAV / OGG / FLAC</li>
+          <li>· 新增文本批处理：正则替换、行去重、去空行、排序、大小写、前后缀与统计</li>
+          <li>· 延续 V3.0.0 的全部修复与真实限制；新增能力同样本地处理、进度真实可取消</li>
         </ul>
       </ToolPanel>
 

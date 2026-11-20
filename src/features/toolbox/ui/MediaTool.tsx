@@ -5,8 +5,10 @@ import { DropZone, Notice, ResultCard, ToolPanel, ToolProgress } from './primiti
 import { useTask } from './useTask';
 import { formatBytes } from '../core/tasks';
 import {
+  concatAudio,
   convertMedia,
   disposeFFmpeg,
+  editAudio,
   extractAudio,
   extractFrame,
   planAudio,
@@ -15,7 +17,15 @@ import {
   type VideoFormat,
 } from '../core/media';
 
-type Mode = 'video' | 'audio' | 'frame';
+type Mode = 'video' | 'audio' | 'frame' | 'edit';
+
+/** 剪辑只用这四种真实可输出的无损/通用格式 */
+const EDIT_FORMATS: { id: AudioFormat; label: string }[] = [
+  { id: 'mp3', label: 'MP3（需 GPL 核心）' },
+  { id: 'wav', label: 'WAV' },
+  { id: 'ogg', label: 'OGG' },
+  { id: 'flac', label: 'FLAC' },
+];
 
 const VIDEO_FORMATS: { id: VideoFormat; label: string; hint: string }[] = [
   { id: 'mp4', label: 'MP4 (H.264)', hint: '兼容性最好，需要 GPL 版核心' },
@@ -42,6 +52,17 @@ export default function MediaTool() {
   const [bitrate, setBitrate] = useState(192);
   const [scale, setScale] = useState(0);
   const [frameTime, setFrameTime] = useState(1);
+
+  // 音频剪辑
+  const [editFiles, setEditFiles] = useState<File[]>([]);
+  const [editOp, setEditOp] = useState<'cut' | 'concat'>('cut');
+  const [editFormat, setEditFormat] = useState<AudioFormat>('wav');
+  const [startSec, setStartSec] = useState(0);
+  const [toEnd, setToEnd] = useState(true);
+  const [durationSec, setDurationSec] = useState(10);
+  const [fadeIn, setFadeIn] = useState(0);
+  const [fadeOut, setFadeOut] = useState(0);
+
   const [result, setResult] = useState<{ url: string; blob: Blob; name: string } | null>(null);
 
   const { state, run, cancel } = useTask();
@@ -70,29 +91,44 @@ export default function MediaTool() {
 
   const needsGpl =
     (mode === 'video' && planVideo(videoFmt, crf).needsGpl) ||
-    (mode === 'audio' && planAudio(audioFmt, bitrate).needsGpl);
+    (mode === 'audio' && planAudio(audioFmt, bitrate).needsGpl) ||
+    (mode === 'edit' && editFormat === 'mp3');
+
+  const canStart =
+    mode === 'edit'
+      ? editOp === 'concat'
+        ? editFiles.length >= 2
+        : !!file
+      : !!file;
 
   return (
     <div className="space-y-5">
       <ToolPanel title="选择文件" subtitle="全程在浏览器本地转码，文件不会上传">
         <DropZone
-          accept={mode === 'audio' ? 'audio/*,video/*' : 'video/*'}
+          accept={mode === 'video' || mode === 'frame' ? 'video/*' : 'audio/*,video/*'}
+          multiple={mode === 'edit'}
           icon="fa-film"
           onFiles={(f) => {
             setFile(f[0]);
+            setEditFiles(f);
             release();
             setResult(null);
           }}
           hint={
-            mode === 'audio'
-              ? '视频或音频都行 —— 视频会自动提取音轨'
-              : '支持 FFmpeg 能解码的常见格式；大文件受浏览器内存限制'
+            mode === 'edit'
+              ? '裁剪选 1 个；拼接可多选，按选择顺序连接'
+              : mode === 'audio'
+                ? '视频或音频都行 —— 视频会自动提取音轨'
+                : '支持 FFmpeg 能解码的常见格式；大文件受浏览器内存限制'
           }
         />
         {file && (
           <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px]">
             <span className="min-w-0 flex-1 truncate">{file.name}</span>
             <span style={{ color: 'var(--muted-foreground)' }}>{formatBytes(file.size)}</span>
+            {mode === 'edit' && editFiles.length > 1 && (
+              <span style={{ color: 'var(--muted-foreground)' }}>共 {editFiles.length} 个文件</span>
+            )}
           </div>
         )}
       </ToolPanel>
@@ -102,6 +138,7 @@ export default function MediaTool() {
           {([
             ['video', '视频转格式', 'fa-video'],
             ['audio', '提取/转换音频', 'fa-music'],
+            ['edit', '音频剪辑 / 拼接', 'fa-scissors'],
             ['frame', '抽取一帧', 'fa-camera'],
           ] as const).map(([m, label, icon]) => (
             <button
@@ -193,6 +230,149 @@ export default function MediaTool() {
             </>
           )}
 
+          {mode === 'edit' && (
+            <>
+              <div>
+                <p className="tb-label mb-2">操作</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    ['cut', '裁剪 + 淡入淡出'],
+                    ['concat', '多文件拼接'],
+                  ] as const).map(([op, label]) => (
+                    <button
+                      key={op}
+                      type="button"
+                      className="tb-btn"
+                      onClick={() => setEditOp(op)}
+                      style={{
+                        background: editOp === op ? 'var(--primary)' : undefined,
+                        color: editOp === op ? 'var(--primary-foreground)' : undefined,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {editOp === 'cut' ? (
+                <div className="flex flex-wrap items-end gap-4 text-[12px]">
+                  <label className="flex flex-col gap-1">
+                    <span className="tb-label">开始秒数</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={startSec}
+                      onChange={(e) => setStartSec(Math.max(0, Number(e.target.value)))}
+                      className="w-24 px-2 py-1.5 text-[12px] outline-none"
+                      style={{ border: 'var(--tb-border-w) solid var(--border)', borderRadius: 'var(--tb-panel-radius)', background: 'var(--card)', color: 'var(--foreground)' }}
+                    />
+                  </label>
+                  <div>
+                    <p className="tb-label mb-1">结束方式</p>
+                    <div className="flex gap-1.5">
+                      {([
+                        [true, '到结尾'],
+                        [false, '指定时长'],
+                      ] as const).map(([v, label]) => (
+                        <button
+                          key={String(v)}
+                          type="button"
+                          className="tb-btn"
+                          onClick={() => setToEnd(v)}
+                          style={{
+                            background: toEnd === v ? 'var(--primary)' : undefined,
+                            color: toEnd === v ? 'var(--primary-foreground)' : undefined,
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {!toEnd && (
+                    <label className="flex flex-col gap-1">
+                      <span className="tb-label">时长（秒）</span>
+                      <input
+                        type="number"
+                        min={0.1}
+                        step={0.1}
+                        value={durationSec}
+                        onChange={(e) => setDurationSec(Math.max(0.1, Number(e.target.value)))}
+                        className="w-24 px-2 py-1.5 text-[12px] outline-none"
+                        style={{ border: 'var(--tb-border-w) solid var(--border)', borderRadius: 'var(--tb-panel-radius)', background: 'var(--card)', color: 'var(--foreground)' }}
+                      />
+                    </label>
+                  )}
+                  <label className="flex flex-col gap-1">
+                    <span className="tb-label">淡入（秒）</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={fadeIn}
+                      onChange={(e) => setFadeIn(Math.max(0, Number(e.target.value)))}
+                      className="w-20 px-2 py-1.5 text-[12px] outline-none"
+                      style={{ border: 'var(--tb-border-w) solid var(--border)', borderRadius: 'var(--tb-panel-radius)', background: 'var(--card)', color: 'var(--foreground)' }}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="tb-label">淡出（秒）</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={fadeOut}
+                      onChange={(e) => setFadeOut(Math.max(0, Number(e.target.value)))}
+                      className="w-20 px-2 py-1.5 text-[12px] outline-none"
+                      style={{ border: 'var(--tb-border-w) solid var(--border)', borderRadius: 'var(--tb-panel-radius)', background: 'var(--card)', color: 'var(--foreground)' }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <Notice tone="info">
+                  拼接会把选中的音频<b>按选择顺序</b>连接成一段；混合格式会统一重编码到下方所选格式。
+                </Notice>
+              )}
+
+              <div>
+                <p className="tb-label mb-2 mt-4">输出格式</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {EDIT_FORMATS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className="tb-btn"
+                      onClick={() => setEditFormat(f.id)}
+                      style={{
+                        background: editFormat === f.id ? 'var(--primary)' : undefined,
+                        color: editFormat === f.id ? 'var(--primary-foreground)' : undefined,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {editFormat !== 'wav' && editFormat !== 'flac' && (
+                <label className="block text-[12px]">
+                  <span className="tb-label mb-1 block">码率 {bitrate} kbps</span>
+                  <input
+                    type="range"
+                    min={64}
+                    max={320}
+                    step={32}
+                    value={bitrate}
+                    onChange={(e) => setBitrate(Number(e.target.value))}
+                    className="w-full"
+                    style={{ accentColor: 'var(--primary)' }}
+                  />
+                </label>
+              )}
+            </>
+          )}
+
           {mode === 'frame' && (
             <label className="block text-[12px]">
               <span className="tb-label mb-1 block">在第 {frameTime} 秒抽帧</span>
@@ -216,18 +396,36 @@ export default function MediaTool() {
         <button
           type="button"
           className="tb-btn tb-btn-primary mt-4"
-          disabled={!file || state.status === 'running'}
+          disabled={!canStart || state.status === 'running'}
           onClick={async () => {
-            if (!file) return;
+            if (!canStart) return;
             release();
             setResult(null);
 
             const out = await run(async (ctx) => {
               ctx.progress(0.05, '加载 FFmpeg…');
+              if (mode === 'edit') {
+                if (editOp === 'concat') {
+                  return concatAudio(editFiles, { format: editFormat, bitrate }, ctx);
+                }
+                if (!file) throw new Error('请先选择音频');
+                return editAudio(
+                  file,
+                  {
+                    startSec,
+                    durationSec: toEnd ? undefined : durationSec,
+                    fadeInSec: fadeIn,
+                    fadeOutSec: fadeOut,
+                    format: editFormat,
+                    bitrate,
+                  },
+                  ctx
+                );
+              }
+              if (!file) throw new Error('请先选择文件');
               if (mode === 'video') {
                 const plan = planVideo(videoFmt, crf, scale || undefined);
-                const r = await convertMedia(file, plan, ctx);
-                return r;
+                return convertMedia(file, plan, ctx);
               }
               if (mode === 'audio') {
                 return extractAudio(file, audioFmt, bitrate, ctx);

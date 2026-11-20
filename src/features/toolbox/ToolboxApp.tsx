@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
  * （FFmpeg、tesseract、jsPDF、@zxing），不能进首屏。
  */
 const ImageTool = dynamic(() => import('./ui/ImageTool'), { ssr: false });
+const ImageExtraTool = dynamic(() => import('./ui/ImageExtraTool'), { ssr: false });
 const DataTool = dynamic(() => import('./ui/DataTool'), { ssr: false });
 const CodeTool = dynamic(() => import('./ui/CodeTool'), { ssr: false });
 const CompressTool = dynamic(() => import('./ui/CompressTool'), { ssr: false });
@@ -29,6 +30,12 @@ export type ToolTab = {
 
 export const TABS: ToolTab[] = [
   { id: 'image', name: '图片', icon: 'fa-image', desc: '格式互转、缩放、旋转、批量、压缩' },
+  {
+    id: 'image-extra',
+    name: '图片加工',
+    icon: 'fa-scissors',
+    desc: '长图拼接、九宫格切图、固定比例裁剪、EXIF 清除',
+  },
   { id: 'document', name: '文档', icon: 'fa-file-lines', desc: '图片/文本/表格转 PDF、PDF 处理、OCR' },
   { id: 'data', name: '文本数据', icon: 'fa-table', desc: 'JSON / YAML / TOML / XML / CSV 互转' },
   { id: 'code', name: '代码', icon: 'fa-code', desc: '格式化与安全压缩' },
@@ -143,6 +150,8 @@ function TabContent({ tab }: { tab: string }) {
   switch (tab) {
     case 'image':
       return <ImageTool />;
+    case 'image-extra':
+      return <ImageExtraTool />;
     case 'document':
       return <DocumentTool />;
     case 'data':
