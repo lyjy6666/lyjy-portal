@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireHomeworkUser } from '@/lib/homeworkAuth';
+import {
+  recognizeImage,
+  isEmptyText,
+  friendlyVisionMessage,
+  VISION_CHAIN,
+} from '@/lib/aiChain';
 
-// 智谱 GLM-4V-Flash（永久免费多模态视觉模型，OCR 准确率远高于 tesseract.js）
-const API_KEY = '4a11e71ff94a4534ac0126fe4ca0851d.P3s9sA1aB25cIb6u';
-const BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
-const MODEL = 'glm-4v-flash';
-
-// GLM-4V-Flash 限制：单张图片 5MB 以下，像素不超过 6000*6000
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+// 单张图片 5MB 以下
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const OCR_PROMPT = `你是一个高精度的 OCR 识别引擎。请仔细识别图片中的所有文字内容，包括题目、学生作答、标点符号、数学符号、公式等。
 
@@ -19,95 +21,69 @@ const OCR_PROMPT = `你是一个高精度的 OCR 识别引擎。请仔细识别�
 6. 只输出识别到的文字内容，不要添加任何解释、说明或额外格式
 7. 如果图片中没有文字，请回复"未识别到文字"`;
 
+/** 未配置任何识别通道时给前端的统一回复 */
+function unavailable(message: string) {
+  return NextResponse.json(
+    { success: false, code: 'VISION_UNAVAILABLE', message, fallback: 'manual' },
+    { status: 200 },
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { image } = await request.json();
-
-    if (!image || typeof image !== 'string') {
-      return NextResponse.json(
-        { success: false, message: '请提供图片数据' },
-        { status: 400 }
-      );
+    if (!requireHomeworkUser(request)) {
+      return NextResponse.json({ success: false, message: '请先登录后再使用图片识别' }, { status: 401 });
     }
 
-    // 校验 base64 图片前缀
-    if (!image.startsWith('data:image/')) {
-      return NextResponse.json(
-        { success: false, message: '图片格式错误，请上传有效的图片' },
-        { status: 400 }
-      );
+    if (!VISION_CHAIN.some((m) => Boolean(m.apiKey))) {
+      return unavailable('图片识别通道尚未配置，可直接输入文字');
     }
 
-    // 校验图片大小（base64 字符串长度约为实际字节数的 4/3）
+    const body = await request.json();
+    const { image, fast } = body;
+    if (!image || typeof image !== 'string' || !image.startsWith('data:image/')) {
+      return NextResponse.json({ success: false, message: '请上传有效的图片' }, { status: 400 });
+    }
     const base64Data = image.split(',')[1] || '';
-    const estimatedBytes = Math.floor(base64Data.length * 3 / 4);
+    const estimatedBytes = Math.floor((base64Data.length * 3) / 4);
     if (estimatedBytes > MAX_IMAGE_BYTES) {
       return NextResponse.json(
         {
           success: false,
           message: `图片太大（${(estimatedBytes / 1024 / 1024).toFixed(1)}MB），请上传 5MB 以下的图片`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: OCR_PROMPT },
-              { type: 'image_url', image_url: { url: image } },
-            ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 1024,
-      }),
-    });
+    // 默认：Agnes 3.0 → Agnes 2.5 → GLM 4.6V → GLM-4V（稳，但慢）
+    // 快速模式：GLM 4.6V → Agnes 2.5 → Agnes 3.0（快，约 1 秒出字）
+    const result = await recognizeImage(image, { prompt: OCR_PROMPT, maxTokens: 2048, fast: fast === true });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('GLM-4V OCR API error:', response.status, errText);
-      // 解析智谱 API 的错误信息，返回给前端更有用的提示
-      let detail = `OCR 服务暂时不可用（${response.status}）`;
-      try {
-        const errJson = JSON.parse(errText);
-        if (errJson.error?.message) {
-          detail = errJson.error.message;
-        }
-      } catch {}
-      return NextResponse.json(
-        { success: false, message: detail },
-        { status: 500 }
-      );
+    if (result.ok) {
+      if (isEmptyText(result.text)) {
+        return NextResponse.json({
+          success: false,
+          message: '未识别到文字，请上传包含清晰文字的图片',
+          model: result.model,
+        });
+      }
+      // 记录一下是否降级过，方便线上排查到底哪条通道在跑
+      if (result.attempts.length > 1) {
+        console.warn(
+          `[ocr] 已降级到 ${result.model}；失败通道：${result.attempts
+            .filter((a) => !a.ok)
+            .map((a) => `${a.id}(${a.status || a.reason || 'err'})`)
+            .join(', ')}`,
+        );
+      }
+      return NextResponse.json({ success: true, text: result.text, model: result.model });
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content?.trim() || '';
-
-    if (!text || text === '未识别到文字') {
-      return NextResponse.json({
-        success: false,
-        message: '未识别到文字，请上传包含清晰文字的图片',
-      });
-    }
-
-    return NextResponse.json({ success: true, text });
+    // 全部通道失败：不透传上游原文（避免出现「余额不足」这类误导文案）
+    return unavailable(friendlyVisionMessage(result.lastStatus, result.lastRaw));
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'OCR 识别失败';
     console.error('Homework OCR error:', error);
-    return NextResponse.json(
-      { success: false, message },
-      { status: 500 }
-    );
+    return unavailable('图片识别暂时不可用，请直接输入文字');
   }
 }
-

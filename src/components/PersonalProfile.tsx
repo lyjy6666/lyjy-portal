@@ -10,38 +10,50 @@ interface PersonalProfileProps {
 const timelineData = [
   {
     year: '2011',
-    title: '出生',
-    description: '来到这个世界，开启人生旅程',
+    title: '来到深圳',
+    description: '出生在深圳，之后的故事基本都从这里开始。',
     icon: 'fa-solid fa-baby',
   },
   {
     year: '2017',
-    title: '步入小学',
-    description: '开始正式的学习生涯',
+    title: '开始上学',
+    description: '背上书包，正式成为一名小学生。',
     icon: 'fa-solid fa-school',
   },
   {
     year: '2019',
-    title: '接触编程',
-    description: '发现编程的乐趣，开始学习前端开发',
+    title: '第一次写代码',
+    description: '偶然接触编程，从改网页代码开始，后来就一直写了下去。',
     icon: 'fa-solid fa-code',
   },
   {
     year: '2023',
-    title: '升入初中',
-    description: '进入一所新学校，开启初中生活',
-    icon: 'fa-solid fa-graduation-cap',
+    title: '做出第一个网页',
+    description: '不再照着教程抄，第一次做出能发给别人打开的页面。',
+    icon: 'fa-solid fa-laptop-code',
   },
   {
     year: '2025',
-    title: '搭建个人主页',
-    description: '创建属于自己的个人网站',
+    title: '个人主页上线',
+    description: '把做过的东西整理成一个网站，也算有了自己的角落。',
     icon: 'fa-solid fa-globe',
   },
   {
+    year: '2026',
+    title: '升入高中',
+    description: '换了新的学校，节奏变快，能自由折腾的时间反而更珍贵。',
+    icon: 'fa-solid fa-graduation-cap',
+  },
+  {
+    year: '2026 年末',
+    title: '科创社团',
+    description: '加入科创社团，认识了一群同样喜欢动手做事的人。',
+    icon: 'fa-solid fa-users',
+  },
+  {
     year: '未来',
-    title: '继续前行',
-    description: '追逐梦想，成为更好的自己',
+    title: '继续写下去',
+    description: '还没想好最终会做成什么样，先把眼前的事一件件做完。',
     icon: 'fa-solid fa-rocket',
   },
 ];
@@ -112,10 +124,10 @@ export default function PersonalProfile({ isOpen, onClose }: PersonalProfileProp
   // 打字完成后的处理
   const handleTypingComplete = useCallback(() => {
     setPhase('waiting');
-    // 等待3秒后显示时间线
+    // 稍停一下再显示时间线
     setTimeout(() => {
       setPhase('timeline');
-    }, 3000);
+    }, 1200);
   }, []);
 
   // 逐个显示时间线节点
@@ -124,7 +136,7 @@ export default function PersonalProfile({ isOpen, onClose }: PersonalProfileProp
       timelineData.forEach((_, index) => {
         setTimeout(() => {
           setVisibleNodes(prev => [...prev, index]);
-        }, index * 600); // 每个节点间隔600ms
+        }, index * 420); // 每个节点间隔 420ms
       });
     }
   }, [phase]);
@@ -169,9 +181,9 @@ export default function PersonalProfile({ isOpen, onClose }: PersonalProfileProp
                 </h2>
                 <div className="text-white/90 text-lg leading-relaxed min-h-[3rem]">
                   <TypewriterText 
-                    text="你好！我是来自深圳市罗湖区的一名初三学生，今年15岁，男生。" 
+                    text="你好！我是来自深圳市罗湖区的一名高一学生，今年15岁，男生。"
                     delay={300}
-                    speed={60}
+                    speed={50}
                     onComplete={handleTypingComplete}
                   />
                 </div>

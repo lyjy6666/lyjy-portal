@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// 智谱 GLM-4-Flash（永久免费，稳定）
-const API_KEY = '4a11e71ff94a4534ac0126fe4ca0851d.P3s9sA1aB25cIb6u';
-const BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
-const MODEL = 'glm-4-flash';
+import { requireHomeworkUser } from '@/lib/homeworkAuth';
+import { chatText, TEXT_CHAIN } from '@/lib/aiChain';
 
 const GRADE_PROMPT = `你是一位经验丰富的{subject}{grade}教师，现在要批改学生提交的作业内容（已通过 OCR 识别为文本）。
 
@@ -42,7 +39,15 @@ const GRADE_PROMPT = `你是一位经验丰富的{subject}{grade}教师，现在
 
 export async function POST(request: NextRequest) {
   try {
-    const { ocrText, subject, grade } = await request.json();
+    // 挡住匿名调用刷 Key；Pro 版用验签 Bearer，原版用 X-User-Id，双头兼容
+    if (!requireHomeworkUser(request)) {
+      return NextResponse.json({ success: false, message: '请先登录后再使用 AI 批改' }, { status: 401 });
+    }
+    if (!TEXT_CHAIN.some((m) => Boolean(m.apiKey))) {
+      return NextResponse.json({ success: false, message: 'AI 批改通道尚未配置' }, { status: 503 });
+    }
+
+    const { ocrText, subject, grade, weak } = await request.json();
 
     if (!ocrText || typeof ocrText !== 'string' || !ocrText.trim()) {
       return NextResponse.json(
@@ -51,36 +56,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 学习画像里的薄弱项：命中时多讲基础、多出同类基础题
+    const weakList: string[] = Array.isArray(weak)
+      ? weak.filter((x: unknown) => typeof x === 'string' && x.trim()).slice(0, 12).map((x: string) => x.trim())
+      : [];
+    const weakHint = weakList.length
+      ? `\n6. 该生的薄弱项是：${weakList.join('、')}。若本次批改的科目属于薄弱项，解析要更基础、步骤更细，相似题以基础巩固题为主。`
+      : '';
+
     const prompt = GRADE_PROMPT
       .replace('{subject}', subject || '数学')
       .replace('{grade}', grade || '小学')
-      .replace('{content}', ocrText);
+      .replace('{content}', ocrText)
+      .replace('5. 给出整体点评', `5. 给出整体点评${weakHint}`);
 
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        max_tokens: 1024,
-      }),
+    // 模型链：GLM → Agnes 自动降级；上游原文只进日志，不透传给用户
+    const ai = await chatText([{ role: 'user', content: prompt }], {
+      timeoutMs: 60_000,
+      maxTokens: 4096,
+      temperature: 0.2,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Zhipu API error:', response.status, errText);
+    if (!ai.ok) {
+      console.error('Grade AI unavailable:', ai.lastStatus, ai.attempts.map((a) => `${a.id}:${a.status || a.reason}`).join(','));
       return NextResponse.json(
-        { success: false, message: `AI 服务暂时不可用（${response.status}）` },
-        { status: 500 }
+        { success: false, message: 'AI 批改服务暂时繁忙，请稍后重试一次' },
+        { status: 200 },
       );
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content?.trim() || '';
+    const text = ai.text;
 
     // 提取 JSON
     let jsonStr = text;
@@ -98,16 +103,11 @@ export async function POST(request: NextRequest) {
     try {
       result = JSON.parse(jsonStr);
     } catch {
+      // 不能把解析失败伪装成「全部正确」，否则用户会以为作业没问题
       return NextResponse.json({
-        success: true,
-        result: {
-          totalQuestions: 0,
-          correctCount: 0,
-          wrongCount: 0,
-          problems: [],
-          overallComment: 'AI 返回格式异常，原始内容：\n' + text,
-        },
-      });
+        success: false,
+        message: 'AI 批改结果格式异常，请重试一次',
+      }, { status: 502 });
     }
 
     result.totalQuestions = Number(result.totalQuestions) || 0;

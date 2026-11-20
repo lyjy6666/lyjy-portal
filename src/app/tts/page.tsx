@@ -9,12 +9,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles, Download, SlidersHorizontal, Volume2 } from 'lucide-react';
 import AudioEditor from '@/components/AudioEditor';
+import { VersionHistoryDialog } from '@/components/VersionHistoryDialog';
+import type { Release } from '@/components/UpdateTimeline';
 import AuthDialog from '@/components/tts/AuthDialog';
 import VipPricingDialog from '@/components/tts/VipPricingDialog';
 import type { TtsUser } from '@/components/tts/types';
+import { getAudio, putAudio, deleteAudio, clearAudio } from './lib/audioCache';
+import { exportMixedWav } from './lib/audioMix';
 import { createWorker } from 'tesseract.js';
+
+/** 语音朗读版本历史：越靠前越新 */
+const TTS_RELEASES: Release[] = [
+  {
+    version: 'V3.0', date: '2026.11.20', latest: true, tag: '功能更新',
+    items: [
+      '修复 Edge TTS 鉴权令牌升级到 v2 后的 403，恢复在线合成，不再误降级到浏览器语音。',
+      '新增一键下载 MP3，生成后可直接保存音频。',
+      '新增语音 + 背景音乐混音导出 WAV，按当前音量与播放位置合成。',
+      '历史音频缓存到本机 IndexedDB，恢复历史不必重新生成。',
+      'Edge 合成失败时自动降级浏览器自带语音；登录改为加盐密码存储并加失败限流。',
+    ],
+  },
+  { version: 'V2.2', date: '2026.10.7', items: ['音色扩充到 14 种，按普通话、粤语与台湾口音分组', '补充背景音乐上传与独立音量控制'] },
+  { version: 'V2.1', date: '2026.8.16', items: ['新增图片 OCR 识别后朗读', '新增长文本模式，上限 10000 字'] },
+  { version: 'V2.0', date: '2026.7.16', items: ['语音朗读系统上线：Edge 神经语音、语速调节、生成历史与音频编辑器'] },
+];
 
 const VOICE_OPTIONS = {
   '普通话·女声': [
@@ -52,6 +73,8 @@ interface HistoryItem {
   voiceLabel: string;
   speechRate: number;
   createdAt: number;
+  // 旧历史项没有此字段，按 edge-tts 处理
+  mode?: 'edge-tts' | 'web-speech';
 }
 
 const HISTORY_STORAGE_KEY = 'tts_history';
@@ -128,6 +151,8 @@ export default function NewsReaderPage() {
   const [duration, setDuration] = useState(0);
   // 当前 TTS 模式：'edge-tts'（高质量神经语音）| 'web-speech'（浏览器降级）| null
   const [ttsMode, setTtsMode] = useState<'edge-tts' | 'web-speech' | null>(null);
+  // 混音导出中
+  const [isMixing, setIsMixing] = useState(false);
 
   // 登录与 VIP 状态
   const [user, setUser] = useState<TtsUser | null>(null);
@@ -277,6 +302,92 @@ export default function NewsReaderPage() {
     setUser(u);
   };
 
+  // 浏览器原生语音降级：纯前端，不依赖后端、不校验登录、不重试 Edge API
+  const speakWithBrowser = (content: string): boolean => {
+    if (
+      typeof window === 'undefined' ||
+      !('speechSynthesis' in window) ||
+      !('SpeechSynthesisUtterance' in window)
+    ) {
+      setError('当前浏览器不支持语音合成，无法降级朗读');
+      return false;
+    }
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    // 按当前音色推断目标语言，尽量匹配系统里的中文语音
+    const targetLang =
+      voice.startsWith('hiu') || voice === 'wanlung'
+        ? 'zh-HK'
+        : voice.startsWith('hsiao') || voice === 'yunjhe'
+          ? 'zh-TW'
+          : 'zh-CN';
+    const voices = synth.getVoices();
+    const match =
+      voices.find((v) => v.lang.replace('_', '-').toLowerCase().startsWith(targetLang.toLowerCase())) ||
+      voices.find((v) => v.lang.toLowerCase().startsWith('zh'));
+
+    const utterance = new SpeechSynthesisUtterance(content);
+    if (match) utterance.voice = match;
+    utterance.lang = match?.lang || targetLang;
+    // 现有 speechRate 范围 -50~50 → 0.5~1.5 倍速
+    utterance.rate = Math.max(0.5, Math.min(1.5, 1 + speechRate / 100));
+    utterance.pitch = 1;
+    utterance.volume = Math.max(0, Math.min(1, voiceVolume / 100));
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setIsVoiceEnded(false);
+    };
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setIsVoiceEnded(true);
+      stopBgmIfAny();
+    };
+    utterance.onerror = (e) => {
+      // 主动 cancel / 切模式时浏览器会报 canceled、interrupted，属正常
+      if (e.error !== 'canceled' && e.error !== 'interrupted') {
+        setError('浏览器语音播放失败，请重试');
+      }
+      setIsPlaying(false);
+    };
+    synth.speak(utterance);
+    return true;
+  };
+
+  // 浏览器自动播放策略：在用户点击的同步栈里"解锁"音频，否则 await 网络请求后再 play() 会被拦截，
+  // 表现就是界面显示"播放中"却一点声音都没有。这里在手势内 resume AudioContext + 播一段静音 WAV。
+  const unlockAudioPlayback = () => {
+    if (typeof window === 'undefined') return;
+    // Web Audio：解除页面级 autoplay 限制
+    try {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (Ctx) {
+        const ctx = new Ctx();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        void ctx.resume().catch(() => {});
+      }
+    } catch {
+      /* 不支持 Web Audio 时，退回静音媒体播放 */
+    }
+    // HTMLAudio：兼容只按媒体元素判断 autoplay 的浏览器
+    try {
+      const silent = new Audio(
+        'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQ4AAAD//wAAAAAAAAAAAAAAAAAAAAA='
+      );
+      silent.volume = 0;
+      void silent.play().catch(() => {});
+    } catch {
+      /* 忽略 */
+    }
+  };
+
   const handleOcr = async (file: File) => {
     // 图片识别：内测期间登录即可使用
     if (!requireVip()) return;
@@ -320,6 +431,8 @@ export default function NewsReaderPage() {
   };
 
   const handleGenerate = async () => {
+    // 必须在用户点击的同步调用栈里解锁音频，下面 await 网络请求后再 play() 才不会被自动播放策略拦截
+    unlockAudioPlayback();
     if (!text.trim()) {
       setError('请输入要朗读的文本');
       return;
@@ -340,32 +453,80 @@ export default function NewsReaderPage() {
     setCurrentTime(0);
     setDuration(0);
     setTtsMode(null);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
 
     try {
-      // 调用 Edge TTS 后端生成高质量神经语音
-      const response = await fetch('/api/tts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice, speechRate }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success || !data.audioUrl) {
-        throw new Error(data.error || '语音生成失败，请稍后重试');
+      // 先尝试 Edge TTS；网络失败 / 非 2xx / 无 audioUrl 一律自动降级，不重试、不弹错
+      let edgeAudioUrl: string | null = null;
+      try {
+        const response = await fetch('/api/tts/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice, speechRate }),
+        });
+        let data: { success?: boolean; audioUrl?: string } | null = null;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+        if (
+          response.ok &&
+          data?.success &&
+          typeof data.audioUrl === 'string' &&
+          data.audioUrl.startsWith('data:audio/')
+        ) {
+          edgeAudioUrl = data.audioUrl;
+        }
+      } catch {
+        // 网络层失败：交给下面的降级分支
       }
 
-      setVoiceUrl(data.audioUrl);
-      setTtsMode('edge-tts');
-      if (voiceAudioRef.current) {
-        voiceAudioRef.current.src = data.audioUrl;
-        voiceAudioRef.current.volume = voiceVolume / 100;
+      const newItem: HistoryItem = {
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
+        text,
+        voice,
+        voiceLabel: getVoiceLabel(voice),
+        speechRate,
+        createdAt: Date.now(),
+        mode: edgeAudioUrl ? 'edge-tts' : 'web-speech',
+      };
+
+      if (edgeAudioUrl) {
+        setVoiceUrl(edgeAudioUrl);
+        setTtsMode('edge-tts');
+        if (voiceAudioRef.current) {
+          voiceAudioRef.current.src = edgeAudioUrl;
+          voiceAudioRef.current.volume = voiceVolume / 100;
+          voiceAudioRef.current.load();
+        }
+        setIsVoiceEnded(false);
+        // 如实反映播放状态：成功才算"播放中"，失败给出可见提示而不是静默假装播放
+        let started = false;
+        if (voiceAudioRef.current) {
+          try {
+            await voiceAudioRef.current.play();
+            started = true;
+            setIsPlaying(true);
+          } catch {
+            started = false;
+          }
+        }
+        if (!started) {
+          setError('浏览器拦截了自动播放，请点击中间的播放按钮开始朗读');
+          setIsPlaying(false);
+        }
+        // 音频缓存失败不影响主流程（内部已静默降级）
+        void putAudio(newItem.id, edgeAudioUrl);
+      } else {
+        if (!speakWithBrowser(text)) return;
+        setVoiceUrl(null);
+        setTtsMode('web-speech');
+        setIsVoiceEnded(false);
       }
-      setIsVoiceEnded(false);
-      if (voiceAudioRef.current) {
-        await voiceAudioRef.current.play();
-        setIsPlaying(true);
-      }
+
       // 仅当背景音乐开关开启时才自动播放 BGM
       if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
         bgmAudioRef.current.currentTime = 0;
@@ -374,15 +535,6 @@ export default function NewsReaderPage() {
       }
       setTimeout(() => setShowAlert(true), 100);
 
-      // 添加到历史记录
-      const newItem: HistoryItem = {
-        id: Date.now().toString() + Math.random().toString(36).slice(2, 8),
-        text,
-        voice,
-        voiceLabel: getVoiceLabel(voice),
-        speechRate,
-        createdAt: Date.now(),
-      };
       const updated = [newItem, ...history].slice(0, MAX_HISTORY);
       setHistory(updated);
       saveHistory(updated);
@@ -394,10 +546,24 @@ export default function NewsReaderPage() {
   };
 
   const togglePlay = () => {
-    if (!voiceUrl) return;
+    if (!voiceUrl && ttsMode !== 'web-speech') return;
     setShowAlert(false);
 
-    // Edge TTS 模式（唯一模式）
+    // 浏览器原生语音降级模式：用 speechSynthesis 的 pause/resume/speak 控制
+    if (ttsMode === 'web-speech') {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+      if (isPlaying) {
+        window.speechSynthesis.pause();
+        setIsPlaying(false);
+      } else if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        setIsPlaying(true);
+      } else {
+        speakWithBrowser(text);
+      }
+      return;
+    }
+
     if (!voiceAudioRef.current) return;
     if (isPlaying) {
       voiceAudioRef.current.pause();
@@ -409,7 +575,10 @@ export default function NewsReaderPage() {
         voiceAudioRef.current.currentTime = 0;
         setIsVoiceEnded(false);
       }
-      voiceAudioRef.current.play();
+      void voiceAudioRef.current.play().catch(() => {
+        setError('播放失败，请再点一次播放按钮');
+        setIsPlaying(false);
+      });
       setIsPlaying(true);
       // 仅当背景音乐开关开启时才同步播放 BGM
       if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
@@ -435,30 +604,59 @@ export default function NewsReaderPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 恢复历史记录的文本和设置
-  const restoreHistory = (item: HistoryItem) => {
+  // 恢复历史：优先读本地缓存直接播放，不再请求 Edge TTS；无缓存则只恢复文本与设置
+  const restoreHistory = async (item: HistoryItem) => {
     setText(item.text);
     setVoice(item.voice);
     setSpeechRate(item.speechRate);
     setVoiceUrl(null);
     setIsPlaying(false);
+    setIsVoiceEnded(false);
     setError(null);
     setShowHistory(false);
-    // 滚动到顶部
+    setTtsMode(null);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const cached = await getAudio(item.id);
+    if (!cached) return;
+
+    setVoiceUrl(cached);
+    setTtsMode('edge-tts');
+    if (voiceAudioRef.current) {
+      voiceAudioRef.current.src = cached;
+      voiceAudioRef.current.volume = voiceVolume / 100;
+      voiceAudioRef.current.currentTime = 0;
+      try {
+        await voiceAudioRef.current.play();
+        setIsPlaying(true);
+      } catch {
+        // 自动播放被拦截时保留"点击播放"状态，用户可手动播放
+      }
+    }
+    setIsVoiceEnded(false);
+    if (bgmEnabled && bgmAudioRef.current && bgmUrl) {
+      bgmAudioRef.current.currentTime = 0;
+      bgmAudioRef.current.play().catch(() => {});
+      setIsBgmPlaying(true);
+    }
   };
 
-  // 删除单条历史
+  // 删除单条历史（同步清理音频缓存）
   const deleteHistoryItem = (id: string) => {
     const updated = history.filter((h) => h.id !== id);
     setHistory(updated);
     saveHistory(updated);
+    void deleteAudio(id);
   };
 
-  // 清空全部历史
+  // 清空全部历史（同步清空音频缓存）
   const clearAllHistory = () => {
     setHistory([]);
     saveHistory([]);
+    void clearAudio();
   };
 
   const toggleBgmPlay = () => {
@@ -480,6 +678,45 @@ export default function NewsReaderPage() {
     if (file && file.type.startsWith('audio/')) {
       setBgmUrl(URL.createObjectURL(file));
       setError(null);
+    }
+  };
+
+  // 一键下载 MP3：使用现成的 data URL，不额外请求后端
+  const handleDownloadMp3 = () => {
+    if (!voiceUrl || ttsMode !== 'edge-tts') return;
+    const a = document.createElement('a');
+    a.href = voiceUrl;
+    a.download = `tts_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // 语音 + 背景音乐真混音导出 WAV
+  const handleExportMix = async () => {
+    if (!voiceUrl || ttsMode !== 'edge-tts' || !bgmUrl) return;
+    setIsMixing(true);
+    setError(null);
+    try {
+      const blob = await exportMixedWav({
+        voiceUrl,
+        bgmUrl,
+        voiceVolume,
+        bgmVolume,
+        startSec: voiceAudioRef.current?.currentTime || 0,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tts_mixed_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '混音导出失败');
+    } finally {
+      setIsMixing(false);
     }
   };
 
@@ -838,6 +1075,37 @@ export default function NewsReaderPage() {
                 max={100}
                 className="[&_[role=slider]]:bg-purple-400"
               />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  try {
+                    const ACtor =
+                      window.AudioContext ||
+                      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                    const ctx = new ACtor();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.75);
+                    osc.onended = () => { void ctx.close().catch(() => {}); };
+                  } catch {
+                    setError('当前浏览器无法播放测试音');
+                  }
+                }}
+                className="mt-3 h-8 w-full border-white/20 bg-white/5 text-xs text-white hover:border-purple-400/50 hover:bg-white/10"
+              >
+                <Volume2 className="mr-1.5 h-3.5 w-3.5" />
+                试听测试音（检查浏览器是否静音）
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -866,7 +1134,7 @@ export default function NewsReaderPage() {
         {/* 朗读预览 - 带闪烁光环效果 */}
         <div
           ref={audioAreaRef}
-          className={`transition-all duration-500 ${voiceUrl ? 'translate-y-0 opacity-100 max-h-[400px]' : 'translate-y-4 opacity-0 max-h-0 overflow-hidden'}`}
+          className={`transition-all duration-500 ${voiceUrl || ttsMode === 'web-speech' ? 'translate-y-0 opacity-100 max-h-[520px]' : 'translate-y-4 opacity-0 max-h-0 overflow-hidden'}`}
         >
           <Card className={`bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ${showAlert ? 'ring-4 ring-purple-500/50 animate-pulse shadow-purple-500/30 shadow-2xl' : ''}`}>
             <div className={`h-1 transition-all duration-300 ${showAlert ? 'bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 animate-pulse' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`} />
@@ -875,8 +1143,8 @@ export default function NewsReaderPage() {
                 <Button
                   onClick={togglePlay}
                   size="icon"
-                  disabled={!voiceUrl}
-                  className={`w-14 h-14 rounded-full transition-all duration-300 ${voiceUrl ? 'bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/30 hover:scale-110' : 'bg-white/20 cursor-not-allowed'} ${showAlert ? 'animate-bounce scale-110 ring-4 ring-white/30' : ''}`}
+                  disabled={!voiceUrl && ttsMode !== 'web-speech'}
+                  className={`w-14 h-14 rounded-full transition-all duration-300 ${voiceUrl || ttsMode === 'web-speech' ? 'bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/30 hover:scale-110' : 'bg-white/20 cursor-not-allowed'} ${showAlert ? 'animate-bounce scale-110 ring-4 ring-white/30' : ''}`}
                 >
                   {isPlaying ? (
                     <Pause className="w-6 h-6" />
@@ -887,7 +1155,7 @@ export default function NewsReaderPage() {
                 <div className="text-center">
                   <div className="text-white font-medium">语音朗读</div>
                   <div className="text-white/50 text-sm">
-                    {isVoiceEnded ? '播放完成' : isPlaying ? '播放中...' : voiceUrl ? '点击播放' : '生成后显示'}
+                    {ttsMode === 'web-speech' ? '浏览器自带语音' : isVoiceEnded ? '播放完成' : isPlaying ? '播放中...' : voiceUrl ? '点击播放' : '生成后显示'}
                   </div>
                 </div>
                 <div className={`w-3 h-3 rounded-full transition-all duration-300 ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-white/30'}`} />
@@ -905,13 +1173,44 @@ export default function NewsReaderPage() {
                   onPointerUp={() => { isDraggingRef.current = false; }}
                   max={duration || 1}
                   step={0.1}
-                  disabled={!voiceUrl || duration === 0}
+                  disabled={!voiceUrl || duration === 0 || ttsMode === 'web-speech'}
                   className="flex-1 [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-purple-500 [&_[role=slider]]:to-cyan-500 [&_[role=slider]]:border-white"
                 />
                 <span className="text-white/60 text-xs font-mono w-12">
                   {formatTime(duration)}
                 </span>
               </div>
+
+              {/* 导出操作：下载 MP3 / 语音+BGM 混音 WAV */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadMp3}
+                  disabled={!voiceUrl || ttsMode !== 'edge-tts'}
+                  title={ttsMode === 'web-speech' ? '浏览器原生语音无法导出音频' : !voiceUrl ? '请先生成语音' : '下载 Edge TTS 生成的 MP3'}
+                  className="h-9 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-purple-400/50 disabled:opacity-40"
+                >
+                  <Download className="w-4 h-4 mr-1.5" />
+                  下载 MP3
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportMix}
+                  disabled={!voiceUrl || ttsMode !== 'edge-tts' || !bgmUrl || isMixing}
+                  title={ttsMode === 'web-speech' ? '浏览器原生语音无法导出音频' : !bgmUrl ? '请先准备背景音乐' : '按当前音量与播放位置混入背景音乐'}
+                  className="h-9 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-cyan-400/50 disabled:opacity-40"
+                >
+                  {isMixing ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <SlidersHorizontal className="w-4 h-4 mr-1.5" />}
+                  导出混音 WAV
+                </Button>
+              </div>
+              {ttsMode === 'web-speech' && (
+                <p className="mt-2 text-center text-[11px] text-amber-300/80">
+                  浏览器原生语音无法录制音频，MP3 下载与混音导出不可用
+                </p>
+              )}
 
               {/* 闪烁光环效果 */}
               {showAlert && (
@@ -936,6 +1235,13 @@ export default function NewsReaderPage() {
           <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 rounded-xl backdrop-blur">
             <p className="text-emerald-200 text-center text-xs">
               当前为<span className="font-semibold">高质量神经语音模式</span>（Edge TTS）
+            </p>
+          </div>
+        )}
+        {ttsMode === 'web-speech' && (
+          <div className="p-2 bg-amber-500/10 border border-amber-500/25 rounded-xl backdrop-blur">
+            <p className="text-amber-200 text-center text-xs">
+              当前使用<span className="font-semibold">浏览器自带语音</span>（离线降级，不可导出音频）
             </p>
           </div>
         )}
@@ -986,6 +1292,11 @@ export default function NewsReaderPage() {
                           <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
                             {item.voiceLabel}
                           </span>
+                          {item.mode === 'web-speech' && (
+                            <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
+                              浏览器语音
+                            </span>
+                          )}
                           {item.speechRate !== 0 && (
                             <span className="text-cyan-300/70">
                               语速 {item.speechRate > 0 ? `+${item.speechRate}` : item.speechRate}
@@ -1058,6 +1369,14 @@ export default function NewsReaderPage() {
           <i className="fa-solid fa-house text-white"></i>
         </Link>
       </div>
+
+      {/* 更新记录 */}
+      <VersionHistoryDialog
+        releases={TTS_RELEASES}
+        subtitle="语音朗读系统 · 版本历史"
+        tone="dark"
+        position="bottom-left"
+      />
 
       {/* 音频编辑器弹窗 */}
       <AudioEditor

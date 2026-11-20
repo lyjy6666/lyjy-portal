@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle, Droplet } from 'lucide-react';
+import { Image, FileJson, Code2, Sparkles, FileText, Wrench, Music, Clock, Video, Archive, Download, AlertCircle, Droplet, Crown } from 'lucide-react';
 import ImageConverter from '@/components/converters/ImageConverter';
 import TextConverter from '@/components/converters/TextConverter';
 import CodeConverter from '@/components/converters/CodeConverter';
@@ -16,7 +17,17 @@ import VideoConverter from '@/components/converters/VideoConverter';
 import CompressConverter from '@/components/converters/CompressConverter';
 import WatermarkTool from '@/components/converters/WatermarkTool';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import SunsetBanner from '@/components/SunsetBanner';
+import SunsetOverlay from '@/components/SunsetOverlay';
 import Link from 'next/link';
+
+/** 格式转换工具箱的版本历史（越靠前越新） */
+const TOOLBOX_RELEASES: Release[] = [
+  { version: 'V2.3', date: '2026.7.29', latest: true, items: ['新增了水印工具'] },
+  { version: 'V2.2', date: '2026.7.9', items: ['修复了一些已知问题'] },
+  { version: 'V2.1', date: '2026.3.1', items: ['新增了大量功能', '增加了独立桌面应用', '已经修复了已知问题'] },
+  { version: 'V2.0', date: '2026.1.31', items: ['网站焕新上线了，原网站已停用', '修复了已知问题，界面美观提升'] },
+];
 
 export default function ToolboxPage() {
   const [updateOpen, setUpdateOpen] = useState(false);
@@ -28,6 +39,8 @@ export default function ToolboxPage() {
         onComplete={() => setIsLoading(false)}
         duration={2000}
       />
+      <SunsetBanner date="2026年10月25日" proHref="/toolbox/pro" storageKey="sunset.toolbox" />
+      <SunsetOverlay date="2026-10-25" proHref="/toolbox/pro" name="格式转换工具箱" />
       <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -50,6 +63,15 @@ export default function ToolboxPage() {
                 BETA
               </span>
             </span>
+            {/* Pro 版入口：从旧版也能直接尝鲜 */}
+            <a
+              href="/toolbox/pro"
+              title="完全重写的新版：9 个工具、修复全部已知问题"
+              className="group relative inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-4 py-1.5 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition-transform hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-500/40"
+            >
+              <Crown className="h-4 w-4" strokeWidth={2.2} />
+              PRO 尝鲜版
+            </a>
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-400">
             全能格式转换工具，支持图片、文本、代码、文档等多种格式的高效转换
@@ -503,95 +525,8 @@ export default function ToolboxPage() {
                 更新记录
               </DialogTitle>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-              {/* V2.3 - 突出显示 */}
-              <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6 shadow-xl shadow-blue-500/20 dark:border-blue-500 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-pink-950/50 dark:shadow-blue-500/20">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1 text-xs font-bold text-white shadow-lg">
-                      🎉 当前版本
-                    </span>
-                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-pink-400">
-                      V2.3
-                    </h3>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    2026.7.29
-                  </span>
-                </div>
-                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">💧</span>
-                    <span className="font-semibold">新增了水印工具</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* V2.2 - 历史版本 */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-md dark:border-slate-700 dark:bg-slate-900/50">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    V2.2
-                  </h3>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">
-                    2026.7.9
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🔧</span>
-                    <span>修复了一些已知问题</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* V2.1 - 历史版本 */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-md dark:border-slate-700 dark:bg-slate-900/50">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    V2.1
-                  </h3>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">
-                    2026.3.1
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">✨</span>
-                    <span>新增了大量功能</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🚀</span>
-                    <span>增加了独立桌面应用</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🔧</span>
-                    <span>已经修复了已知问题</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* V2.0 - 普通显示 */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-md dark:border-slate-700 dark:bg-slate-900/50">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                    V2.0
-                  </h3>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">
-                    2026.1.31
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🌐</span>
-                    <span>网站焕新上线了，原网站已停用</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">💎</span>
-                    <span>修复了已知问题，界面美观提升</span>
-                  </div>
-                </div>
-              </div>
+            <div className="py-3">
+              <UpdateTimeline releases={TOOLBOX_RELEASES} tone="light" />
             </div>
           </DialogContent>
         </Dialog>

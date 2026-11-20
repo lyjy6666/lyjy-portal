@@ -34,10 +34,12 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"
-        />
+        {/*
+          FontAwesome 改为站内自托管：原先走 cdn.jsdelivr.net，该 CDN 在部分网络下
+          直接连接失败（返回 000），会导致全站图标字体加载不出来，
+          纯图标按钮（如播放器全屏）看起来就像「消失了」。
+        */}
+        <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css" />
       </head>
       <body className="antialiased">
         {children}

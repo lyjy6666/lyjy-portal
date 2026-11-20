@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-function getUserIdFromHeader(request: NextRequest): number | null {
-  const userIdStr = request.headers.get('X-User-Id');
-  if (!userIdStr) return null;
-  const userId = parseInt(userIdStr);
-  return isNaN(userId) ? null : userId;
-}
+import { requireHomeworkUser as getUserIdFromHeader } from '@/lib/homeworkAuth';
 
 export async function POST(
   request: NextRequest,

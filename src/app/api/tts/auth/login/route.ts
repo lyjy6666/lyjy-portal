@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import {
+  getClientIp,
+  checkRateLimit,
+  recordFailure,
+  clearFailures,
+  verifyPassword,
+  hashPassword,
+} from '../security';
 
 interface LoginRequest {
   username: string;
@@ -17,6 +25,15 @@ function calcVip(vipExpiresAt: string | null): { isVip: boolean; vipExpiresAt: s
 // 登录
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const limit = checkRateLimit(ip);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, message: `尝试过于频繁，请 ${limit.retryAfter} 秒后再试` },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { username, password } = body as LoginRequest;
 
@@ -34,6 +51,8 @@ export async function POST(request: NextRequest) {
     `;
 
     if (rows.length === 0) {
+      // 用户名不存在也计入失败次数，避免攻击者借此探测账号
+      recordFailure(ip);
       return NextResponse.json(
         { success: false, message: '用户名或密码错误' },
         { status: 401 }
@@ -42,12 +61,25 @@ export async function POST(request: NextRequest) {
 
     const user = rows[0];
 
-    // 验证密码
-    if (user.password !== password) {
+    // 验证密码：兼容加盐哈希与历史明文，均为恒定时间比较
+    const { ok, needsUpgrade } = verifyPassword(user.password, password);
+    if (!ok) {
+      recordFailure(ip);
       return NextResponse.json(
         { success: false, message: '用户名或密码错误' },
         { status: 401 }
       );
+    }
+    clearFailures(ip);
+
+    // 旧明文账号首次登录成功：静默升级为哈希存储。
+    // password 列本身是 TEXT，无需改表结构；升级失败也不影响本次登录。
+    if (needsUpgrade) {
+      try {
+        await sql`UPDATE users SET password = ${hashPassword(password)} WHERE id = ${user.id}`;
+      } catch (e) {
+        console.warn('密码静默升级失败:', e instanceof Error ? e.message : e);
+      }
     }
 
     const { isVip, vipExpiresAt } = calcVip(user.vip_expires_at);
@@ -66,7 +98,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('登录错误:', error);
     return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : '登录失败' },
+      { success: false, message: '登录失败，请稍后重试' },
       { status: 500 }
     );
   }

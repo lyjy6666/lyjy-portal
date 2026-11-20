@@ -308,6 +308,8 @@ export const generateWhiteNoise = (
   source.connect(filter);
   filter.connect(gainNode);
   gainNode.connect(ctx.destination);
+  // 原版只播一次 5 秒缓冲就停了；自习室按计时自动播放时需要持续的环境音
+  source.loop = true;
   source.start();
 };
 

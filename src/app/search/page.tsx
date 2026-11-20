@@ -3,7 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from "react";
+import UpdateTimeline, { type Release } from '@/components/UpdateTimeline';
 import { motion, AnimatePresence } from 'framer-motion';
+import SunsetBanner from '@/components/SunsetBanner';
+import SunsetOverlay from '@/components/SunsetOverlay';
 
 type SearchEngine = "baidu" | "bing" | "google" | "yandex" | "doubao" | "tongyi" | "duckduckgo" | "sogou" | "so" | "zhihu" | "bilibili" | "github" | "douyin" | "xiaohongshu" | "scholar" | "metaso" | "yahoo" | "kaifa" | "taobao" | "weibo" | "douban" | "toutiao" | "naver" | "mdn" | "stackoverflow" | "jd";
 type Category = 'news' | 'shopping' | 'entertainment' | 'tools' | 'design' | 'dev' | 'games';
@@ -422,6 +425,16 @@ const folders: Folder[] = [
   }
 ];
 
+/** 搜索页的版本历史（越靠前越新） */
+const SEARCH_RELEASES: Release[] = [
+  { version: 'V2.2', date: '2026.7.11', latest: true, items: ['新增了大量搜索引擎'] },
+  { version: 'V2.1', date: '2026.3.11', items: ['优化了一下动画，增加了一些功能'] },
+  { version: 'V2.0', date: '2026.1.29', items: ['增加大量功能', '修复了一些已知问题'] },
+  { version: 'v1.2', date: '2025.8.27', items: ['修复了一些已知问题'] },
+  { version: 'v1.1', date: '2025.8.10', items: ['新增豆包、千问搜索', '修复已知问题'] },
+  { version: 'v1.0', date: '2025.8.6', items: ['网站上线啦，支持搜索哦'] },
+];
+
 export default function SearchPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedEngine, setSelectedEngine] = useState<SearchEngine>("bing");
@@ -561,6 +574,8 @@ export default function SearchPage() {
 
     return (
         <div className="min-h-screen flex flex-col">
+            <SunsetBanner date="2026年11月1日" proHref="/search/pro" storageKey="sunset.search" />
+            <SunsetOverlay date="2026-11-01" proHref="/search/pro" name="搜索页" />
             {/* FontAwesome 图标 */}
             <link
               rel="stylesheet"
@@ -902,51 +917,8 @@ export default function SearchPage() {
                             <i className="fa-solid fa-times text-lg"></i>
                         </button>
                     </div>
-                    <div className="p-5 space-y-6">
-                        <div className="border-l-4 border-blue-500 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2026.7.11 更新 V2.2</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>新增了大量搜索引擎</li>
-                            </ul>
-                        </div>
-                        <div className="border-l-4 border-gray-300 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2026.3.11 更新 V2.1</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>优化了一下动画，增加了一些功能</li>
-                            </ul>
-                        </div>
-                        <div className="border-l-4 border-gray-300 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2026.1.29 更新 V2.0</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>增加大量功能</li>
-                                <li>修复了一些已知问题</li>
-                            </ul>
-                        </div>
-                        <div className="border-l-4 border-gray-300 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2025.8.27 更新 v1.2</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>修复了一些已知问题</li>
-                            </ul>
-                        </div>
-                        <div className="border-l-4 border-gray-300 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2025.8.10 更新 v1.1</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>新增豆包、千问搜索</li>
-                                <li>修复已知问题</li>
-                            </ul>
-                        </div>
-                        <div className="border-l-4 border-gray-300 pl-4 py-1">
-                            <h4 className="font-semibold text-lg text-gray-800 dark:text-white">2025.8.6 发布 v1.0</h4>
-                            <ul
-                                className="list-disc pl-5 mt-2 space-y-1 text-gray-600 dark:text-gray-300">
-                                <li>网站上线啦，支持搜索哦</li>
-                            </ul>
-                        </div>
+                    <div className="p-5">
+                      <UpdateTimeline releases={SEARCH_RELEASES} tone="light" />
                     </div>
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end">
                         <button
