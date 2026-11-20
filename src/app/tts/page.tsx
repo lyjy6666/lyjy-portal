@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles, Download, SlidersHorizontal } from 'lucide-react';
+import { Play, Pause, Upload, Music, Mic, Wand2, Layers, Clock, Loader2, ScanText, History, Trash2, RotateCcw, Crown, Lock, LogIn, LogOut, Sparkles, Download, SlidersHorizontal, Volume2 } from 'lucide-react';
 import AudioEditor from '@/components/AudioEditor';
 import { VersionHistoryDialog } from '@/components/VersionHistoryDialog';
 import type { Release } from '@/components/UpdateTimeline';
@@ -1075,6 +1075,37 @@ export default function NewsReaderPage() {
                 max={100}
                 className="[&_[role=slider]]:bg-purple-400"
               />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  try {
+                    const ACtor =
+                      window.AudioContext ||
+                      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                    const ctx = new ACtor();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.75);
+                    osc.onended = () => { void ctx.close().catch(() => {}); };
+                  } catch {
+                    setError('当前浏览器无法播放测试音');
+                  }
+                }}
+                className="mt-3 h-8 w-full border-white/20 bg-white/5 text-xs text-white hover:border-purple-400/50 hover:bg-white/10"
+              >
+                <Volume2 className="mr-1.5 h-3.5 w-3.5" />
+                试听测试音（检查浏览器是否静音）
+              </Button>
             </CardContent>
           </Card>
         </div>
