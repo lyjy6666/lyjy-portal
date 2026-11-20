@@ -46,9 +46,21 @@ function PreviewFold() {
 /** 站点版本历史（越靠前越新） */
 const SITE_RELEASES: Release[] = [
   {
-    version: 'V7.0 Next',
-    date: '2026.11.15',
+    version: 'V7.8',
+    date: '2026.11.20',
     latest: true,
+    tag: '功能更新',
+    items: [
+      '番茄钟全新重构为 LYJY 自习室：深色暖光界面、无漂移计时、今日目标与白噪音，和原版数据互通。',
+      '格式转换工具箱 V3.1.0：新增 PDF 合并拆分旋转、图片加工、音频剪辑与文本批处理，浏览器本地就能用。',
+      '语音朗读 V3.0：修复在线合成 403，新增下载 MP3、历史缓存与混音导出，登录更安全。',
+      '个人中心改版：重写成长时间轴，补充科创社团经历。',
+      '更新预告顶部新增暂缓更新通知。',
+    ],
+  },
+  {
+    version: 'V7.5',
+    date: '2026.11.15',
     tag: '增量更新',
     items: [
       '界面美化：鼠标聚光灯、边缘流光、流光扫过等轻量动效；新增黑白科技主题；长页面使用滚动显现、数字递增、打字机与卡片错峰入场，支持鼠标跟随的 3D 倾斜。',
@@ -133,7 +145,7 @@ export default function VersionDialog({ open, onOpenChange }: { open: boolean; o
             <History size={17} className="text-sky-400" />
             更新记录
           </DialogTitle>
-          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 V7.0 Next（2026.11.15）</p>
+          <p className="text-[11px] tracking-wide text-slate-500">LYJY导航系统 · 当前 {CURRENT_VERSION}（2026.11.20）</p>
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto py-3 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
